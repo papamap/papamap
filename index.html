@@ -23,7 +23,6 @@
         
         .top-bar-container { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; width: calc(100vw - 32px); display: flex; align-items: center; gap: 8px; z-index: 10; pointer-events: none; }
         
-        /* 5. 글래스모피즘 적용 */
         .top-header { flex-shrink: 0; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 8px 14px; border-radius: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.6); display: flex; flex-direction: row; align-items: center; gap: 10px; pointer-events: auto; white-space: nowrap; width: max-content; }
         .header-title { font-size: 16px; font-weight: 800; color: #212529; margin: 0; display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
         
@@ -56,7 +55,6 @@
         .custom-marker.zoomed:hover { transform: scale(1.4) !important; z-index: 200 !important; width: 14px !important; height: 14px !important; padding: 0 !important; }
         .custom-marker.zoomed .cmt-badge { display: none !important; } 
 
-        /* 4, 5. 정보창 구조 스크롤 및 글래스모피즘 변경 */
         .info-panel { position: absolute; top: calc(max(16px, env(safe-area-inset-top)) + 64px); left: 16px; width: 340px; max-width: calc(100vw - 32px); z-index: 10; pointer-events: none; max-height: calc(100vh - 120px - env(safe-area-inset-bottom)); padding: 0; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; box-sizing: border-box; box-shadow: 0 12px 40px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.6); opacity: 0; transform: translateX(-20px); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: block; overflow-y: auto; overflow-x: hidden; }
         .info-panel.show { opacity: 1; pointer-events: auto; transform: translateX(0); }
         .info-panel::-webkit-scrollbar { width: 6px; }
@@ -69,7 +67,7 @@
 
         .panel-top-bar { display: flex; justify-content: space-between; align-items: center; z-index: 10; width: 100%; box-sizing: border-box; }
         .panel-top-bar.has-image { position: absolute; top: 0; padding: 12px; }
-        .panel-top-bar.no-image { position: relative; padding: 16px 20px 0 20px; margin-bottom: 0; }
+        .panel-top-bar.no-image { position: relative; padding: 16px 20px 4px 20px; margin-bottom: 0; } /* 사진 없을 때 상단 여백 최소화하되 겹침 방지 */
 
         .btn-back-arrow { width: 32px; height: 32px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); border-radius: 50%; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 2px 6px rgba(0,0,0,0.1); color: #495057; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.1s; padding: 0; }
         .btn-back-arrow:active { transform: scale(0.9); }
@@ -81,9 +79,9 @@
         .icon-btn.liked { background: #fff0f0; border-color: #ffc9c9; }
         .icon-btn.liked svg { fill: #FF6B6B; stroke: #FF6B6B; }
 
-        .image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: #e9ecef; touch-action: pan-x; }
+        .image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: transparent; touch-action: pan-x; }
         .image-slider::-webkit-scrollbar { display: none; }
-        .place-photo { flex: 0 0 100%; width: 100%; height: 240px; scroll-snap-align: center; object-fit: cover; display: block; margin: 0; pointer-events: none; border-radius: 20px 20px 0 0; }
+        .place-photo { flex: 0 0 100%; width: 100%; height: 240px; scroll-snap-align: center; object-fit: cover; display: block; margin: 0; pointer-events: none; border-radius: 20px 20px 0 0; background: #e9ecef; }
         
         .info-category { font-size: 11px; font-weight: 800; color: #FF6B6B; margin-bottom: 4px; flex-shrink: 0; margin-top: 12px; }
         .title-row { display: flex; justify-content: flex-start; align-items: center; margin-bottom: 8px; width: 100%; flex-shrink: 0; gap: 6px; }
@@ -604,7 +602,6 @@
         var selectedLat = null, selectedLng = null;
         var currentNoticeId = null;
 
-        // 7. 내 위치 마커 변수
         var userLocationMarker = null;
 
         const heartOutline = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
@@ -969,7 +966,6 @@
             }
         }
 
-        // 2. 구 DB에 남아있을지 모르는 '실내+외'를 프론트엔드에서 강제로 '실내'로 매핑
         function normalizeCat(c) {
             if(!c) return '실내';
             if(c.includes('야외')) return '야외';
@@ -1025,7 +1021,6 @@
             }
         }
 
-        // 7. 내 위치 마커 업데이트 함수
         function updateUserLocationMarker(lat, lng) {
             var pos = new naver.maps.LatLng(lat, lng);
             if (!userLocationMarker) {
@@ -1033,10 +1028,15 @@
                     position: pos,
                     map: map,
                     icon: {
-                        content: '<div style="width:16px; height:16px; background:#4285F4; border-radius:50%; border:3px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+                        content: '<div style="width:16px; height:16px; background:#4285F4; border-radius:50%; border:3px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3); cursor:pointer;"></div>',
                         anchor: new naver.maps.Point(11, 11)
                     },
                     zIndex: 9999
+                });
+                
+                // 마커 클릭 시 해당 위치로 지도 이동 이벤트 추가
+                naver.maps.Event.addListener(userLocationMarker, 'click', function() {
+                    map.panTo(userLocationMarker.getPosition());
                 });
             } else {
                 userLocationMarker.setPosition(pos);
@@ -1055,7 +1055,7 @@
                     userLat = pos.coords.latitude; userLng = pos.coords.longitude;
                     map.setCenter(new naver.maps.LatLng(userLat, userLng));
                     fetchWeather(userLat, userLng);
-                    updateUserLocationMarker(userLat, userLng); // 초기 위치 마커 세팅
+                    updateUserLocationMarker(userLat, userLng);
                 }, err => {
                     if (err.code === 1 || err.code === 2) console.warn("위치 정보 접근 실패.");
                 });
@@ -1293,7 +1293,6 @@
             let urls = place.image_url ? place.image_url.split(',') : [];
             let isHasImage = urls.length > 0;
 
-            // 4, 5. 정보창 스크롤 및 여백 구조 개선 (패널 전체가 통으로 스크롤됨)
             document.getElementById('info-content').innerHTML = `
                 <div class="info-header-wrap" id="header-wrap-${place.id}">
                     <div class="panel-top-bar ${isHasImage ? 'has-image' : 'no-image'}" id="top-bar-${place.id}">
@@ -1308,7 +1307,7 @@
                         </div>
                     </div>
                     
-                    <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}">
+                    <div class="image-slider" id="slider-${place.id}">
                         ${isHasImage 
                             ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') 
                             : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none';">`
@@ -1371,7 +1370,6 @@
                     </div>
                 </div>
             `;
-            // 패널을 열 때 스크롤을 맨 위로 초기화
             document.getElementById('info-content').scrollTop = 0;
             document.getElementById('info-content').classList.add('show');
             
