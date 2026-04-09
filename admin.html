@@ -11,6 +11,13 @@
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         h1 { margin: 0; font-size: 24px; font-weight: 800; color: #212529; }
         
+        /* 탭 디자인 */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; background: white; color: #adb5bd; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .tab-btn.active { background: #343a40; color: white; }
+        .section { display: none; }
+        .section.active { display: block; }
+
         .control-bar { display: flex; gap: 12px; margin-bottom: 20px; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); align-items: center; }
         .control-bar input, .control-bar select { padding: 10px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 14px; outline: none; }
         .control-bar input { width: 250px; }
@@ -21,7 +28,6 @@
         th { background-color: #343a40; color: white; font-weight: 600; white-space: nowrap; }
         tr:hover { background-color: #f8f9fa; }
         
-        /* 엑셀 방식의 인라인 입력폼 */
         td input[type="text"], td select { width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 6px; font-size: 13px; background: transparent; font-family: inherit; transition: 0.2s; box-sizing: border-box; }
         td input[type="text"]:focus, td select:focus { border-color: #5c7cfa; background: white; box-shadow: 0 0 0 3px rgba(92,124,250,0.1); }
         td input[type="text"]:hover, td select:hover { border-color: #dee2e6; background: white; }
@@ -43,32 +49,55 @@
         <a href="index.html" style="color:#5c7cfa; text-decoration:none; font-weight:700; font-size:14px;">본 서비스로 이동 ➔</a>
     </div>
 
-    <div class="control-bar">
-        <input type="text" id="admin-search" placeholder="장소명 검색..." onkeyup="renderAdminTable()">
-        <select id="admin-category" onchange="renderAdminTable()">
-            <option value="">모든 카테고리</option>
-            <option value="실내">실내</option>
-            <option value="야외">야외</option>
-        </select>
-        <div class="stat-badge" id="total-count">총 0개</div>
+    <div class="tabs">
+        <button class="tab-btn active" id="btn-tab-places" onclick="switchTab('places')">장소 관리</button>
+        <button class="tab-btn" id="btn-tab-inquiries" onclick="switchTab('inquiries')">문의사항 확인</button>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 50px;">ID</th>
-                <th style="width: 10%;">카테고리</th>
-                <th style="width: 20%;">장소명</th>
-                <th style="width: 15%;">주차 정보</th>
-                <th style="width: 15%;">입장료</th>
-                <th style="width: 15%;">수유실</th>
-                <th style="width: 10%;">저장</th>
-                <th style="width: 10%;">삭제</th>
-            </tr>
-        </thead>
-        <tbody id="admin-tbody">
-            </tbody>
-    </table>
+    <div id="section-places" class="section active">
+        <div class="control-bar">
+            <input type="text" id="admin-search" placeholder="장소명 검색..." onkeyup="renderAdminTable()">
+            <select id="admin-category" onchange="renderAdminTable()">
+                <option value="">모든 카테고리</option>
+                <option value="실내">실내</option>
+                <option value="야외">야외</option>
+            </select>
+            <div class="stat-badge" id="total-count">총 0개</div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50px;">ID</th>
+                    <th style="width: 9%;">카테고리</th>
+                    <th style="width: 15%;">장소명</th>
+                    <th style="width: 12%;">주차 정보</th>
+                    <th style="width: 12%;">입장료</th>
+                    <th style="width: 12%;">수유실</th>
+                    <th style="width: 20%;">설명</th>
+                    <th style="width: 8%;">저장</th>
+                    <th style="width: 7%;">삭제</th>
+                </tr>
+            </thead>
+            <tbody id="admin-tbody">
+                </tbody>
+        </table>
+    </div>
+
+    <div id="section-inquiries" class="section">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 60px;">ID</th>
+                    <th style="width: 15%;">접수일시</th>
+                    <th style="width: 59%;">문의 내용</th>
+                    <th style="width: 20%;">답변받을 연락처</th>
+                </tr>
+            </thead>
+            <tbody id="inquiries-tbody">
+                </tbody>
+        </table>
+    </div>
 
     <script src="admin.js"></script>
 </body>
