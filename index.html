@@ -55,11 +55,9 @@
         .custom-marker.zoomed:hover { transform: scale(1.4) !important; z-index: 200 !important; width: 14px !important; height: 14px !important; padding: 0 !important; }
         .custom-marker.zoomed .cmt-badge { display: none !important; } 
 
-        /* 정보창 패널: 통스크롤 방지 (분리 구조) */
         .info-panel { position: absolute; top: calc(max(16px, env(safe-area-inset-top)) + 64px); left: 16px; width: 340px; max-width: calc(100vw - 32px); z-index: 10; pointer-events: none; max-height: calc(100vh - 120px - env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; box-sizing: border-box; box-shadow: 0 12px 40px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.6); opacity: 0; transform: translateX(-20px); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column; overflow: hidden; padding: 0; }
         .info-panel.show { opacity: 1; pointer-events: auto; transform: translateX(0); }
         
-        /* 상단 버튼 영역 고정 */
         .panel-top-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; padding: 16px 20px; pointer-events: none; }
         .panel-top-bar > * { pointer-events: auto; }
 
@@ -73,15 +71,13 @@
         .icon-btn.liked { background: #fff0f0; border-color: #ffc9c9; }
         .icon-btn.liked svg { fill: #FF6B6B; stroke: #FF6B6B; }
 
-        /* 내부 스크롤 영역 */
         .info-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; display: flex; flex-direction: column; }
         .info-scroll-area::-webkit-scrollbar { width: 6px; }
         .info-scroll-area::-webkit-scrollbar-track { background: transparent; }
         .info-scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 
-        /* 사진 유무에 따른 상단 여백 보장 */
-        .info-header-wrap { position: relative; width: 100%; flex-shrink: 0; }
-        .info-header-wrap.no-image { height: 76px; } 
+        /* 여백 깜빡임 완벽 해결: 무조건 최소 76px 높이를 가지도록 강제 */
+        .info-header-wrap { position: relative; width: 100%; flex-shrink: 0; min-height: 76px; }
 
         .image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: transparent; touch-action: pan-x; }
         .image-slider::-webkit-scrollbar { display: none; }
@@ -494,19 +490,25 @@
             
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>🚗 주차</span>
-                <button type="button" class="btn-free-toggle" id="btn-edit-free-parking" onclick="toggleFree('edit-parking', this, '예: 1시간 2,000원', '무료')">무료</button>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn-free-toggle" id="btn-edit-free-parking" onclick="toggleOption('edit-parking', this, '예: 1시간 2,000원', '무료')">무료</button>
+                    <button type="button" class="btn-free-toggle" id="btn-edit-no-parking" onclick="toggleOption('edit-parking', this, '예: 1시간 2,000원', '불가')">불가</button>
+                </div>
             </div>
             <textarea id="edit-parking" placeholder="예: 1시간 2,000원" rows="2" class="full-width" style="margin-bottom:12px;"></textarea>
             
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>💸 입장료</span>
-                <button type="button" class="btn-free-toggle" id="btn-edit-free-entry" onclick="toggleFree('edit-entry', this, '예: 성인 5천원&#10;소인 무료', '없음')">없음</button>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn-free-toggle" id="btn-edit-free-entry" onclick="toggleOption('edit-entry', this, '예: 성인 5천원&#10;소인 무료', '무료')">무료</button>
+                    <button type="button" class="btn-free-toggle" id="btn-edit-no-entry" onclick="toggleOption('edit-entry', this, '예: 성인 5천원&#10;소인 무료', '없음')">없음</button>
+                </div>
             </div>
             <textarea id="edit-entry" placeholder="예: 성인 5천원&#10;소인 무료" rows="2" class="full-width" style="margin-bottom:12px;"></textarea>
             
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>🍼 수유실</span>
-                <button type="button" class="btn-free-toggle" id="btn-edit-no-nursing" onclick="toggleFree('edit-nursing', this, '예: 2층 여성화장실 옆', '없음')">없음</button>
+                <button type="button" class="btn-free-toggle" id="btn-edit-no-nursing" onclick="toggleOption('edit-nursing', this, '예: 2층 여성화장실 옆', '없음')">없음</button>
             </div>
             <textarea id="edit-nursing" placeholder="예: 2층 여성화장실 옆" rows="1" class="full-width" style="margin-bottom:12px;"></textarea>
             
@@ -555,19 +557,25 @@
             
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>🚗 주차</span>
-                <button type="button" class="btn-free-toggle" id="btn-free-parking" onclick="toggleFree('place-parking-detail', this, '예: 1시간 2,000원&#10;주말 이마트 영수증 제출 시 무료', '무료')">무료</button>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn-free-toggle" id="btn-free-parking" onclick="toggleOption('place-parking-detail', this, '예: 1시간 2,000원&#10;주말 이마트 영수증 제출 시 무료', '무료')">무료</button>
+                    <button type="button" class="btn-free-toggle" id="btn-no-parking" onclick="toggleOption('place-parking-detail', this, '예: 1시간 2,000원&#10;주말 이마트 영수증 제출 시 무료', '불가')">불가</button>
+                </div>
             </div>
             <textarea id="place-parking-detail" placeholder="예: 1시간 2,000원&#10;주말 이마트 영수증 제출 시 무료" rows="2" class="full-width" style="margin-bottom:12px;"></textarea>
             
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>💸 입장료</span>
-                <button type="button" class="btn-free-toggle" id="btn-free-entry" onclick="toggleFree('place-entry-detail', this, '예: 성인 5천원&#10;소인 무료', '없음')">없음</button>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn-free-toggle" id="btn-free-entry" onclick="toggleOption('place-entry-detail', this, '예: 성인 5천원&#10;소인 무료', '무료')">무료</button>
+                    <button type="button" class="btn-free-toggle" id="btn-no-entry" onclick="toggleOption('place-entry-detail', this, '예: 성인 5천원&#10;소인 무료', '없음')">없음</button>
+                </div>
             </div>
             <textarea id="place-entry-detail" placeholder="예: 성인 5천원&#10;소인 무료" rows="2" class="full-width" style="margin-bottom:12px;"></textarea>
             
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>🍼 수유실</span>
-                <button type="button" class="btn-free-toggle" id="btn-no-nursing" onclick="toggleFree('place-nursing-detail', this, '예: 2층 여성화장실 옆', '없음')">없음</button>
+                <button type="button" class="btn-free-toggle" id="btn-no-nursing" onclick="toggleOption('place-nursing-detail', this, '예: 2층 여성화장실 옆', '없음')">없음</button>
             </div>
             <textarea id="place-nursing-detail" placeholder="예: 2층 여성화장실 옆" rows="1" class="full-width" style="margin-bottom:12px;"></textarea>
             
@@ -654,11 +662,20 @@
             });
         }
 
-        function toggleFree(inputId, btnEl, placeholderTxt, toggleText = '무료') {
-            btnEl.classList.toggle('active');
+        // 여러 개의 버튼(무료, 불가 등)을 부드럽게 토글하도록 업그레이드된 함수
+        function toggleOption(inputId, btnEl, placeholderTxt, toggleText) {
             const inputEl = document.getElementById(inputId);
-            if (btnEl.classList.contains('active')) {
-                inputEl.dataset.oldVal = inputEl.value;
+            const isActive = btnEl.classList.contains('active');
+            
+            // 같은 그룹 내의 다른 활성화된 버튼 찾아서 꺼주기
+            const siblings = btnEl.parentElement.querySelectorAll('.btn-free-toggle');
+            siblings.forEach(b => b.classList.remove('active'));
+
+            if (!isActive) {
+                btnEl.classList.add('active');
+                if (!inputEl.disabled) {
+                    inputEl.dataset.oldVal = inputEl.value; // 원래 입력되어 있던 값 기억
+                }
                 inputEl.value = toggleText;
                 inputEl.disabled = true;
             } else {
@@ -1235,6 +1252,7 @@
                         if (slider) slider.style.display = 'flex';
                     }
                 } else {
+                    // 이미지가 없는 경우, 클래스를 제거하여 CSS에서 최소 높이만 남게 처리
                     if(headerWrapEl) headerWrapEl.classList.add('no-image');
                 }
             } catch(e) {
@@ -1425,19 +1443,35 @@
             document.getElementById('edit-hours').value = place.business_hours || '';
             
             const pInput = document.getElementById('edit-parking');
-            const pBtn = document.getElementById('btn-edit-free-parking');
-            if(place.parking_fee === '무료' || place.parking_fee === '없음') {
-                pBtn.classList.add('active'); pInput.disabled = true; pInput.value = '무료'; pInput.dataset.oldVal = '';
+            const pBtnFree = document.getElementById('btn-edit-free-parking');
+            const pBtnNo = document.getElementById('btn-edit-no-parking');
+            
+            pBtnFree.classList.remove('active');
+            pBtnNo.classList.remove('active');
+            pInput.disabled = false;
+
+            if(place.parking_fee === '무료') {
+                pBtnFree.classList.add('active'); pInput.disabled = true; pInput.value = '무료'; pInput.dataset.oldVal = '';
+            } else if(place.parking_fee === '불가') {
+                pBtnNo.classList.add('active'); pInput.disabled = true; pInput.value = '불가'; pInput.dataset.oldVal = '';
             } else {
-                pBtn.classList.remove('active'); pInput.disabled = false; pInput.value = place.parking_fee || '';
+                pInput.value = place.parking_fee || '';
             }
 
             const eInput = document.getElementById('edit-entry');
-            const eBtn = document.getElementById('btn-edit-free-entry');
-            if(place.entry_fee === '없음' || place.entry_fee === '무료') {
-                eBtn.classList.add('active'); eInput.disabled = true; eInput.value = '없음'; eInput.dataset.oldVal = '';
+            const eBtnFree = document.getElementById('btn-edit-free-entry');
+            const eBtnNo = document.getElementById('btn-edit-no-entry');
+            
+            eBtnFree.classList.remove('active');
+            eBtnNo.classList.remove('active');
+            eInput.disabled = false;
+
+            if(place.entry_fee === '무료') {
+                eBtnFree.classList.add('active'); eInput.disabled = true; eInput.value = '무료'; eInput.dataset.oldVal = '';
+            } else if(place.entry_fee === '없음') {
+                eBtnNo.classList.add('active'); eInput.disabled = true; eInput.value = '없음'; eInput.dataset.oldVal = '';
             } else {
-                eBtn.classList.remove('active'); eInput.disabled = false; eInput.value = place.entry_fee || '';
+                eInput.value = place.entry_fee || '';
             }
             
             const nInput = document.getElementById('edit-nursing');
@@ -1509,14 +1543,15 @@
         }
 
         async function editComment(placeId, commentId) {
-            const pwInput = prompt("비밀번호를 입력하세요:");
+            const pwInput = await askPassword();
             if (!pwInput) return;
+            
             let place = placesData.find(p => p.id === placeId);
             let comments = place.comments_list ? JSON.parse(place.comments_list) : [];
             const target = comments.find(c => c.id === commentId);
             
             if (target && target.pw === pwInput) {
-                const newText = prompt("수정할 내용을 입력하세요:", target.text);
+                const newText = await askTextPrompt(target.text);
                 if (newText !== null && newText.trim() !== '') {
                     target.text = newText.trim();
                     let updatedJson = JSON.stringify(comments);
@@ -1530,8 +1565,9 @@
         }
 
         async function deleteComment(placeId, commentId) {
-            const pwInput = prompt("비밀번호를 입력하세요:");
+            const pwInput = await askPassword();
             if (!pwInput) return;
+
             let place = placesData.find(p => p.id === placeId);
             let comments = place.comments_list ? JSON.parse(place.comments_list) : [];
             const target = comments.find(c => c.id === commentId);
