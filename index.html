@@ -55,19 +55,13 @@
         .custom-marker.zoomed:hover { transform: scale(1.4) !important; z-index: 200 !important; width: 14px !important; height: 14px !important; padding: 0 !important; }
         .custom-marker.zoomed .cmt-badge { display: none !important; } 
 
-        .info-panel { position: absolute; top: calc(max(16px, env(safe-area-inset-top)) + 64px); left: 16px; width: 340px; max-width: calc(100vw - 32px); z-index: 10; pointer-events: none; max-height: calc(100vh - 120px - env(safe-area-inset-bottom)); padding: 0; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; box-sizing: border-box; box-shadow: 0 12px 40px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.6); opacity: 0; transform: translateX(-20px); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: block; overflow-y: auto; overflow-x: hidden; }
+        /* 정보창 패널: 통스크롤 방지 (분리 구조) */
+        .info-panel { position: absolute; top: calc(max(16px, env(safe-area-inset-top)) + 64px); left: 16px; width: 340px; max-width: calc(100vw - 32px); z-index: 10; pointer-events: none; max-height: calc(100vh - 120px - env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; box-sizing: border-box; box-shadow: 0 12px 40px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.6); opacity: 0; transform: translateX(-20px); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column; overflow: hidden; padding: 0; }
         .info-panel.show { opacity: 1; pointer-events: auto; transform: translateX(0); }
-        .info-panel::-webkit-scrollbar { width: 6px; }
-        .info-panel::-webkit-scrollbar-track { background: transparent; }
-        .info-panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
         
-        .info-body-wrap { padding: 0 20px 30px 20px; height: auto; }
-
-        .info-header-wrap { position: relative; width: 100%; }
-
-        .panel-top-bar { display: flex; justify-content: space-between; align-items: center; z-index: 10; width: 100%; box-sizing: border-box; }
-        .panel-top-bar.has-image { position: absolute; top: 0; padding: 12px; }
-        .panel-top-bar.no-image { position: relative; padding: 16px 20px 4px 20px; margin-bottom: 0; } /* 사진 없을 때 상단 여백 최소화하되 겹침 방지 */
+        /* 상단 버튼 영역 고정 */
+        .panel-top-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; padding: 16px 20px; pointer-events: none; }
+        .panel-top-bar > * { pointer-events: auto; }
 
         .btn-back-arrow { width: 32px; height: 32px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); border-radius: 50%; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 2px 6px rgba(0,0,0,0.1); color: #495057; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.1s; padding: 0; }
         .btn-back-arrow:active { transform: scale(0.9); }
@@ -79,10 +73,20 @@
         .icon-btn.liked { background: #fff0f0; border-color: #ffc9c9; }
         .icon-btn.liked svg { fill: #FF6B6B; stroke: #FF6B6B; }
 
+        /* 내부 스크롤 영역 */
+        .info-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; display: flex; flex-direction: column; }
+        .info-scroll-area::-webkit-scrollbar { width: 6px; }
+        .info-scroll-area::-webkit-scrollbar-track { background: transparent; }
+        .info-scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+        .info-header-wrap { position: relative; width: 100%; flex-shrink: 0; }
+        .info-header-wrap.no-image { height: 52px; } /* 사진 없을 때 상/하 대칭 여백을 위한 52px 투명 영역 */
+
         .image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: transparent; touch-action: pan-x; }
         .image-slider::-webkit-scrollbar { display: none; }
         .place-photo { flex: 0 0 100%; width: 100%; height: 240px; scroll-snap-align: center; object-fit: cover; display: block; margin: 0; pointer-events: none; border-radius: 20px 20px 0 0; background: #e9ecef; }
         
+        .info-body-wrap { padding: 0 20px 30px 20px; height: auto; }
         .info-category { font-size: 11px; font-weight: 800; color: #FF6B6B; margin-bottom: 4px; flex-shrink: 0; margin-top: 12px; }
         .title-row { display: flex; justify-content: flex-start; align-items: center; margin-bottom: 8px; width: 100%; flex-shrink: 0; gap: 6px; }
         .info-title-wrap { flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative; }
@@ -601,7 +605,6 @@
         var userLat = 37.5238506, userLng = 126.9804702; 
         var selectedLat = null, selectedLng = null;
         var currentNoticeId = null;
-
         var userLocationMarker = null;
 
         const heartOutline = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
@@ -1221,8 +1224,13 @@
                     const imgEl = document.getElementById(imgElementId);
                     if(imgEl) { imgEl.src = data.documents[0].image_url; imgEl.style.display = 'block'; }
                     
-                    const topBarEl = topBarId ? document.getElementById(topBarId) : null;
-                    if(topBarEl) { topBarEl.classList.remove('no-image'); topBarEl.classList.add('has-image'); }
+                    const headerWrapEl = headerWrapId ? document.getElementById(headerWrapId) : null;
+                    if(headerWrapEl) { 
+                        headerWrapEl.classList.remove('no-image'); 
+                        headerWrapEl.classList.add('has-image'); 
+                        const slider = headerWrapEl.querySelector('.image-slider');
+                        if (slider) slider.style.display = 'flex';
+                    }
                 }
             } catch(e) {}
         }
@@ -1294,86 +1302,92 @@
             let isHasImage = urls.length > 0;
 
             document.getElementById('info-content').innerHTML = `
-                <div class="info-header-wrap" id="header-wrap-${place.id}">
-                    <div class="panel-top-bar ${isHasImage ? 'has-image' : 'no-image'}" id="top-bar-${place.id}">
-                        <button class="btn-back-arrow" onclick="closePanel()">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <div class="panel-top-bar" id="top-bar-${place.id}">
+                    <button class="btn-back-arrow" onclick="closePanel()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    <div class="icon-actions">
+                        <button class="icon-btn ${myVote === 'like' ? 'liked' : ''}" onclick="toggleVote(${place.id})" id="btn-like-${place.id}">
+                            ${myVote === 'like' ? heartFilled : heartOutline}
                         </button>
-                        <div class="icon-actions">
-                            <button class="icon-btn ${myVote === 'like' ? 'liked' : ''}" onclick="toggleVote(${place.id})" id="btn-like-${place.id}">
-                                ${myVote === 'like' ? heartFilled : heartOutline}
-                            </button>
-                            <button class="icon-btn" onclick="sharePlace('${place.name}', '${place.address || ''}')">${shareIcon}</button>
-                        </div>
-                    </div>
-                    
-                    <div class="image-slider" id="slider-${place.id}">
-                        ${isHasImage 
-                            ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') 
-                            : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none';">`
-                        }
+                        <button class="icon-btn" onclick="sharePlace('${place.name}', '${place.address || ''}')">${shareIcon}</button>
                     </div>
                 </div>
 
-                <div class="info-body-wrap">
-                    <div class="info-category">${normalizeCat(place.category)}</div>
-                    
-                    <div class="title-row">
-                        <div class="info-title-wrap" style="flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative;">
-                            <div class="info-title" id="dyn-title-${place.id}" style="padding-right:0;">${place.name}</div>
+                <div class="info-scroll-area" id="scroll-area-${place.id}">
+                    <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
+                        <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}">
+                            ${isHasImage 
+                                ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') 
+                                : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none';">`
+                            }
                         </div>
-                        <button class="btn-edit-tiny" onclick="openEditModal(${place.id})">✏️</button>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                        ${place.address ? `
-                        <div class="info-address" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; display:flex; align-items:center; gap:4px; margin-bottom:0;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                            ${place.address}
+                    <div class="info-body-wrap">
+                        <div class="info-category">${normalizeCat(place.category)}</div>
+                        
+                        <div class="title-row">
+                            <div class="info-title-wrap" style="flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative;">
+                                <div class="info-title" id="dyn-title-${place.id}" style="padding-right:0;">${place.name}</div>
+                            </div>
+                            <button class="btn-edit-tiny" onclick="openEditModal(${place.id})">✏️</button>
                         </div>
-                        ` : ''}
-                        ${place.website_url ? `
-                        <a href="${place.website_url}" target="_blank" class="chip" style="padding: 4px 8px; font-size: 10px; margin: 0; background: rgba(255,255,255,0.7); box-shadow: none; color: #495057; text-decoration: none;">🌐 공식홈</a>
-                        ` : ''}
-                    </div>
-                    
-                    <div class="info-tag-wrap">
-                        <div class="info-tag-group">
-                            ${place.business_hours ? `<div class="info-tag"><span class="tag-label">시간</span><span class="tag-value">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
-                            ${place.parking_fee ? `<div class="info-tag"><span class="tag-label">주차</span><span class="tag-value">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                            ${place.entry_fee ? `<div class="info-tag"><span class="tag-label">입장료</span><span class="tag-value">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                            ${place.nursing_room ? `<div class="info-tag"><span class="tag-label">수유실</span><span class="tag-value">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
-                        </div>
-                    </div>
-                    
-                    ${place.comment && place.comment.trim() !== '' ? `
-                    <div class="info-desc">${linkify(escapeHtml(place.comment)).replace(/\n/g, '<br>')}</div>
-                    ` : ''}
-                    
-                    <div style="font-size:10.5px; color:#adb5bd; margin-bottom:16px; margin-top:-8px; letter-spacing:-0.3px; margin-left: 6px;">*&nbsp;&nbsp;정확한 최신 정보는 방문 전 공식 홈페이지 등을 꼭 확인해주세요.</div>
 
-                    <div class="comments-section">
-                        <div class="comment-inputs-top">
-                            <input type="text" id="cmt-author-${place.id}" placeholder="닉네임">
-                            <input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호">
-                        </div>
-                        <div class="comment-input-wrap">
-                            <textarea id="cmt-text-${place.id}" placeholder="내용" rows="1"></textarea>
-                            <button onclick="addComment(${place.id})">등록</button>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                            ${place.address ? `
+                            <div class="info-address" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; display:flex; align-items:center; gap:4px; margin-bottom:0;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                ${place.address}
+                            </div>
+                            ` : ''}
+                            ${place.website_url ? `
+                            <a href="${place.website_url}" target="_blank" class="chip" style="padding: 4px 8px; font-size: 10px; margin: 0; background: rgba(255,255,255,0.7); box-shadow: none; color: #495057; text-decoration: none;">🌐 공식홈</a>
+                            ` : ''}
                         </div>
                         
-                        ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:12px;">추가정보 (${commentsArr.length})</div>` : ''}
-                        <div class="comments-list">
-                            ${visibleComments}
-                            ${moreBtn}
+                        <div class="info-tag-wrap">
+                            <div class="info-tag-group">
+                                ${place.business_hours ? `<div class="info-tag"><span class="tag-label">시간</span><span class="tag-value">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
+                                ${place.parking_fee ? `<div class="info-tag"><span class="tag-label">주차</span><span class="tag-value">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                                ${place.entry_fee ? `<div class="info-tag"><span class="tag-label">입장료</span><span class="tag-value">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                                ${place.nursing_room ? `<div class="info-tag"><span class="tag-label">수유실</span><span class="tag-value">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
+                            </div>
+                        </div>
+                        
+                        ${place.comment && place.comment.trim() !== '' ? `
+                        <div class="info-desc">${linkify(escapeHtml(place.comment)).replace(/\n/g, '<br>')}</div>
+                        ` : ''}
+                        
+                        <div style="font-size:10.5px; color:#adb5bd; margin-bottom:16px; margin-top:-8px; letter-spacing:-0.3px; margin-left: 6px;">*&nbsp;&nbsp;정확한 최신 정보는 방문 전 공식 홈페이지 등을 꼭 확인해주세요.</div>
+
+                        <div class="comments-section">
+                            <div class="comment-inputs-top">
+                                <input type="text" id="cmt-author-${place.id}" placeholder="닉네임">
+                                <input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호">
+                            </div>
+                            <div class="comment-input-wrap">
+                                <textarea id="cmt-text-${place.id}" placeholder="내용" rows="1"></textarea>
+                                <button onclick="addComment(${place.id})">등록</button>
+                            </div>
+                            
+                            ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:12px;">추가정보 (${commentsArr.length})</div>` : ''}
+                            <div class="comments-list">
+                                ${visibleComments}
+                                ${moreBtn}
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
-            document.getElementById('info-content').scrollTop = 0;
+            
             document.getElementById('info-content').classList.add('show');
             
+            // 패널이 열릴 때 스크롤을 항상 맨 위로 초기화
             setTimeout(() => {
+                const scrollArea = document.getElementById(`scroll-area-${place.id}`);
+                if (scrollArea) scrollArea.scrollTop = 0;
+
                 const titleWrap = document.querySelector('.info-title-wrap');
                 const titleEl = document.getElementById(`dyn-title-${place.id}`);
                 if(titleEl.offsetWidth > titleWrap.offsetWidth) {
