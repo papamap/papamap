@@ -38,8 +38,6 @@
         
         .chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; padding: 6px 12px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px; font-size: 12px; font-weight: 700; color: #495057; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; user-select: none; }
         .chip.active { background: #343a40; color: white; border-color: #343a40; }
-        
-        /* 실내 색상을 인디고 블루(#5c7cfa)로 교체 */
         .chip[data-cat="실내"] { color: #5c7cfa; }
         .chip[data-cat="실내"].active { background: #5c7cfa; border-color: #5c7cfa; color: white; }
         .chip[data-cat="야외"] { color: #0ca678; }
@@ -49,7 +47,6 @@
         
         .custom-marker { position: relative; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap; border: 2px solid white; cursor: pointer; transition: all 0.2s; transform-origin: center bottom; }
         .custom-marker:hover { transform: scale(1.05) translateY(-2px); z-index: 100; }
-        /* 마커 실내 색상 인디고 블루 교체 */
         .marker-indoor { background: #5c7cfa; color: white; } 
         .marker-outdoor { background: #20c997; color: white; } 
         .cmt-badge { position: absolute; top: -6px; right: -6px; background: #343a40; color: white; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -79,7 +76,6 @@
         .info-scroll-area::-webkit-scrollbar-track { background: transparent; }
         .info-scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 
-        /* 사진 유무에 따른 상단 여백 (50px로 축소하여 여백 최적화) */
         .info-header-wrap { position: relative; width: 100%; flex-shrink: 0; }
         .info-header-wrap.no-image { height: 50px; min-height: 50px; } 
 
@@ -87,7 +83,6 @@
         .image-slider::-webkit-scrollbar { display: none; }
         .place-photo { flex: 0 0 100%; width: 100%; height: 240px; scroll-snap-align: center; object-fit: cover; display: block; margin: 0; pointer-events: none; border-radius: 20px 20px 0 0; background: #e9ecef; }
         
-        /* 사진 슬라이더 인디케이터(Dots) CSS */
         .slider-dots { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; z-index: 20; pointer-events: none; }
         .slider-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.5); transition: background-color 0.2s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         .slider-dot.active { background: rgba(255,255,255,1); box-shadow: 0 0 4px rgba(0,0,0,0.4); }
@@ -150,7 +145,6 @@
 
         .radio-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .radio-label { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #495057; font-weight: 600; padding: 8px 12px; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.5); }
-        /* 라디오 활성화 색상: 실내는 인디고블루, 나머지는 기본(코랄) */
         .radio-label:has(input[value="실내"]:checked) { border-color: #5c7cfa; background: rgba(92, 124, 250, 0.1); color: #5c7cfa; }
         .radio-label:has(input[value="야외"]:checked) { border-color: #0ca678; background: rgba(12, 166, 120, 0.1); color: #0ca678; }
         .radio-label input { display: none; } 
@@ -221,10 +215,10 @@
         .notice-detail-img { width: 100%; height: auto; border-radius: 12px; margin-bottom: 10px; display: block; object-fit: contain; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(33, 37, 41, 0.5); z-index: 4000; justify-content: center; align-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-        .modal-content { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.6); padding: 24px; border-radius: 24px; width: 85%; max-width: 440px; box-shadow: 0 16px 48px rgba(0,0,0,0.2); box-sizing: border-box; max-height: 90vh; overflow-x: hidden; overflow-y: auto; position: relative; }
+        .modal-content { background: rgba(255, 255, 255, 0.95); padding: 24px; border-radius: 24px; width: 85%; max-width: 440px; box-shadow: 0 16px 48px rgba(0,0,0,0.2); box-sizing: border-box; max-height: 90vh; overflow-x: hidden; overflow-y: auto; position: relative; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 12px; }
         .modal-header h3 { margin: 0; font-size: 18px; color: #212529; }
-        .panel-close-btn-static { background: rgba(248, 249, 250, 0.6); border: none; width: 28px; height: 28px; border-radius: 14px; font-size: 16px; font-weight: bold; color: #adb5bd; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; padding:0; margin-left: auto; }
+        .panel-close-btn-static { background: #f8f9fa; border: none; width: 28px; height: 28px; border-radius: 14px; font-size: 16px; font-weight: bold; color: #adb5bd; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; padding:0; margin-left: auto; }
         .panel-close-btn-static:active { transform: scale(0.9); background: #e9ecef; color: #495057; }
         
         .form-label { font-size: 12px; font-weight: 800; color: #495057; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; margin-top: 14px;}
@@ -244,13 +238,13 @@
         .form-row-group { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
         .form-row-group select { flex: 1; border: 1px solid #dee2e6; border-radius: 10px; padding: 12px 10px; font-size: 13px; outline: none; box-sizing: border-box; }
         .form-row-group input, .form-row-group textarea { flex: 2; margin-bottom: 0 !important; box-sizing: border-box; }
-        .modal-content input[type="text"], .modal-content textarea, .modal-content select.full-width { width: 100%; margin-bottom: 12px; padding: 12px 14px; box-sizing: border-box; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; background: rgba(255,255,255,0.6); }
-        .modal-content input:read-only { background: rgba(241, 243, 245, 0.5); color: #868e96; }
+        .modal-content input[type="text"], .modal-content textarea, .modal-content select.full-width { width: 100%; margin-bottom: 12px; padding: 12px 14px; box-sizing: border-box; border: 1px solid #dee2e6; border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; }
+        .modal-content input:read-only { background: #f1f3f5; color: #868e96; }
         .modal-content textarea { resize: none; line-height: 1.4; }
         
         .btn-group { display: flex; gap: 8px; margin-top: 14px; width: 100%; }
         .btn-action { padding: 14px; border: none; border-radius: 10px; cursor: pointer; flex: 1; font-weight: 700; font-size: 14px; }
-        .btn-cancel { background: rgba(233, 236, 239, 0.8); color: #495057; }
+        .btn-cancel { background: #e9ecef; color: #495057; }
         .btn-save { background: #FF6B6B; color: white; }
     </style>
 </head>
@@ -268,6 +262,20 @@
             <button class="chip active" data-cat="전체" onclick="setCategory('전체')">전체</button>
             <button class="chip" data-cat="실내" onclick="setCategory('실내')">🏠 실내</button>
             <button class="chip" data-cat="야외" onclick="setCategory('야외')">🌳 야외</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="map-link-modal" onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-content" style="width: 300px; padding: 24px; text-align: center; border-radius: 20px;">
+            <div class="modal-header" style="border:none; padding-bottom:0; margin-bottom:16px;">
+                <h3 style="margin-top:0; font-size:18px; color:#212529; flex:1;">길찾기 앱 선택</h3>
+                <button class="panel-close-btn-static" onclick="document.getElementById('map-link-modal').style.display='none'">✕</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <a id="link-naver" class="btn-map-text bg-naver" style="padding:14px; font-size:15px; cursor:pointer;">네이버지도</a>
+                <a id="link-kakao" class="btn-map-text bg-kakao" style="padding:14px; font-size:15px; cursor:pointer;">카카오맵</a>
+                <a id="link-tmap" class="btn-map-text bg-tmap" style="padding:14px; font-size:15px; cursor:pointer;">티맵</a>
+            </div>
         </div>
     </div>
 
@@ -364,20 +372,6 @@
             게시판
         </div>
     </nav>
-
-    <div class="modal-overlay" id="map-link-modal" onclick="if(event.target === this) this.style.display='none'">
-        <div class="modal-content" style="width: 300px; padding: 24px; text-align: center; border-radius: 20px;">
-            <div class="modal-header" style="border:none; padding-bottom:0; margin-bottom:16px;">
-                <h3 style="margin-top:0; font-size:18px; color:#212529; flex:1;">길찾기 앱 선택</h3>
-                <button class="panel-close-btn-static" onclick="document.getElementById('map-link-modal').style.display='none'">✕</button>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <a id="link-naver" class="btn-map-text bg-naver" style="padding:14px; font-size:15px; cursor:pointer;">네이버지도</a>
-                <a id="link-kakao" class="btn-map-text bg-kakao" style="padding:14px; font-size:15px; cursor:pointer;">카카오맵</a>
-                <a id="link-tmap" class="btn-map-text bg-tmap" style="padding:14px; font-size:15px; cursor:pointer;">티맵</a>
-            </div>
-        </div>
-    </div>
 
     <div class="modal-overlay" id="about-modal" onclick="if(event.target === this) this.style.display='none'">
         <div class="modal-content">
@@ -492,16 +486,16 @@
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>🚗 주차</span>
                 <div style="display:flex; gap:6px;">
-                    <button type="button" class="btn-free-toggle" id="btn-edit-free-parking" onclick="toggleOption('edit-parking', this, '예: 1시간 2,000원', '무료')">무료</button>
-                    <button type="button" class="btn-free-toggle" id="btn-edit-no-parking" onclick="toggleOption('edit-parking', this, '예: 1시간 2,000원', '불가')">불가</button>
+                    <button type="button" class="btn-free-toggle" id="btn-edit-free-parking" onclick="toggleOption('edit-parking', this, '예: 1시간 2,000원\\n주말 무료', '무료')">무료</button>
+                    <button type="button" class="btn-free-toggle" id="btn-edit-no-parking" onclick="toggleOption('edit-parking', this, '예: 1시간 2,000원\\n주말 무료', '불가')">불가</button>
                 </div>
             </div>
-            <textarea id="edit-parking" placeholder="예: 1시간 2,000원" rows="2" class="full-width" style="margin-bottom:12px;"></textarea>
+            <textarea id="edit-parking" placeholder="예: 1시간 2,000원&#10;주말 이마트 영수증 제출 시 무료" rows="2" class="full-width" style="margin-bottom:12px;"></textarea>
             
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>💸 입장료</span>
                 <div style="display:flex; gap:6px;">
-                    <button type="button" class="btn-free-toggle" id="btn-edit-no-entry" onclick="toggleOption('edit-entry', this, '예: 성인 5천원&#10;소인 무료', '없음')">없음</button>
+                    <button type="button" class="btn-free-toggle" id="btn-edit-no-entry" onclick="toggleOption('edit-entry', this, '예: 성인 5천원\\n소인 무료', '없음')">없음</button>
                 </div>
             </div>
             <textarea id="edit-entry" placeholder="예: 성인 5천원&#10;소인 무료" rows="2" class="full-width" style="margin-bottom:12px;"></textarea>
@@ -566,8 +560,8 @@
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>🚗 주차</span>
                 <div style="display:flex; gap:6px;">
-                    <button type="button" class="btn-free-toggle" id="btn-free-parking" onclick="toggleOption('place-parking-detail', this, '예: 1시간 2,000원&#10;주말 이마트 영수증 제출 시 무료', '무료')">무료</button>
-                    <button type="button" class="btn-free-toggle" id="btn-no-parking" onclick="toggleOption('place-parking-detail', this, '예: 1시간 2,000원&#10;주말 이마트 영수증 제출 시 무료', '불가')">불가</button>
+                    <button type="button" class="btn-free-toggle" id="btn-free-parking" onclick="toggleOption('place-parking-detail', this, '예: 1시간 2,000원\\n주말 무료', '무료')">무료</button>
+                    <button type="button" class="btn-free-toggle" id="btn-no-parking" onclick="toggleOption('place-parking-detail', this, '예: 1시간 2,000원\\n주말 무료', '불가')">불가</button>
                 </div>
             </div>
             <textarea id="place-parking-detail" placeholder="예: 1시간 2,000원&#10;주말 이마트 영수증 제출 시 무료" rows="2" class="full-width" style="margin-bottom:12px;"></textarea>
@@ -575,7 +569,7 @@
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>💸 입장료</span>
                 <div style="display:flex; gap:6px;">
-                    <button type="button" class="btn-free-toggle" id="btn-no-entry" onclick="toggleOption('place-entry-detail', this, '예: 성인 5천원&#10;소인 무료', '없음')">없음</button>
+                    <button type="button" class="btn-free-toggle" id="btn-no-entry" onclick="toggleOption('place-entry-detail', this, '예: 성인 5천원\\n소인 무료', '없음')">없음</button>
                 </div>
             </div>
             <textarea id="place-entry-detail" placeholder="예: 성인 5천원&#10;소인 무료" rows="2" class="full-width" style="margin-bottom:12px;"></textarea>
@@ -1238,7 +1232,6 @@
             if(resultCount === 0) listEl.innerHTML = '<div class="res-empty">조건에 맞는 장소가 없습니다.</div>';
         }
 
-        // 모바일 네이티브 앱 다이렉트 호출 함수
         function openAppMap(type, name, lat, lng) {
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             let scheme = '', fallback = '';
@@ -1255,7 +1248,6 @@
             }
             
             if (isMobile) {
-                // 앱 실행 시도 후 웹으로 폴백
                 const now = new Date().getTime();
                 setTimeout(() => {
                     if (new Date().getTime() - now < 2000) {
@@ -1269,7 +1261,11 @@
             document.getElementById('map-link-modal').style.display='none';
         }
 
-        async function fetchKakaoImage(query, imgElementId, topBarId) {
+        async function fetchKakaoImage(query, imgElementId, topBarId, sliderId, headerWrapId) {
+            const topBarEl = topBarId ? document.getElementById(topBarId) : null;
+            const sliderEl = sliderId ? document.getElementById(sliderId) : null;
+            const headerWrapEl = headerWrapId ? document.getElementById(headerWrapId) : null;
+            
             try {
                 const res = await fetch(`https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(query)}&size=1`, { headers: { "Authorization": `KakaoAK ${KAKAO_REST_KEY}` } });
                 const data = await res.json();
@@ -1279,12 +1275,18 @@
                     if(imgEl) { 
                         imgEl.src = data.documents[0].image_url; 
                         imgEl.style.display = 'block'; 
-                        // 카카오 이미지 성공 시 상단 여백 클래스 정리
-                        const headerWrap = document.querySelector('.info-header-wrap');
-                        if (headerWrap) headerWrap.classList.remove('no-image');
+                        
+                        if(topBarEl) { topBarEl.classList.remove('no-image'); topBarEl.classList.add('has-image'); }
+                        // 누락되었던 이미지 슬라이더 보이게 하기 복구 완료
+                        if(sliderEl) { sliderEl.style.display = 'flex'; }
+                        if(headerWrapEl) { headerWrapEl.classList.remove('no-image'); headerWrapEl.classList.add('has-image'); }
                     }
-                } 
-            } catch(e) {}
+                } else {
+                    if(headerWrapEl) headerWrapEl.classList.add('no-image');
+                }
+            } catch(e) {
+                if(headerWrapEl) headerWrapEl.classList.add('no-image');
+            }
         }
 
         function sharePlace(name, address) {
@@ -1324,7 +1326,6 @@
             }
         }
 
-        // 사진 슬라이더 인디케이터 업데이트
         function updateSliderDots(id, el) {
             const index = Math.round(el.scrollLeft / el.offsetWidth);
             const dots = document.querySelectorAll('#slider-dots-' + id + ' .slider-dot');
@@ -1362,7 +1363,6 @@
             let urls = place.image_url ? place.image_url.split(',') : [];
             let isHasImage = urls.length > 0;
             
-            // 인디고 컬러 동적 변수
             let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : '#5c7cfa';
 
             document.getElementById('info-content').innerHTML = `
@@ -1384,7 +1384,7 @@
                             <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)">
                                 ${isHasImage 
                                     ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') 
-                                    : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;">`
+                                    : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`
                                 }
                             </div>
                             ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
@@ -1469,7 +1469,8 @@
             }, 10);
 
             if(!isHasImage) {
-                fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`);
+                // 수정된 fetchKakaoImage 호출 부 (누락된 파라미터 복구 완료)
+                fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`, `slider-${place.id}`, `header-wrap-${place.id}`);
             }
         }
 
