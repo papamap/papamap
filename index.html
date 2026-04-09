@@ -662,6 +662,31 @@
             });
         }
 
+        function formatDescription(text) {
+            if (!text) return '';
+            const aTags = [];
+            // 1. 직접 작성한 <a> 태그를 찾아 임시 저장 (href 주소와 링크 텍스트 추출)
+            let str = text.replace(/<a\s+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi, function(match, url, label) {
+                aTags.push({ url: url, label: label });
+                return `__A_TAG_${aTags.length - 1}__`;
+            });
+            
+            // 2. 보안을 위해 나머지 텍스트는 이스케이프 처리 (<script> 등 악성 코드 방지)
+            str = escapeHtml(str);
+            
+            // 3. http:// 로 시작하는 쌩 텍스트 주소도 자동으로 링크 변환 (기존 linkify 기능)
+            str = str.replace(/(https?:\/\/[^\s]+)/g, function(url) {
+                return '<a href="' + url + '" target="_blank" style="color:#FF6B6B; text-decoration:underline;">' + url + '</a>';
+            });
+            
+            // 4. 임시 저장했던 <a> 태그를 안전하고 예쁜 아빠맵 스타일로 복구
+            str = str.replace(/__A_TAG_(\d+)__/g, function(match, i) {
+                return `<a href="${aTags[i].url}" target="_blank" style="color:#FF6B6B; text-decoration:underline;">${aTags[i].label}</a>`;
+            });
+            
+            return str.replace(/\n/g, '<br>');
+        }
+        
         function toggleOption(inputId, btnEl, placeholderTxt, toggleText) {
             const inputEl = document.getElementById(inputId);
             const isActive = btnEl.classList.contains('active');
@@ -1443,7 +1468,7 @@
                         </div>
                         
                         ${place.comment && place.comment.trim() !== '' ? `
-                        <div class="info-desc">${linkify(escapeHtml(place.comment)).replace(/\n/g, '<br>')}</div>
+                        <div class="info-desc">${formatDescription(place.comment)}</div>
                         ` : ''}
                         
                         <div style="font-size:10.5px; color:#adb5bd; margin-bottom:16px; margin-top:-8px; letter-spacing:-0.3px; margin-left: 6px;">*&nbsp;&nbsp;정확한 최신 정보는 방문 전 공식 홈페이지 등을 꼭 확인해주세요.</div>
