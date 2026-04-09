@@ -79,8 +79,9 @@
         .info-scroll-area::-webkit-scrollbar-track { background: transparent; }
         .info-scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 
+        /* 사진 유무에 따른 상단 여백 보장 */
         .info-header-wrap { position: relative; width: 100%; flex-shrink: 0; }
-        .info-header-wrap.no-image { height: 52px; } /* 사진 없을 때 상/하 대칭 여백을 위한 52px 투명 영역 */
+        .info-header-wrap.no-image { height: 76px; } 
 
         .image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: transparent; touch-action: pan-x; }
         .image-slider::-webkit-scrollbar { display: none; }
@@ -1037,7 +1038,6 @@
                     zIndex: 9999
                 });
                 
-                // 마커 클릭 시 해당 위치로 지도 이동 이벤트 추가
                 naver.maps.Event.addListener(userLocationMarker, 'click', function() {
                     map.panTo(userLocationMarker.getPosition());
                 });
@@ -1217,22 +1217,29 @@
         }
 
         async function fetchKakaoImage(query, imgElementId, topBarId, headerWrapId) {
+            const topBarEl = topBarId ? document.getElementById(topBarId) : null;
+            const headerWrapEl = headerWrapId ? document.getElementById(headerWrapId) : null;
+            
             try {
                 const res = await fetch(`https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(query)}&size=1`, { headers: { "Authorization": `KakaoAK ${KAKAO_REST_KEY}` } });
                 const data = await res.json();
+                
                 if(data.documents && data.documents.length > 0) {
                     const imgEl = document.getElementById(imgElementId);
                     if(imgEl) { imgEl.src = data.documents[0].image_url; imgEl.style.display = 'block'; }
-                    
-                    const headerWrapEl = headerWrapId ? document.getElementById(headerWrapId) : null;
+                    if(topBarEl) { topBarEl.classList.remove('no-image'); topBarEl.classList.add('has-image'); }
                     if(headerWrapEl) { 
                         headerWrapEl.classList.remove('no-image'); 
                         headerWrapEl.classList.add('has-image'); 
                         const slider = headerWrapEl.querySelector('.image-slider');
                         if (slider) slider.style.display = 'flex';
                     }
+                } else {
+                    if(headerWrapEl) headerWrapEl.classList.add('no-image');
                 }
-            } catch(e) {}
+            } catch(e) {
+                if(headerWrapEl) headerWrapEl.classList.add('no-image');
+            }
         }
 
         function sharePlace(name, address) {
@@ -1319,7 +1326,7 @@
                         <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}">
                             ${isHasImage 
                                 ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') 
-                                : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none';">`
+                                : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`
                             }
                         </div>
                     </div>
@@ -1383,7 +1390,6 @@
             
             document.getElementById('info-content').classList.add('show');
             
-            // 패널이 열릴 때 스크롤을 항상 맨 위로 초기화
             setTimeout(() => {
                 const scrollArea = document.getElementById(`scroll-area-${place.id}`);
                 if (scrollArea) scrollArea.scrollTop = 0;
@@ -1503,15 +1509,14 @@
         }
 
         async function editComment(placeId, commentId) {
-            const pwInput = await askPassword();
+            const pwInput = prompt("비밀번호를 입력하세요:");
             if (!pwInput) return;
-            
             let place = placesData.find(p => p.id === placeId);
             let comments = place.comments_list ? JSON.parse(place.comments_list) : [];
             const target = comments.find(c => c.id === commentId);
             
             if (target && target.pw === pwInput) {
-                const newText = await askTextPrompt(target.text);
+                const newText = prompt("수정할 내용을 입력하세요:", target.text);
                 if (newText !== null && newText.trim() !== '') {
                     target.text = newText.trim();
                     let updatedJson = JSON.stringify(comments);
@@ -1525,9 +1530,8 @@
         }
 
         async function deleteComment(placeId, commentId) {
-            const pwInput = await askPassword();
+            const pwInput = prompt("비밀번호를 입력하세요:");
             if (!pwInput) return;
-
             let place = placesData.find(p => p.id === placeId);
             let comments = place.comments_list ? JSON.parse(place.comments_list) : [];
             const target = comments.find(c => c.id === commentId);
