@@ -38,8 +38,10 @@
         
         .chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; padding: 6px 12px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px; font-size: 12px; font-weight: 700; color: #495057; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; user-select: none; }
         .chip.active { background: #343a40; color: white; border-color: #343a40; }
-        .chip[data-cat="실내"] { color: #f03e3e; }
-        .chip[data-cat="실내"].active { background: #FF6B6B; border-color: #FF6B6B; color: white; }
+        
+        /* 실내 색상을 인디고 블루(#5c7cfa)로 교체 */
+        .chip[data-cat="실내"] { color: #5c7cfa; }
+        .chip[data-cat="실내"].active { background: #5c7cfa; border-color: #5c7cfa; color: white; }
         .chip[data-cat="야외"] { color: #0ca678; }
         .chip[data-cat="야외"].active { background: #20c997; border-color: #20c997; color: white; }
 
@@ -47,7 +49,8 @@
         
         .custom-marker { position: relative; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap; border: 2px solid white; cursor: pointer; transition: all 0.2s; transform-origin: center bottom; }
         .custom-marker:hover { transform: scale(1.05) translateY(-2px); z-index: 100; }
-        .marker-indoor { background: #FF6B6B; color: white; } 
+        /* 마커 실내 색상 인디고 블루 교체 */
+        .marker-indoor { background: #5c7cfa; color: white; } 
         .marker-outdoor { background: #20c997; color: white; } 
         .cmt-badge { position: absolute; top: -6px; right: -6px; background: #343a40; color: white; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
@@ -76,15 +79,21 @@
         .info-scroll-area::-webkit-scrollbar-track { background: transparent; }
         .info-scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 
-        /* 여백 깜빡임 완벽 해결: 무조건 최소 50px 높이를 가지도록 강제 */
-        .info-header-wrap { position: relative; width: 100%; flex-shrink: 0; min-height: 50px; }
+        /* 사진 유무에 따른 상단 여백 (50px로 축소하여 여백 최적화) */
+        .info-header-wrap { position: relative; width: 100%; flex-shrink: 0; }
+        .info-header-wrap.no-image { height: 50px; min-height: 50px; } 
 
         .image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: transparent; touch-action: pan-x; }
         .image-slider::-webkit-scrollbar { display: none; }
         .place-photo { flex: 0 0 100%; width: 100%; height: 240px; scroll-snap-align: center; object-fit: cover; display: block; margin: 0; pointer-events: none; border-radius: 20px 20px 0 0; background: #e9ecef; }
         
+        /* 사진 슬라이더 인디케이터(Dots) CSS */
+        .slider-dots { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; z-index: 20; pointer-events: none; }
+        .slider-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.5); transition: background-color 0.2s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .slider-dot.active { background: rgba(255,255,255,1); box-shadow: 0 0 4px rgba(0,0,0,0.4); }
+
         .info-body-wrap { padding: 0 20px 30px 20px; height: auto; }
-        .info-category { font-size: 11px; font-weight: 800; color: #FF6B6B; margin-bottom: 4px; flex-shrink: 0; margin-top: 12px; }
+        .info-category { font-size: 11px; font-weight: 800; margin-bottom: 4px; flex-shrink: 0; margin-top: 12px; }
         .title-row { display: flex; justify-content: flex-start; align-items: center; margin-bottom: 8px; width: 100%; flex-shrink: 0; gap: 6px; }
         .info-title-wrap { flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative; }
         .info-title { font-size: 20px; font-weight: 800; color: #212529; margin: 0; display: inline-block; padding-right: 20px; }
@@ -139,9 +148,11 @@
         .media-preview-del { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border: none; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         .file-limit-text { font-size: 10.5px; color: #adb5bd; margin-top: 6px; display: block; font-weight: 500; letter-spacing: -0.5px; }
 
-        .radio-group { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .radio-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .radio-label { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #495057; font-weight: 600; padding: 8px 12px; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.5); }
-        .radio-label:has(input:checked) { border-color: #FF6B6B; background: rgba(255, 240, 240, 0.8); color: #FF6B6B; }
+        /* 라디오 활성화 색상: 실내는 인디고블루, 나머지는 기본(코랄) */
+        .radio-label:has(input[value="실내"]:checked) { border-color: #5c7cfa; background: rgba(92, 124, 250, 0.1); color: #5c7cfa; }
+        .radio-label:has(input[value="야외"]:checked) { border-color: #0ca678; background: rgba(12, 166, 120, 0.1); color: #0ca678; }
         .radio-label input { display: none; } 
 
         .btn-free-toggle { background: rgba(241, 243, 245, 0.6); border: 1px solid rgba(222, 226, 230, 0.6); color: #495057; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 0 16px; cursor: pointer; transition: 0.2s; white-space: nowrap; flex-shrink: 0; }
@@ -361,9 +372,9 @@
                 <button class="panel-close-btn-static" onclick="document.getElementById('map-link-modal').style.display='none'">✕</button>
             </div>
             <div style="display:flex; flex-direction:column; gap:10px;">
-                <a id="link-naver" target="_blank" class="btn-map-text bg-naver" style="padding:14px; font-size:15px;" onclick="document.getElementById('map-link-modal').style.display='none'">네이버지도</a>
-                <a id="link-kakao" target="_blank" class="btn-map-text bg-kakao" style="padding:14px; font-size:15px;" onclick="document.getElementById('map-link-modal').style.display='none'">카카오맵</a>
-                <a id="link-tmap" target="_blank" class="btn-map-text bg-tmap" style="padding:14px; font-size:15px;" onclick="document.getElementById('map-link-modal').style.display='none'">티맵</a>
+                <a id="link-naver" class="btn-map-text bg-naver" style="padding:14px; font-size:15px; cursor:pointer;">네이버지도</a>
+                <a id="link-kakao" class="btn-map-text bg-kakao" style="padding:14px; font-size:15px; cursor:pointer;">카카오맵</a>
+                <a id="link-tmap" class="btn-map-text bg-tmap" style="padding:14px; font-size:15px; cursor:pointer;">티맵</a>
             </div>
         </div>
     </div>
@@ -463,23 +474,13 @@
             </div>
             <input type="hidden" id="edit-place-id">
             
-            <div class="file-upload-wrap" id="wrap-edit-media">
-                <div class="file-upload-header">
-                    <label class="form-label" style="margin:0;">📷 사진 첨부 (최대 3장)</label>
-                    <button class="file-upload-btn" onclick="document.getElementById('edit-image-file').click()">파일 선택</button>
-                </div>
-                <input type="file" id="edit-image-file" accept="image/*" multiple onchange="placeEditMediaManager.addFiles(this)">
-                <div id="place-edit-media-preview" class="media-preview-container"></div>
-                <span class="file-limit-text">사진을 끌어다 놓아 순서를 변경할 수 있습니다.</span>
-            </div>
-
             <label class="form-label">
                 <span style="display:flex; align-items:center; gap:4px;">카테고리 <span class="req">*</span></span>
-                <span style="font-size: 11px; font-weight: normal; color: #868e96; margin-left: 8px;">(실내와 실외가 모두 있는 장소면 '실내' 선택)</span>
             </label>
-            <div class="radio-group" style="margin-bottom: 12px;">
+            <div class="radio-group" style="margin-bottom: 20px;">
                 <label class="radio-label"><input type="radio" name="edit-place-category" value="실내">🏠 실내</label>
                 <label class="radio-label"><input type="radio" name="edit-place-category" value="야외">🌳 야외</label>
+                <span style="font-size: 11px; font-weight: normal; color: #868e96; margin-left: 4px;">(실내/외 혼합 장소는 '실내' 선택)</span>
             </div>
             
             <label class="form-label">🌐 공식 홈페이지 등</label>
@@ -500,7 +501,6 @@
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>💸 입장료</span>
                 <div style="display:flex; gap:6px;">
-                    <button type="button" class="btn-free-toggle" id="btn-edit-free-entry" onclick="toggleOption('edit-entry', this, '예: 성인 5천원&#10;소인 무료', '무료')">무료</button>
                     <button type="button" class="btn-free-toggle" id="btn-edit-no-entry" onclick="toggleOption('edit-entry', this, '예: 성인 5천원&#10;소인 무료', '없음')">없음</button>
                 </div>
             </div>
@@ -513,8 +513,18 @@
             <textarea id="edit-nursing" placeholder="예: 2층 여성화장실 옆" rows="1" class="full-width" style="margin-bottom:12px;"></textarea>
             
             <label class="form-label">💬 설명</label>
-            <textarea id="edit-comment" placeholder="예: 유모차 끌기 좋아요" rows="2" class="full-width"></textarea>
+            <textarea id="edit-comment" placeholder="예: 유모차 끌기 좋아요" rows="2" class="full-width" style="margin-bottom:16px;"></textarea>
             
+            <div class="file-upload-wrap" id="wrap-edit-media">
+                <div class="file-upload-header">
+                    <label class="form-label" style="margin:0;">📷 사진 첨부 (최대 3장)</label>
+                    <button class="file-upload-btn" onclick="document.getElementById('edit-image-file').click()">파일 선택</button>
+                </div>
+                <input type="file" id="edit-image-file" accept="image/*" multiple onchange="placeEditMediaManager.addFiles(this)">
+                <div id="place-edit-media-preview" class="media-preview-container"></div>
+                <span class="file-limit-text">사진을 끌어다 놓아 순서를 변경할 수 있습니다.</span>
+            </div>
+
             <div class="btn-group">
                 <button class="btn-action btn-cancel" onclick="document.getElementById('edit-modal').style.display='none'">취소</button>
                 <button class="btn-action btn-save" onclick="submitEditInfo()">정보 업데이트</button>
@@ -540,13 +550,11 @@
             <input type="text" id="place-name" placeholder="검색 시 장소명 자동 입력" readonly required>
             <input type="text" id="place-address" placeholder="검색 시 주소 자동 입력" readonly>
             
-            <label class="form-label">
-                <span style="display:flex; align-items:center; gap:4px;">카테고리 <span class="req">*</span></span>
-                <span style="font-size: 11px; font-weight: normal; color: #868e96; margin-left: 8px;">(실내와 실외가 모두 있는 장소면 '실내' 선택)</span>
-            </label>
-            <div class="radio-group" id="place-category-group">
+            <label class="form-label"><span style="display:flex; align-items:center; gap:4px;">카테고리 <span class="req">*</span></span></label>
+            <div class="radio-group" id="place-category-group" style="margin-bottom: 20px;">
                 <label class="radio-label"><input type="radio" name="place-category" value="실내">🏠 실내</label>
                 <label class="radio-label"><input type="radio" name="place-category" value="야외">🌳 야외</label>
+                <span style="font-size: 11px; font-weight: normal; color: #868e96; margin-left: 4px;">(실내/외 혼합 장소는 '실내' 선택)</span>
             </div>
             
             <label class="form-label">🌐 공식 홈페이지 등</label>
@@ -567,7 +575,6 @@
             <div class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>💸 입장료</span>
                 <div style="display:flex; gap:6px;">
-                    <button type="button" class="btn-free-toggle" id="btn-free-entry" onclick="toggleOption('place-entry-detail', this, '예: 성인 5천원&#10;소인 무료', '무료')">무료</button>
                     <button type="button" class="btn-free-toggle" id="btn-no-entry" onclick="toggleOption('place-entry-detail', this, '예: 성인 5천원&#10;소인 무료', '없음')">없음</button>
                 </div>
             </div>
@@ -580,7 +587,7 @@
             <textarea id="place-nursing-detail" placeholder="예: 2층 여성화장실 옆" rows="1" class="full-width" style="margin-bottom:12px;"></textarea>
             
             <label class="form-label">💬 설명</label>
-            <textarea id="place-comment" placeholder="예: 유모차 끌기 좋아요" rows="2" class="full-width"></textarea>
+            <textarea id="place-comment" placeholder="예: 유모차 끌기 좋아요" rows="2" class="full-width" style="margin-bottom:16px;"></textarea>
             
             <div class="file-upload-wrap" id="wrap-add-media">
                 <div class="file-upload-header">
@@ -662,19 +669,17 @@
             });
         }
 
-        // 여러 개의 버튼(무료, 불가 등)을 부드럽게 토글하도록 업그레이드된 함수
         function toggleOption(inputId, btnEl, placeholderTxt, toggleText) {
             const inputEl = document.getElementById(inputId);
             const isActive = btnEl.classList.contains('active');
             
-            // 같은 그룹 내의 다른 활성화된 버튼 찾아서 꺼주기
             const siblings = btnEl.parentElement.querySelectorAll('.btn-free-toggle');
             siblings.forEach(b => b.classList.remove('active'));
 
             if (!isActive) {
                 btnEl.classList.add('active');
                 if (!inputEl.disabled) {
-                    inputEl.dataset.oldVal = inputEl.value; // 원래 입력되어 있던 값 기억
+                    inputEl.dataset.oldVal = inputEl.value; 
                 }
                 inputEl.value = toggleText;
                 inputEl.disabled = true;
@@ -838,7 +843,7 @@
                 document.getElementById('inquiry-content').value = '';
                 document.getElementById('inquiry-contact').value = '';
             } else { 
-                alert('접수 실패. inquiries 테이블을 확인해주세요.'); 
+                alert('접수 실패. inquiries 테이블을 생성해주세요.'); 
             }
             btn.innerText = "보내기"; btn.disabled = false;
         }
@@ -1233,31 +1238,53 @@
             if(resultCount === 0) listEl.innerHTML = '<div class="res-empty">조건에 맞는 장소가 없습니다.</div>';
         }
 
-        async function fetchKakaoImage(query, imgElementId, topBarId, headerWrapId) {
-            const topBarEl = topBarId ? document.getElementById(topBarId) : null;
-            const headerWrapEl = headerWrapId ? document.getElementById(headerWrapId) : null;
+        // 모바일 네이티브 앱 다이렉트 호출 함수
+        function openAppMap(type, name, lat, lng) {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            let scheme = '', fallback = '';
             
+            if (type === 'kakao') {
+                scheme = 'kakaomap://search?q=' + encodeURIComponent(name);
+                fallback = 'https://map.kakao.com/link/search/' + encodeURIComponent(name);
+            } else if (type === 'naver') {
+                scheme = 'nmap://search?query=' + encodeURIComponent(name) + '&appname=appamap';
+                fallback = 'https://m.map.naver.com/search2/search.naver?query=' + encodeURIComponent(name);
+            } else if (type === 'tmap') {
+                scheme = 'tmap://search?name=' + encodeURIComponent(name);
+                fallback = 'https://tmap.co.kr/tmap2/mobile/route.jsp?name=' + encodeURIComponent(name) + '&lat=' + lat + '&lon=' + lng;
+            }
+            
+            if (isMobile) {
+                // 앱 실행 시도 후 웹으로 폴백
+                const now = new Date().getTime();
+                setTimeout(() => {
+                    if (new Date().getTime() - now < 2000) {
+                        window.open(fallback, '_blank');
+                    }
+                }, 1000);
+                location.href = scheme;
+            } else {
+                window.open(fallback, '_blank');
+            }
+            document.getElementById('map-link-modal').style.display='none';
+        }
+
+        async function fetchKakaoImage(query, imgElementId, topBarId) {
             try {
                 const res = await fetch(`https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(query)}&size=1`, { headers: { "Authorization": `KakaoAK ${KAKAO_REST_KEY}` } });
                 const data = await res.json();
                 
                 if(data.documents && data.documents.length > 0) {
                     const imgEl = document.getElementById(imgElementId);
-                    if(imgEl) { imgEl.src = data.documents[0].image_url; imgEl.style.display = 'block'; }
-                    if(topBarEl) { topBarEl.classList.remove('no-image'); topBarEl.classList.add('has-image'); }
-                    if(headerWrapEl) { 
-                        headerWrapEl.classList.remove('no-image'); 
-                        headerWrapEl.classList.add('has-image'); 
-                        const slider = headerWrapEl.querySelector('.image-slider');
-                        if (slider) slider.style.display = 'flex';
+                    if(imgEl) { 
+                        imgEl.src = data.documents[0].image_url; 
+                        imgEl.style.display = 'block'; 
+                        // 카카오 이미지 성공 시 상단 여백 클래스 정리
+                        const headerWrap = document.querySelector('.info-header-wrap');
+                        if (headerWrap) headerWrap.classList.remove('no-image');
                     }
-                } else {
-                    // 이미지가 없는 경우, 클래스를 제거하여 CSS에서 최소 높이만 남게 처리
-                    if(headerWrapEl) headerWrapEl.classList.add('no-image');
-                }
-            } catch(e) {
-                if(headerWrapEl) headerWrapEl.classList.add('no-image');
-            }
+                } 
+            } catch(e) {}
         }
 
         function sharePlace(name, address) {
@@ -1269,9 +1296,9 @@
         }
 
         function openMapPopup(name, lat, lng) {
-            document.getElementById('link-naver').href = `https://map.naver.com/v5/search/${encodeURIComponent(name)}`;
-            document.getElementById('link-kakao').href = `https://map.kakao.com/link/search/${encodeURIComponent(name)}`;
-            document.getElementById('link-tmap').href = `https://tmap.co.kr/tmap2/mobile/route.jsp?name=${encodeURIComponent(name)}&lat=${lat}&lon=${lng}`;
+            document.getElementById('link-naver').onclick = () => openAppMap('naver', name, lat, lng);
+            document.getElementById('link-kakao').onclick = () => openAppMap('kakao', name, lat, lng);
+            document.getElementById('link-tmap').onclick = () => openAppMap('tmap', name, lat, lng);
             document.getElementById('map-link-modal').style.display = 'flex';
         }
 
@@ -1295,6 +1322,15 @@
             } else {
                 btn.style.display = 'none';
             }
+        }
+
+        // 사진 슬라이더 인디케이터 업데이트
+        function updateSliderDots(id, el) {
+            const index = Math.round(el.scrollLeft / el.offsetWidth);
+            const dots = document.querySelectorAll('#slider-dots-' + id + ' .slider-dot');
+            dots.forEach((dot, i) => {
+                dot.className = 'slider-dot' + (i === index ? ' active' : '');
+            });
         }
 
         function renderPanel(id) {
@@ -1325,6 +1361,9 @@
             
             let urls = place.image_url ? place.image_url.split(',') : [];
             let isHasImage = urls.length > 0;
+            
+            // 인디고 컬러 동적 변수
+            let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : '#5c7cfa';
 
             document.getElementById('info-content').innerHTML = `
                 <div class="panel-top-bar" id="top-bar-${place.id}">
@@ -1341,16 +1380,19 @@
 
                 <div class="info-scroll-area" id="scroll-area-${place.id}">
                     <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
-                        <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}">
-                            ${isHasImage 
-                                ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') 
-                                : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`
-                            }
+                        <div style="position:relative; width:100%;">
+                            <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)">
+                                ${isHasImage 
+                                    ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') 
+                                    : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;">`
+                                }
+                            </div>
+                            ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
                         </div>
                     </div>
 
                     <div class="info-body-wrap">
-                        <div class="info-category">${normalizeCat(place.category)}</div>
+                        <div class="info-category" style="color: ${catColor}">${normalizeCat(place.category)}</div>
                         
                         <div class="title-row">
                             <div class="info-title-wrap" style="flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative;">
@@ -1427,7 +1469,7 @@
             }, 10);
 
             if(!isHasImage) {
-                fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`, `header-wrap-${place.id}`);
+                fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`);
             }
         }
 
@@ -1459,16 +1501,12 @@
             }
 
             const eInput = document.getElementById('edit-entry');
-            const eBtnFree = document.getElementById('btn-edit-free-entry');
             const eBtnNo = document.getElementById('btn-edit-no-entry');
             
-            eBtnFree.classList.remove('active');
             eBtnNo.classList.remove('active');
             eInput.disabled = false;
 
-            if(place.entry_fee === '무료') {
-                eBtnFree.classList.add('active'); eInput.disabled = true; eInput.value = '무료'; eInput.dataset.oldVal = '';
-            } else if(place.entry_fee === '없음') {
+            if(place.entry_fee === '없음') {
                 eBtnNo.classList.add('active'); eInput.disabled = true; eInput.value = '없음'; eInput.dataset.oldVal = '';
             } else {
                 eInput.value = place.entry_fee || '';
