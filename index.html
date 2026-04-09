@@ -38,6 +38,7 @@
         
         .chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; padding: 6px 12px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px; font-size: 12px; font-weight: 700; color: #495057; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; user-select: none; }
         .chip.active { background: #343a40; color: white; border-color: #343a40; }
+        
         .chip[data-cat="실내"] { color: #5c7cfa; }
         .chip[data-cat="실내"].active { background: #5c7cfa; border-color: #5c7cfa; color: white; }
         .chip[data-cat="야외"] { color: #0ca678; }
@@ -45,7 +46,8 @@
 
         #map { width: 100%; height: 100vh; background: #e9ecef; z-index: 0; position: relative; }
         
-        .custom-marker { position: relative; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap; border: 2px solid white; cursor: pointer; transition: all 0.2s; transform-origin: center bottom; }
+        /* 지도 마커 박스 사이즈 축소 (패딩 감소, 둥글기 12px로 조정) */
+        .custom-marker { position: relative; padding: 4px 8px; border-radius: 12px; font-weight: 700; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap; border: 2px solid white; cursor: pointer; transition: all 0.2s; transform-origin: center bottom; }
         .custom-marker:hover { transform: scale(1.05) translateY(-2px); z-index: 100; }
         .marker-indoor { background: #5c7cfa; color: white; } 
         .marker-outdoor { background: #20c997; color: white; } 
@@ -79,7 +81,8 @@
         .info-header-wrap { position: relative; width: 100%; flex-shrink: 0; }
         .info-header-wrap.no-image { height: 50px; min-height: 50px; } 
 
-        .image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: transparent; touch-action: pan-x; }
+        .image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: transparent; touch-action: pan-x; cursor: grab; }
+        .image-slider:active { cursor: grabbing; }
         .image-slider::-webkit-scrollbar { display: none; }
         .place-photo { flex: 0 0 100%; width: 100%; height: 240px; scroll-snap-align: center; object-fit: cover; display: block; margin: 0; pointer-events: none; border-radius: 20px 20px 0 0; background: #e9ecef; }
         
@@ -189,8 +192,6 @@
         #board-view { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8f9fa; z-index: 2000; display: none; padding: calc(max(24px, env(safe-area-inset-top))) 20px calc(90px + env(safe-area-inset-bottom)); box-sizing: border-box; overflow-y: auto; }
         .board-title-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 20px; }
         .board-title { font-size: 24px; font-weight: 800; color: #212529; margin: 0; display: flex; align-items: center; gap: 8px; }
-        .btn-info-circle { width: 22px; height: 22px; border-radius: 50%; background: #e9ecef; color: #868e96; display: flex; justify-content: center; align-items: center; font-weight: 900; font-family: serif; font-size: 14px; cursor: pointer; border: none; transition: 0.1s; }
-        .btn-info-circle:active { transform: scale(0.9); background: #dee2e6; }
         .btn-write-notice { background: #343a40; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.1s; }
         .btn-write-notice:active { transform: scale(0.95); }
         
@@ -205,20 +206,23 @@
         .n-title { font-size: 15px; font-weight: 800; color: #212529; margin-bottom: 6px; line-height: 1.4; word-break: keep-all; }
         .n-desc { font-size: 12px; color: #868e96; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+        /* 게시판 글 상세 뷰 Sticky 헤더 적용 */
         #notice-detail-view { display: none; flex-direction: column; }
-        .detail-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .notice-detail-header { position: sticky; top: -10px; background: #f8f9fa; z-index: 10; padding: 10px 0 16px 0; border-bottom: 1px solid rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .detail-top-row { display: flex; justify-content: space-between; align-items: center; }
         .btn-back { background: none; border: none; font-size: 16px; font-weight: 800; color: #495057; display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 0; }
         .btn-edit-notice, .btn-delete-notice { background: none; border: none; color: #adb5bd; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0; }
-        .detail-title { font-size: 20px; font-weight: 800; color: #212529; margin-bottom: 10px; line-height: 1.4; }
-        .detail-date { font-size: 12px; color: #adb5bd; font-weight: 600; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #dee2e6; }
+        .detail-title-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 16px; gap: 12px; }
+        .detail-title { font-size: 20px; font-weight: 800; color: #212529; margin: 0; line-height: 1.4; word-break: keep-all; flex: 1; }
+        .detail-date { font-size: 11px; color: #adb5bd; font-weight: 600; white-space: nowrap; padding-bottom: 2px; }
         .detail-body { font-size: 14px; color: #495057; line-height: 1.6; word-break: break-all; white-space: pre-wrap; }
         .notice-detail-img { width: 100%; height: auto; border-radius: 12px; margin-bottom: 10px; display: block; object-fit: contain; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(33, 37, 41, 0.5); z-index: 4000; justify-content: center; align-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-        .modal-content { background: rgba(255, 255, 255, 0.95); padding: 24px; border-radius: 24px; width: 85%; max-width: 440px; box-shadow: 0 16px 48px rgba(0,0,0,0.2); box-sizing: border-box; max-height: 90vh; overflow-x: hidden; overflow-y: auto; position: relative; }
+        .modal-content { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.6); padding: 24px; border-radius: 24px; width: 85%; max-width: 440px; box-shadow: 0 16px 48px rgba(0,0,0,0.2); box-sizing: border-box; max-height: 90vh; overflow-x: hidden; overflow-y: auto; position: relative; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 12px; }
         .modal-header h3 { margin: 0; font-size: 18px; color: #212529; }
-        .panel-close-btn-static { background: #f8f9fa; border: none; width: 28px; height: 28px; border-radius: 14px; font-size: 16px; font-weight: bold; color: #adb5bd; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; padding:0; margin-left: auto; }
+        .panel-close-btn-static { background: rgba(248, 249, 250, 0.6); border: none; width: 28px; height: 28px; border-radius: 14px; font-size: 16px; font-weight: bold; color: #adb5bd; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; padding:0; margin-left: auto; }
         .panel-close-btn-static:active { transform: scale(0.9); background: #e9ecef; color: #495057; }
         
         .form-label { font-size: 12px; font-weight: 800; color: #495057; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; margin-top: 14px;}
@@ -238,13 +242,13 @@
         .form-row-group { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
         .form-row-group select { flex: 1; border: 1px solid #dee2e6; border-radius: 10px; padding: 12px 10px; font-size: 13px; outline: none; box-sizing: border-box; }
         .form-row-group input, .form-row-group textarea { flex: 2; margin-bottom: 0 !important; box-sizing: border-box; }
-        .modal-content input[type="text"], .modal-content textarea, .modal-content select.full-width { width: 100%; margin-bottom: 12px; padding: 12px 14px; box-sizing: border-box; border: 1px solid #dee2e6; border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; }
-        .modal-content input:read-only { background: #f1f3f5; color: #868e96; }
+        .modal-content input[type="text"], .modal-content textarea, .modal-content select.full-width { width: 100%; margin-bottom: 12px; padding: 12px 14px; box-sizing: border-box; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; background: rgba(255,255,255,0.6); }
+        .modal-content input:read-only { background: rgba(241, 243, 245, 0.5); color: #868e96; }
         .modal-content textarea { resize: none; line-height: 1.4; }
         
         .btn-group { display: flex; gap: 8px; margin-top: 14px; width: 100%; }
         .btn-action { padding: 14px; border: none; border-radius: 10px; cursor: pointer; flex: 1; font-weight: 700; font-size: 14px; }
-        .btn-cancel { background: #e9ecef; color: #495057; }
+        .btn-cancel { background: rgba(233, 236, 239, 0.8); color: #495057; }
         .btn-save { background: #FF6B6B; color: white; }
     </style>
 </head>
@@ -323,7 +327,7 @@
             <div class="board-title-row">
                 <div class="board-title">
                     게시판
-                    <button class="btn-info-circle" onclick="document.getElementById('about-modal').style.display='flex'">i</button>
+                    <button class="btn-inquiry-small" onclick="document.getElementById('inquiry-modal').style.display='flex'" style="margin-left:4px;">문의</button>
                 </div>
                 <button class="btn-write-notice" onclick="openWriteNoticeModal()">글쓰기</button>
             </div>
@@ -332,19 +336,23 @@
             </div>
         </div>
         
-        <div id="notice-detail-view" style="display:none;">
-            <div class="detail-top-row">
-                <button class="btn-back" onclick="showNoticeList()">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; margin-left:-6px;"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                    목록으로
-                </button>
-                <div style="display:flex; gap:12px;">
-                    <button class="btn-edit-notice" onclick="openWriteNoticeModal(currentNoticeId)">수정</button>
-                    <button class="btn-delete-notice" id="btn-del-notice" onclick="deleteNotice()">삭제</button>
+        <div id="notice-detail-view" style="display:none; flex-direction: column;">
+            <div class="notice-detail-header">
+                <div class="detail-top-row">
+                    <button class="btn-back" onclick="showNoticeList()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; margin-left:-6px;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        목록으로
+                    </button>
+                    <div style="display:flex; gap:12px;">
+                        <button class="btn-edit-notice" onclick="openWriteNoticeModal(currentNoticeId)">수정</button>
+                        <button class="btn-delete-notice" id="btn-del-notice" onclick="deleteNotice()">삭제</button>
+                    </div>
+                </div>
+                <div class="detail-title-row">
+                    <div class="detail-title" id="detail-title">제목</div>
+                    <div class="detail-date" id="detail-date">날짜</div>
                 </div>
             </div>
-            <div class="detail-title" id="detail-title">제목</div>
-            <div class="detail-date" id="detail-date">날짜</div>
             <div class="detail-body" id="detail-body">내용</div>
         </div>
     </div>
@@ -372,40 +380,6 @@
             게시판
         </div>
     </nav>
-
-    <div class="modal-overlay" id="about-modal" onclick="if(event.target === this) this.style.display='none'">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="margin: 0; font-size: 18px; color: #212529;">아빠맵 소개</h3>
-                <button class="panel-close-btn-static" onclick="document.getElementById('about-modal').style.display='none'">✕</button>
-            </div>
-            <p style="font-size:13px; color:#495057; line-height:1.5; margin-top:14px; margin-bottom:20px; word-break:keep-all;">
-                <strong>오늘은 어디서 놀까?</strong><br>
-                <span style="display:block; margin-top:6px;">광고성 글에 가려 진짜 정보를 찾기 어렵거나, 단톡방의 알짜 팁들이 금세 묻혀버려 아쉬우셨죠?</span>
-                <span style="display:block; margin-top:6px;">이런 불편함을 덜고 우리 가족이 기분 좋게 다녀올 수 있는 '진짜 나들이 장소'만 모아두고 싶어 만들었습니다.</span>
-                <strong style="display:block; margin-top:8px;">아빠엄마들의 생생한 팁으로 함께 채워가는 지도입니다.</strong>
-            </p>
-            <div style="font-size:12px; color:#868e96; background:rgba(241, 243, 245, 0.6); padding:10px 14px; border-radius:10px; display: inline-flex; gap: 8px; align-items: center;">
-                문의 <a href="javascript:void(0)" onclick="document.getElementById('inquiry-modal').style.display='flex'; document.getElementById('about-modal').style.display='none';" style="color:#FF6B6B; text-decoration:none; font-weight:700;">의견 보내기</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="inquiry-modal" onclick="if(event.target === this) this.style.display='none'">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="margin: 0; font-size: 18px; color: #212529;">운영자 문의</h3>
-                <button class="panel-close-btn-static" onclick="document.getElementById('inquiry-modal').style.display='none'">✕</button>
-            </div>
-            <p style="font-size:12px; color:#868e96; margin-top:10px; margin-bottom:16px;">아빠맵 이용 중 불편한 점이나 제안사항을 남겨주세요.</p>
-            <textarea id="inquiry-content" placeholder="내용을 입력해주세요" rows="4" class="full-width" style="margin-bottom:10px;"></textarea>
-            <input type="text" id="inquiry-contact" class="full-width" placeholder="답변 받을 이메일 (선택)">
-            <div class="btn-group">
-                <button class="btn-action btn-cancel" onclick="document.getElementById('inquiry-modal').style.display='none'">취소</button>
-                <button class="btn-action btn-save" onclick="submitInquiry()">보내기</button>
-            </div>
-        </div>
-    </div>
 
     <div class="modal-overlay" id="pw-modal" style="z-index: 5000;" onclick="if(event.target === this) resolvePw(null)">
         <div class="modal-content" style="max-width: 300px; padding: 20px; text-align: center;">
@@ -463,7 +437,9 @@
     <div class="modal-overlay" id="edit-modal" onclick="if(event.target === this) this.style.display='none'">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>장소 정보 수정</h3>
+                <h3 style="display:flex; align-items:center; gap:8px;">장소 정보 수정
+                    <button class="btn-inquiry-small" onclick="document.getElementById('inquiry-modal').style.display='flex'">문의</button>
+                </h3>
                 <button class="panel-close-btn-static" onclick="document.getElementById('edit-modal').style.display='none'">✕</button>
             </div>
             <input type="hidden" id="edit-place-id">
@@ -600,6 +576,22 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="inquiry-modal" onclick="if(event.target === this) this.style.display='none'" style="z-index: 6000;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0; font-size: 18px; color: #212529;">운영자 문의</h3>
+                <button class="panel-close-btn-static" onclick="document.getElementById('inquiry-modal').style.display='none'">✕</button>
+            </div>
+            <p style="font-size:12px; color:#868e96; margin-top:10px; margin-bottom:16px;">아빠맵 이용 중 불편한 점이나 제안사항을 남겨주세요.</p>
+            <textarea id="inquiry-content" placeholder="내용을 입력해주세요" rows="4" class="full-width" style="margin-bottom:10px;"></textarea>
+            <input type="text" id="inquiry-contact" class="full-width" placeholder="답변 받을 이메일 (선택)">
+            <div class="btn-group">
+                <button class="btn-action btn-cancel" onclick="document.getElementById('inquiry-modal').style.display='none'">취소</button>
+                <button class="btn-action btn-save" onclick="submitInquiry()">보내기</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = "https://jmeqvmmabgcdsuvabpgp.supabase.co";
         const SUPABASE_KEY = "sb_publishable_tpw_7GUMBP3iYiZ-EPLaNw_3u-gjX_B";
@@ -707,6 +699,29 @@
                 };
                 reader.onerror = error => reject(error);
             });
+        }
+
+        // 사진 슬라이더 PC 마우스 드래그 기능
+        let isImgDragging = false;
+        let imgStartX, imgScrollLeft;
+        function startImgDrag(e, el) {
+            isImgDragging = true;
+            imgStartX = e.pageX - el.offsetLeft;
+            imgScrollLeft = el.scrollLeft;
+            el.style.scrollSnapType = 'none'; // PC 드래그 시 부드럽게 스크롤
+        }
+        function stopImgDrag(e, el) {
+            if(!isImgDragging) return;
+            isImgDragging = false;
+            el.style.scrollSnapType = 'x mandatory'; // 끝난 후 다시 스냅 복구
+            updateSliderDots(el.id.replace('slider-', ''), el);
+        }
+        function doImgDrag(e, el) {
+            if (!isImgDragging) return;
+            e.preventDefault();
+            const x = e.pageX - el.offsetLeft;
+            const walk = (x - imgStartX) * 1.5;
+            el.scrollLeft = imgScrollLeft - walk;
         }
 
         class MediaManager {
@@ -1002,12 +1017,11 @@
             let cmtCount = 0;
             if(place.comments_list) { try { cmtCount = JSON.parse(place.comments_list).length; } catch(e){} }
             let badgeHtml = cmtCount > 0 ? `<div class="cmt-badge">${cmtCount}</div>` : '';
-            let emoji = normalizeCat(place.category) === '야외' ? '🌳 ' : '🏠 ';
             
             if (isZoomedOut) {
                 return `<div class="custom-marker zoomed ${getMarkerClass(place.category)}"></div>`;
             }
-            return `<div class="custom-marker ${getMarkerClass(place.category)}">${emoji}${place.name}${badgeHtml}</div>`;
+            return `<div class="custom-marker ${getMarkerClass(place.category)}">${place.name}${badgeHtml}</div>`;
         }
 
         function getDistanceKm(lat1, lon1, lat2, lon2) {
@@ -1277,7 +1291,6 @@
                         imgEl.style.display = 'block'; 
                         
                         if(topBarEl) { topBarEl.classList.remove('no-image'); topBarEl.classList.add('has-image'); }
-                        // 누락되었던 이미지 슬라이더 보이게 하기 복구 완료
                         if(sliderEl) { sliderEl.style.display = 'flex'; }
                         if(headerWrapEl) { headerWrapEl.classList.remove('no-image'); headerWrapEl.classList.add('has-image'); }
                     }
@@ -1381,7 +1394,7 @@
                 <div class="info-scroll-area" id="scroll-area-${place.id}">
                     <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
                         <div style="position:relative; width:100%;">
-                            <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)">
+                            <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
                                 ${isHasImage 
                                     ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') 
                                     : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`
@@ -1469,7 +1482,6 @@
             }, 10);
 
             if(!isHasImage) {
-                // 수정된 fetchKakaoImage 호출 부 (누락된 파라미터 복구 완료)
                 fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`, `slider-${place.id}`, `header-wrap-${place.id}`);
             }
         }
