@@ -25,11 +25,12 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             </button>
         </div>
-        <div class="category-nav" id="category-nav">
-            <button class="chip active" data-cat="전체" onclick="setCategory('전체')">전체</button>
-            <button class="chip" data-cat="실내" onclick="setCategory('실내')">🏠 실내</button>
-            <button class="chip" data-cat="야외" onclick="setCategory('야외')">🌳 야외</button>
-        </div>
+<div class="category-nav" id="category-nav">
+        <button class="chip active" data-cat="전체" onclick="setCategory('전체')">전체</button>
+        <button class="chip" data-cat="실내" onclick="setCategory('실내')">실내</button>
+        <button class="chip" data-cat="야외" onclick="setCategory('야외')">🌳 야외</button>
+        <button class="chip" data-cat="문센" onclick="setCategory('문센')">🎪 문센</button>
+    </div>
     </div>
 
     <div class="search-panel" id="search-panel">
@@ -96,7 +97,7 @@
                 <line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line>
             </svg>
         </button>
-        <button class="fab-btn btn-add" onclick="document.getElementById('add-modal').style.display='flex'">+</button>
+        <button class="fab-btn btn-add" onclick="openAddModal()">+</button>
     </div>
 
     <nav class="bottom-nav">
@@ -226,11 +227,11 @@
             <label class="form-label">
                 <span style="display:flex; align-items:center; gap:4px;">카테고리 <span class="req">*</span></span>
             </label>
-            <div class="radio-group" style="margin-bottom: 20px;">
-                <label class="radio-label"><input type="radio" name="edit-place-category" value="실내">🏠 실내</label>
-                <label class="radio-label"><input type="radio" name="edit-place-category" value="야외">🌳 야외</label>
-                <span style="font-size: 11px; font-weight: normal; color: #868e96; margin-left: 4px;">(실내/외 혼합 장소는 '실내' 선택)</span>
-            </div>
+<div class="radio-group" style="margin-bottom: 20px;">
+    <label class="radio-label"><input type="radio" name="edit-place-category" value="실내">실내</label>
+    <label class="radio-label"><input type="radio" name="edit-place-category" value="야외">🌳 야외</label>
+    <label class="radio-label"><input type="radio" name="edit-place-category" value="문센">🎪 문센</label>
+</div>
             
             <label class="form-label">🌐 공식 홈페이지 등</label>
             <input type="text" id="edit-website" placeholder="https://..." style="margin-bottom:12px;">
@@ -300,11 +301,11 @@
             <input type="text" id="place-address" placeholder="검색 시 주소 자동 입력" readonly>
             
             <label class="form-label"><span style="display:flex; align-items:center; gap:4px;">카테고리 <span class="req">*</span></span></label>
-            <div class="radio-group" id="place-category-group" style="margin-bottom: 20px;">
-                <label class="radio-label"><input type="radio" name="place-category" value="실내">🏠 실내</label>
-                <label class="radio-label"><input type="radio" name="place-category" value="야외">🌳 야외</label>
-                <span style="font-size: 11px; font-weight: normal; color: #868e96; margin-left: 4px;">(실내/외 혼합 장소는 '실내' 선택)</span>
-            </div>
+<div class="radio-group" id="place-category-group" style="margin-bottom: 20px;">
+    <label class="radio-label"><input type="radio" name="place-category" value="실내">실내</label>
+    <label class="radio-label"><input type="radio" name="place-category" value="야외">🌳 야외</label>
+    <label class="radio-label"><input type="radio" name="place-category" value="문센">🎪 문센</label>
+</div>
             
             <label class="form-label">🌐 공식 홈페이지 등</label>
             <input type="text" id="place-website" placeholder="https://..." style="margin-bottom:12px;">
