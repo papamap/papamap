@@ -27,22 +27,27 @@ img { -webkit-user-drag: none; }
 .chip[data-cat="실내"].active { background: #5c7cfa; border-color: #5c7cfa; color: white; }
 .chip[data-cat="야외"] { color: #0ca678; }
 .chip[data-cat="야외"].active { background: #20c997; border-color: #20c997; color: white; }
+.chip[data-cat="문센"] { color: #f59f00; }
+.chip[data-cat="문센"].active { background: #f59f00; border-color: #f59f00; color: white; }
 
 #map { width: 100%; height: 100vh; background: #e9ecef; z-index: 0; position: relative; }
 
-.custom-marker { position: relative; padding: 6px 12px; border-radius: 14px; font-weight: 800; font-size: 13px; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); white-space: nowrap; border: 1px solid rgba(255,255,255,0.6); cursor: pointer; transition: all 0.2s; transform-origin: center bottom; }
-.custom-marker:hover { transform: scale(1.05) translateY(-2px); z-index: 100; box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+/* 지도 마커 디자인 (불투명 흰색 배경으로 변경 및 문센 추가) */
+.custom-marker { position: relative; padding: 6px 12px; border-radius: 14px; font-weight: 800; font-size: 13px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap; border: 1px solid #e9ecef; cursor: pointer; transition: all 0.2s; transform-origin: center bottom; color: #343a40; }
+.custom-marker:hover { transform: scale(1.05) translateY(-2px); z-index: 100; box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
 
-.marker-indoor { color: #5c7cfa; border-bottom: 3px solid #5c7cfa; } 
-.marker-outdoor { color: #20c997; border-bottom: 3px solid #20c997; } 
+.marker-indoor { border-bottom: 3px solid #5c7cfa; } 
+.marker-outdoor { border-bottom: 3px solid #20c997; } 
+.marker-moonsen { border-bottom: 3px solid #f59f00; } 
 
 .cmt-badge { position: absolute; top: -8px; right: -8px; background: #FF6B6B; color: white; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 2px solid white; display: flex; align-items: center; justify-content: center; }
 
 .custom-marker.zoomed { padding: 0 !important; width: 14px !important; height: 14px !important; border-radius: 50% !important; font-size: 0 !important; color: transparent !important; box-sizing: border-box !important; border: 2px solid white !important; }
 .custom-marker.zoomed.marker-indoor { background: #5c7cfa; }
 .custom-marker.zoomed.marker-outdoor { background: #20c997; }
+.custom-marker.zoomed.marker-moonsen { background: #f59f00; }
 .custom-marker.zoomed:hover { transform: scale(1.4) !important; z-index: 200 !important; width: 14px !important; height: 14px !important; padding: 0 !important; }
-.custom-marker.zoomed .cmt-badge { display: none !important; } 
+.custom-marker.zoomed .cmt-badge { display: none !important; }
 
 .info-panel { position: absolute; top: calc(max(16px, env(safe-area-inset-top)) + 64px); left: 16px; width: 340px; max-width: calc(100vw - 32px); z-index: 10; pointer-events: none; max-height: calc(100vh - 120px - env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; box-sizing: border-box; box-shadow: 0 12px 40px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.6); opacity: 0; transform: translateX(-20px); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column; overflow: hidden; padding: 0; }
 .info-panel.show { opacity: 1; pointer-events: auto; transform: translateX(0); }
@@ -135,8 +140,10 @@ img { -webkit-user-drag: none; }
 
 .radio-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .radio-label { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #495057; font-weight: 600; padding: 8px 12px; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.5); }
+/* 라디오 버튼 색상에 문센 추가 (맨 아래쪽 라디오 그룹 부분에 덮어쓰기) */
 .radio-label:has(input[value="실내"]:checked) { border-color: #5c7cfa; background: rgba(92, 124, 250, 0.1); color: #5c7cfa; }
 .radio-label:has(input[value="야외"]:checked) { border-color: #0ca678; background: rgba(12, 166, 120, 0.1); color: #0ca678; }
+.radio-label:has(input[value="문센"]:checked) { border-color: #f59f00; background: rgba(245, 159, 0, 0.1); color: #f59f00; }
 .radio-label input { display: none; } 
 
 .btn-free-toggle { background: rgba(241, 243, 245, 0.6); border: 1px solid rgba(222, 226, 230, 0.6); color: #495057; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 0 16px; cursor: pointer; transition: 0.2s; white-space: nowrap; flex-shrink: 0; }
