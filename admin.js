@@ -49,12 +49,14 @@ function renderAdminTable() {
 
     let filtered = adminPlaces.filter(p => {
         const matchName = p.name.toLowerCase().includes(searchWord);
-        const pCat = (p.category && p.category.includes('야외')) ? '야외' : '실내';
+        const pCat = (p.category && p.category.includes('야외')) ? '야외' : (p.category && p.category.includes('문센') ? '문센' : '실내');
         const matchCat = (filterCat === "") || (pCat === filterCat);
         return matchName && matchCat;
     });
 
     document.getElementById('total-count').innerText = `총 ${filtered.length}개 검색됨`;
+    document.getElementById('cb-all').checked = false;
+    updateBulkBar();
 
     if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 40px; color:#adb5bd;">조건에 맞는 장소가 없습니다.</td></tr>`;
@@ -62,16 +64,18 @@ function renderAdminTable() {
     }
 
     tbody.innerHTML = filtered.map(p => {
-        const nCat = (p.category && p.category.includes('야외')) ? '야외' : '실내';
-        const catClass = nCat === '야외' ? 'cat-outdoor' : 'cat-indoor';
+        const nCat = (p.category && p.category.includes('야외')) ? '야외' : (p.category && p.category.includes('문센') ? '문센' : '실내');
+        const catClass = nCat === '야외' ? 'cat-outdoor' : (nCat === '문센' ? 'cat-moonsen' : 'cat-indoor');
         
         return `
         <tr>
+            <td style="text-align: center;"><input type="checkbox" class="cb-item" value="${p.id}" onchange="updateBulkBar()"></td>
             <td style="color:#adb5bd; font-weight:700;">#${p.id}</td>
             <td>
-                <select id="cat-${p.id}" class="cat-chip ${catClass}" onchange="this.className='cat-chip ' + (this.value==='야외'?'cat-outdoor':'cat-indoor')">
+                <select id="cat-${p.id}" class="cat-chip ${catClass}" onchange="this.className='cat-chip ' + (this.value==='야외'?'cat-outdoor':(this.value==='문센'?'cat-moonsen':'cat-indoor'))">
                     <option value="실내" ${nCat === '실내' ? 'selected' : ''}>실내</option>
                     <option value="야외" ${nCat === '야외' ? 'selected' : ''}>야외</option>
+                    <option value="문센" ${nCat === '문센' ? 'selected' : ''}>문센</option>
                 </select>
             </td>
             <td><input type="text" id="name-${p.id}" value="${escapeQuote(p.name)}" placeholder="장소명"></td>
@@ -80,9 +84,92 @@ function renderAdminTable() {
             <td><input type="text" id="nurse-${p.id}" value="${escapeQuote(p.nursing_room || '')}" placeholder="수유실 정보"></td>
             <td><input type="text" id="desc-${p.id}" value="${escapeQuote(p.comment || '')}" placeholder="상세 설명 (링크 포함 가능)"></td>
             <td><button class="btn btn-save" onclick="quickSave(${p.id}, this)">저장</button></td>
-            <td><button class="btn btn-del" onclick="deletePlace(${p.id})">삭제</button></td>
         </tr>
     `}).join('');
+}
+
+// 엑셀 키보드 네비게이션 기능
+document.getElementById('admin-tbody').addEventListener('keydown', function(e) {
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    
+    const target = e.target;
+    if (target.tagName !== 'INPUT' && target.tagName !== 'SELECT') return;
+    
+    const td = target.closest('td');
+    const tr = target.closest('tr');
+    const tbody = target.closest('tbody');
+    
+    const cellIndex = Array.from(tr.children).indexOf(td);
+    const rowIndex = Array.from(tbody.children).indexOf(tr);
+    
+    let nextInput = null;
+    
+    if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const nextTr = tbody.children[rowIndex - 1];
+        if (nextTr) nextInput = nextTr.children[cellIndex].querySelector('input, select');
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const nextTr = tbody.children[rowIndex + 1];
+        if (nextTr) nextInput = nextTr.children[cellIndex].querySelector('input, select');
+    } else if (e.key === 'ArrowLeft') {
+        if (target.tagName === 'INPUT' && target.selectionStart > 0) return;
+        e.preventDefault();
+        const nextTd = tr.children[cellIndex - 1];
+        if (nextTd) nextInput = nextTd.querySelector('input, select');
+    } else if (e.key === 'ArrowRight') {
+        if (target.tagName === 'INPUT' && target.selectionEnd < target.value.length) return;
+        e.preventDefault();
+        const nextTd = tr.children[cellIndex + 1];
+        if (nextTd) nextInput = nextTd.querySelector('input, select');
+    }
+    
+    if (nextInput) nextInput.focus();
+});
+
+// 일괄 선택 로직
+function toggleAll(source) {
+    const checkboxes = document.querySelectorAll('.cb-item');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+    updateBulkBar();
+}
+
+function updateBulkBar() {
+    const checked = document.querySelectorAll('.cb-item:checked');
+    const bar = document.getElementById('bulk-bar');
+    document.getElementById('sel-count').innerText = checked.length;
+    if (checked.length > 0) {
+        bar.style.display = 'flex';
+    } else {
+        bar.style.display = 'none';
+        document.getElementById('cb-all').checked = false;
+    }
+}
+
+// 일괄 변경 처리
+async function bulkUpdateCategory() {
+    const checked = document.querySelectorAll('.cb-item:checked');
+    if (checked.length === 0) return;
+    
+    const newCat = document.getElementById('bulk-category').value;
+    const ids = Array.from(checked).map(cb => parseInt(cb.value));
+    
+    if (!confirm(`선택한 ${ids.length}개 장소의 카테고리를 '${newCat}'(으)로 일괄 변경하시겠습니까?`)) return;
+
+    const btn = document.querySelector('#bulk-bar .btn-save');
+    btn.innerText = "변경중..."; btn.disabled = true;
+
+    const { error } = await supabaseClient.from('places').update({ category: newCat }).in('id', ids);
+
+    if (!error) {
+        adminPlaces.forEach(p => {
+            if (ids.includes(p.id)) p.category = newCat;
+        });
+        renderAdminTable(); 
+    } else {
+        alert("일괄 변경 오류: " + error.message);
+    }
+    btn.innerText = "일괄 카테고리 변경"; btn.disabled = false;
 }
 
 async function quickSave(id, btnElement) {
@@ -100,12 +187,7 @@ async function quickSave(id, btnElement) {
     btnElement.disabled = true;
 
     const { error } = await supabaseClient.from('places').update({
-        category: newCat,
-        name: newName,
-        parking_fee: newPark,
-        entry_fee: newEntry,
-        nursing_room: newNurse,
-        comment: newDesc
+        category: newCat, name: newName, parking_fee: newPark, entry_fee: newEntry, nursing_room: newNurse, comment: newDesc
     }).eq('id', id);
 
     if(!error) {
@@ -123,18 +205,6 @@ async function quickSave(id, btnElement) {
         alert("수정 에러: " + error.message);
         btnElement.innerText = originalText;
         btnElement.disabled = false;
-    }
-}
-
-async function deletePlace(id) {
-    if(!confirm("정말 이 장소를 삭제하시겠습니까?\n(삭제 시 관련된 사진과 댓글 정보도 모두 사라집니다)")) return;
-    
-    const { error } = await supabaseClient.from('places').delete().eq('id', id);
-    if(!error) {
-        adminPlaces = adminPlaces.filter(p => p.id !== id);
-        renderAdminTable();
-    } else {
-        alert("삭제 에러: " + error.message);
     }
 }
 
@@ -175,7 +245,6 @@ function renderInquiriesTable() {
     `}).join('');
 }
 
-// --- 유틸리티 함수 ---
 function escapeQuote(str) {
     if (!str) return '';
     return str.replace(/"/g, '&quot;');
@@ -183,6 +252,6 @@ function escapeQuote(str) {
 
 function escapeHtml(text) {
     if (!text) return '';
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    const map = { '&': '&amp;', '<': '<', '>': '>', '"': '&quot;', "'": '&#039;' };
     return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
