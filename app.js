@@ -2,7 +2,7 @@ const SUPABASE_URL = "https://jmeqvmmabgcdsuvabpgp.supabase.co";
 const SUPABASE_KEY = "sb_publishable_tpw_7GUMBP3iYiZ-EPLaNw_3u-gjX_B";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const KAKAO_REST_KEY = "f971a5a1cc6ae49cf691f170f5e03dfd"; 
-const ADMIN_PW = "admin1234";
+const ADMIN_PW = "123qwe";
 
 var map;
 var placesData = []; 
@@ -429,12 +429,14 @@ function switchTab(tab) {
 function normalizeCat(c) {
     if(!c) return '실내';
     if(c.includes('야외')) return '야외';
+    if(c.includes('문센')) return '문센';
     return '실내'; 
 }
 
 function getMarkerClass(cat) {
     const nCat = normalizeCat(cat);
     if (nCat === '야외') return 'marker-outdoor';
+    if (nCat === '문센') return 'marker-moonsen';
     return 'marker-indoor';
 }
 
@@ -443,12 +445,16 @@ function getMarkerHTML(place, isZoomedOut) {
     if(place.comments_list) { try { cmtCount = JSON.parse(place.comments_list).length; } catch(e){} }
     let badgeHtml = cmtCount > 0 ? `<div class="cmt-badge">${cmtCount}</div>` : '';
     
+    // 카테고리별 이모지 설정 (실내는 비워둠)
+    let emoji = '';
+    if (place.category === '야외') emoji = '🌳 ';
+    else if (place.category === '문센') emoji = '🎪 ';
+    
     if (isZoomedOut) {
         return `<div class="custom-marker zoomed ${getMarkerClass(place.category)}"></div>`;
     }
-    return `<div class="custom-marker ${getMarkerClass(place.category)}">${place.name}${badgeHtml}</div>`;
+    return `<div class="custom-marker ${getMarkerClass(place.category)}">${emoji}${place.name}${badgeHtml}</div>`;
 }
-
 function getDistanceKm(lat1, lon1, lat2, lon2) {
     var R = 6371; var dLat = (lat2-lat1) * Math.PI / 180; var dLon = (lon2-lon1) * Math.PI / 180;
     var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
@@ -846,10 +852,9 @@ function renderPanel(id) {
                         ${place.address}
                     </div>
                     ` : ''}
-                    ${place.website_url ? `
-                    <a href="${place.website_url}" target="_blank" class="chip" style="padding: 4px 8px; font-size: 10px; margin: 0; background: rgba(255,255,255,0.7); box-shadow: none; color: #495057; text-decoration: none;">🌐 공식홈</a>
-                    ` : ''}
-                </div>
+${place.website_url ? `
+<a href="${place.website_url}" target="_blank" class="chip" style="padding: 4px 8px; font-size: 10px; margin: 0; background: rgba(255,255,255,0.9); box-shadow: 0 2px 6px rgba(0,0,0,0.15); color: #495057; text-decoration: none;">🌐 공식홈</a>
+` : ''}                </div>
                 
                 <div class="info-tag-wrap">
                     <div class="info-tag-group">
@@ -914,6 +919,7 @@ function renderPanel(id) {
 function openEditModal(id) {
     const place = placesData.find(p => p.id === id);
     document.getElementById('edit-place-id').value = id;
+    document.querySelector('#edit-modal .modal-content').scrollTop = 0;
     
     const nCat = normalizeCat(place.category);
     let catInput = document.querySelector(`input[name="edit-place-category"][value="${nCat}"]`);
@@ -1185,4 +1191,13 @@ async function savePlace() {
         alert("등록 실패: 내용이 너무 길거나 DB 설정 문제가 있습니다.\n" + error.message);
         btnSave.innerText = "저장하기"; btnSave.disabled = false;
     }
+
+function openAddModal() {
+    const modal = document.getElementById('add-modal');
+    modal.style.display = 'flex';
+    // 스크롤 맨 위로
+    modal.querySelector('.modal-content').scrollTop = 0;
+    // 검색창에 커서 포커스 (모달이 뜨는 애니메이션 시간을 고려해 0.1초 딜레이)
+    setTimeout(() => { document.getElementById('kakao-keyword').focus(); }, 100);
+}
 }
