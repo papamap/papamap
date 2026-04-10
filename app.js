@@ -1201,3 +1201,18 @@ function openAddModal() {
     setTimeout(() => { document.getElementById('kakao-keyword').focus(); }, 100);
 }
 }
+// 장소 추가 모달 열기 (스크롤 최상단 및 검색창 포커스)
+function openAddModal() {
+    const modal = document.getElementById('add-modal');
+    modal.style.display = 'flex';
+    
+    // 스크롤 맨 위로
+    const content = modal.querySelector('.modal-content');
+    if (content) content.scrollTop = 0;
+    
+    // 모달이 뜨는 시간을 고려해 0.1초 뒤에 검색창 포커스
+    setTimeout(() => { 
+        const searchInput = document.getElementById('kakao-keyword');
+        if (searchInput) searchInput.focus(); 
+    }, 100);
+}
