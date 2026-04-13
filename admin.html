@@ -11,7 +11,6 @@
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         h1 { margin: 0; font-size: 24px; font-weight: 800; color: #212529; }
         
-        /* 탭 디자인 */
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { padding: 10px 20px; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; background: white; color: #adb5bd; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .tab-btn.active { background: #343a40; color: white; }
@@ -37,77 +36,108 @@
         .btn-save:active { transform: scale(0.95); background: #4c6ef5; }
         .btn-del { background: #fff0f0; color: #FF6B6B; }
         .btn-del:active { transform: scale(0.95); background: #ffe3e3; }
+        .btn-approve { background: #20c997; color: white; }
+        .btn-approve:active { transform: scale(0.95); background: #12b886; }
         
         .cat-chip { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
         .cat-indoor { color: #5c7cfa; background: rgba(92,124,250,0.1); }
         .cat-outdoor { color: #0ca678; background: rgba(12,166,120,0.1); }
+        .cat-moonsen { color: #f59f00; background: rgba(245,159,0,0.1); }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>아빠맵 관리자 대시보드 🛠️</h1>
-        <a href="index.html" style="color:#5c7cfa; text-decoration:none; font-weight:700; font-size:14px;">본 서비스로 이동 ➔</a>
+    <div id="login-screen" style="display:none; text-align:center; margin-top: 100px;">
+        <h2>접근 권한이 필요합니다</h2>
+        <p style="color:#868e96; font-size:14px; margin-bottom:20px;">무작위 대입 방지 기능이 작동 중입니다.</p>
     </div>
 
-    <div class="tabs">
-        <button class="tab-btn active" id="btn-tab-places" onclick="switchTab('places')">장소 관리</button>
-        <button class="tab-btn" id="btn-tab-inquiries" onclick="switchTab('inquiries')">문의사항 확인</button>
-    </div>
-
-    <div id="section-places" class="section active">
-        <div class="control-bar">
-            <input type="text" id="admin-search" placeholder="장소명 검색..." onkeyup="renderAdminTable()">
-            <select id="admin-category" onchange="renderAdminTable()">
-                <option value="">모든 카테고리</option>
-                <option value="실내">실내</option>
-                <option value="야외">야외</option>
-                <option value="문센">문센</option>
-            </select>
-            <div class="stat-badge" id="total-count">총 0개</div>
+    <div id="admin-main" style="display:none;">
+        <div class="header">
+            <h1>아빠맵 관리자 대시보드 🛠️</h1>
+            <a href="index.html" style="color:#5c7cfa; text-decoration:none; font-weight:700; font-size:14px;">본 서비스로 이동 ➔</a>
         </div>
 
-        <div class="control-bar" id="bulk-bar" style="display: none; background: rgba(92,124,250,0.1); border: 1px solid #5c7cfa;">
-            <span style="font-size: 13px; font-weight: 700; color: #5c7cfa;"><span id="sel-count">0</span>개 선택됨</span>
-            <select id="bulk-category" style="padding: 6px 10px; border-radius: 6px; border: none; font-size: 13px; outline: none; margin-left: 10px;">
-                <option value="실내">실내</option>
-                <option value="야외">야외</option>
-                <option value="문센">문센</option>
-            </select>
-            <button class="btn btn-save" onclick="bulkUpdateCategory()">일괄 카테고리 변경</button>
+        <div class="tabs">
+            <button class="tab-btn active" id="btn-tab-places" onclick="switchTab('places')">장소 승인 및 관리</button>
+            <button class="tab-btn" id="btn-tab-comments" onclick="switchTab('comments')">댓글(추가정보) 관리</button>
+            <button class="tab-btn" id="btn-tab-inquiries" onclick="switchTab('inquiries')">문의사항 확인</button>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 40px; text-align: center;"><input type="checkbox" id="cb-all" onclick="toggleAll(this)"></th>
-                    <th style="width: 50px;">ID</th>
-                    <th style="width: 9%;">카테고리</th>
-                    <th style="width: 15%;">장소명</th>
-                    <th style="width: 12%;">주차 정보</th>
-                    <th style="width: 12%;">입장료</th>
-                    <th style="width: 12%;">수유실</th>
-                    <th style="width: 20%;">설명</th>
-                    <th style="width: 8%;">저장</th>
-                </tr>
-            </thead>
-            <tbody id="admin-tbody">
-                </tbody>
-        </table>
-    </div>
+        <div id="section-places" class="section active">
+            <div class="control-bar">
+                <input type="text" id="admin-search" placeholder="장소명 검색..." onkeyup="renderAdminTable()">
+                <select id="admin-category" onchange="renderAdminTable()">
+                    <option value="">모든 카테고리</option>
+                    <option value="실내">실내</option>
+                    <option value="야외">야외</option>
+                    <option value="문센">문센</option>
+                </select>
+                <select id="admin-approval" onchange="renderAdminTable()">
+                    <option value="">승인/미승인 전체</option>
+                    <option value="false">❗ 미승인 장소만 보기</option>
+                    <option value="true">✅ 승인된 장소만 보기</option>
+                </select>
+                <div class="stat-badge" id="total-count">총 0개</div>
+            </div>
 
-    <div id="section-inquiries" class="section">
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 60px;">ID</th>
-                    <th style="width: 15%;">접수일시</th>
-                    <th style="width: 59%;">문의 내용</th>
-                    <th style="width: 20%;">답변받을 연락처</th>
-                </tr>
-            </thead>
-            <tbody id="inquiries-tbody">
-                </tbody>
-        </table>
+            <div class="control-bar" id="bulk-bar" style="display: none; background: rgba(92,124,250,0.1); border: 1px solid #5c7cfa;">
+                <span style="font-size: 13px; font-weight: 700; color: #5c7cfa;"><span id="sel-count">0</span>개 선택됨</span>
+                <select id="bulk-category" style="padding: 6px 10px; border-radius: 6px; border: none; font-size: 13px; outline: none; margin-left: 10px;">
+                    <option value="실내">실내로 변경</option>
+                    <option value="야외">야외로 변경</option>
+                    <option value="문센">문센으로 변경</option>
+                </select>
+                <button class="btn btn-save" onclick="bulkAction('category')">일괄 카테고리 변경</button>
+                <button class="btn btn-approve" onclick="bulkAction('approve')" style="margin-left:auto;">✅ 일괄 승인</button>
+                <button class="btn btn-del" onclick="bulkAction('delete')">🗑️ 일괄 삭제</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px; text-align: center;"><input type="checkbox" id="cb-all" onclick="toggleAll(this)"></th>
+                        <th style="width: 50px;">상태</th>
+                        <th style="width: 9%;">카테고리</th>
+                        <th style="width: 15%;">장소명</th>
+                        <th style="width: 12%;">주차 정보</th>
+                        <th style="width: 12%;">입장료</th>
+                        <th style="width: 12%;">수유실</th>
+                        <th style="width: 15%;">설명</th>
+                        <th style="width: 10%;">관리</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-tbody"></tbody>
+            </table>
+        </div>
+
+        <div id="section-comments" class="section">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">소속 장소</th>
+                        <th style="width: 10%;">작성자</th>
+                        <th style="width: 50%;">댓글 내용</th>
+                        <th style="width: 15%;">작성일시</th>
+                        <th style="width: 10%;">삭제</th>
+                    </tr>
+                </thead>
+                <tbody id="comments-tbody"></tbody>
+            </table>
+        </div>
+
+        <div id="section-inquiries" class="section">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">ID</th>
+                        <th style="width: 15%;">접수일시</th>
+                        <th style="width: 59%;">문의 내용</th>
+                        <th style="width: 20%;">답변받을 연락처</th>
+                    </tr>
+                </thead>
+                <tbody id="inquiries-tbody"></tbody>
+            </table>
+        </div>
     </div>
 
     <script src="admin.js"></script>
