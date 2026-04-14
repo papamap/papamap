@@ -49,6 +49,10 @@
     <div id="login-screen" style="display:none; text-align:center; margin-top: 100px;">
         <h2>접근 권한이 필요합니다</h2>
         <p style="color:#868e96; font-size:14px; margin-bottom:20px;">무작위 대입 방지 기능이 작동 중입니다.</p>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+            <input type="password" id="admin-pw-input" placeholder="비밀번호 입력" style="padding:12px; border:1px solid #dee2e6; border-radius:12px; width:200px; text-align:center; outline:none; font-size:16px;">
+            <button onclick="submitAdminLogin()" style="padding:10px 40px; border:none; border-radius:12px; background:#343a40; color:white; font-weight:800; cursor:pointer;">확인</button>
+        </div>
     </div>
 
     <div id="admin-main" style="display:none;">
