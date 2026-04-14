@@ -13,8 +13,6 @@ var selectedLat = null, selectedLng = null;
 var currentNoticeId = null;
 var userLocationMarker = null;
 
-const heartOutline = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
-const heartFilled = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
 const shareIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>`;
 
 // 인스타식 상대 시간 계산 함수
@@ -263,10 +261,9 @@ function getMarkerClass(cat) {
 }
 
 function getMarkerHTML(place, isZoomedOut) {
-    let cmtCount = 0; if(place.comments_list) { try { cmtCount = JSON.parse(place.comments_list).length; } catch(e){} }
-    let badgeHtml = cmtCount > 0 ? `<div class="cmt-badge">${cmtCount}</div>` : '';
-    
-    let emoji = ''; if (place.category === '야외') emoji = '🌳'; else if (place.category === '문센') emoji = '🎪';
+    let emoji = '🧸'; 
+    if (place.category === '야외') emoji = '🌳'; 
+    else if (place.category === '문센') emoji = '🎪';
     let cls = getMarkerClass(place.category);
     
     if (isZoomedOut) { return `<div class="custom-marker zoomed ${cls}"><div class="marker-pin"></div></div>`; }
@@ -274,7 +271,6 @@ function getMarkerHTML(place, isZoomedOut) {
     <div class="custom-marker ${cls}">
         <div class="marker-pin">
             <div class="marker-icon">${emoji}</div>
-            ${badgeHtml}
         </div>
         <div class="marker-label">${escapeHtml(place.name)}</div>
     </div>`;
@@ -315,6 +311,93 @@ function updateUserLocationMarker(lat, lng) {
 
 let currentZoomedOut = false;
 
+// 조회수 증가 함수
+async function incrementViewCount(id) {
+    let place = placesData.find(p => p.id === id);
+    if (!place) return;
+    
+    // 로컬 세션에서 중복 조회 방지 (선택 사항, 여기서는 단순 구현)
+    const lastViewed = localStorage.getItem('last_view_' + id);
+    const now = Date.now();
+    if (lastViewed && (now - parseInt(lastViewed)) < 1000 * 60 * 5) return; // 5분 이내 재조회는 카운트 안함
+    
+    place.views = (place.views || 0) + 1;
+    localStorage.setItem('last_view_' + id, now.toString());
+    
+    // Supabase 업데이트 (views 컬럼이 있다고 가정, 없으면 likes 컬럼 사용하게 유도할 수 있음)
+    // 여기서는 일단 views 컬럼으로 시도하고, 만약 에러가 나면 likes 컬럼을 사용하도록 처리
+    const { error } = await supabaseClient.from('places').update({ views: place.views }).eq('id', id);
+    if (error) {
+        // views 컬럼이 없는 경우 likes 컬럼으로 대체 (기존 하트 기능 대체용)
+        await supabaseClient.from('places').update({ likes: place.views }).eq('id', id);
+    }
+}
+
+// 지도 가시영역 마커 업데이트 (성능 최적화)
+function updateVisibleMarkers() {
+    if (!map) return;
+    const bounds = map.getBounds();
+    const isZoomedOut = map.getZoom() < 13;
+    
+    placesData.forEach(p => {
+        if (!p.marker) return;
+        
+        const pCat = normalizeCat(p.category);
+        const isCatActive = (activeCategory === '전체' || pCat === activeCategory);
+        
+        if (isCatActive && bounds.hasLatLng(p.marker.getPosition())) {
+            if (!p.marker.getMap()) p.marker.setMap(map);
+        } else {
+            if (p.marker.getMap()) p.marker.setMap(null);
+        }
+    });
+
+    // 전체 카테고리일 때 Top 5 노출
+    if (activeCategory === '전체') {
+        renderTop5(bounds);
+    } else {
+        const top5Container = document.getElementById('top5-container');
+        if (top5Container) top5Container.style.display = 'none';
+    }
+}
+
+function renderTop5(bounds) {
+    const visiblePlaces = placesData.filter(p => 
+        bounds.hasLatLng(new naver.maps.LatLng(p.latitude, p.longitude))
+    );
+    
+    // 조회수(views 또는 likes) 기준으로 정렬
+    visiblePlaces.sort((a, b) => ((b.views || b.likes) || 0) - ((a.views || a.likes) || 0));
+    const top5 = visiblePlaces.slice(0, 5);
+    
+    let container = document.getElementById('top5-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'top5-container';
+        container.className = 'top5-overlay';
+        document.body.appendChild(container);
+    }
+    
+    if (top5.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'block';
+    container.innerHTML = `
+        <div class="top5-header">인기 장소 TOP 5</div>
+        <div class="top5-list">
+            ${top5.map((p, idx) => `
+                <div class="top5-item" onclick="map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});">
+                    <span class="top5-rank">${idx + 1}</span>
+                    <span class="top5-name">${p.name}</span>
+                    <span class="top5-views">👁️ ${(p.views || p.likes) || 0}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
 window.onload = function() {
     map = new naver.maps.Map('map', { center: new naver.maps.LatLng(userLat, userLng), zoom: 14, mapDataControl: false });
     fetchWeather(userLat, userLng);
@@ -327,16 +410,17 @@ window.onload = function() {
     }
 
     naver.maps.Event.addListener(map, 'click', function() { closePanel(); closeSearchPanel(); });
-    naver.maps.Event.addListener(map, 'idle', function() { fetchWeather(map.getCenter().y, map.getCenter().x); });
+    naver.maps.Event.addListener(map, 'idle', function() { fetchWeather(map.getCenter().y, map.getCenter().x); updateVisibleMarkers(); });
     naver.maps.Event.addListener(map, 'zoom_changed', function() {
         let isZoomedOut = map.getZoom() < 13;
         if (currentZoomedOut !== isZoomedOut) {
             currentZoomedOut = isZoomedOut;
             placesData.forEach(p => {
-                if (p.marker) { p.marker.setIcon({ content: getMarkerHTML(p, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(17, 40) }); }
+                if (p.marker) { p.marker.setIcon({ content: getMarkerHTML(p, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }); }
             });
         }
         if (isZoomedOut) document.getElementById('map').classList.add('zoomed-out'); else document.getElementById('map').classList.remove('zoomed-out');
+        updateVisibleMarkers();
     });
 
     loadPlaces(); loadNotices();
@@ -354,30 +438,31 @@ function setCategory(cat) {
 }
 
 function applyFilters(overrideCat) {
-    let filterCat = overrideCat || activeCategory;
-    placesData.forEach(p => {
-        let pCat = normalizeCat(p.category); let show = (filterCat === '전체' || pCat === filterCat);
-        if(show) p.marker.setMap(map); else p.marker.setMap(null);
-    });
+    activeCategory = overrideCat || activeCategory;
+    updateVisibleMarkers();
     if(document.getElementById('search-panel').classList.contains('show')) executeSearch();
 }
 
-function closePanel() { document.getElementById('info-content').classList.remove('show'); document.getElementById('category-nav').style.display = 'flex'; }
+function closePanel() { 
+    document.getElementById('info-content').classList.remove('show'); 
+    document.getElementById('category-nav').style.display = 'flex'; 
+    updateVisibleMarkers(); // 정보창 닫힐 때 Top 5 갱신
+}
 
 // 승인된 장소만 표시 (is_approved === true)
 async function loadPlaces() {
     const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
     if (!error && data) {
         placesData.forEach(p => { if(p.marker) p.marker.setMap(null); });
-        placesData = data; placesData.sort((a, b) => (a.likes || 0) - (b.likes || 0));
-
+        placesData = data; 
+        
         let isZoomedOut = map.getZoom() < 13;
         placesData.forEach(place => {
             let jitterLat = place.latitude + (Math.random() - 0.5) * 0.0002; let jitterLng = place.longitude + (Math.random() - 0.5) * 0.0002;
             place.marker = new naver.maps.Marker({
-                position: new naver.maps.LatLng(jitterLat, jitterLng), map: map,
-                icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(17, 40) },
-                zIndex: place.likes || 0
+                position: new naver.maps.LatLng(jitterLat, jitterLng),
+                icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) },
+                zIndex: (place.views || place.likes) || 0
             });
             place.marker.addListener('click', function() { map.panTo(place.marker.getPosition()); renderPanel(place.id); if(window.innerWidth <= 768) closeSearchPanel(); });
         });
@@ -407,15 +492,14 @@ function executeSearch() {
         else if (currentSearchScope === 'near') inScope = (getDistanceKm(userLat, userLng, p.latitude, p.longitude) <= 5.0);
         
         if ((!query || nameMatch || catMatch) && inScope && isCatActive) {
-            p.marker.setMap(map);
             const distText = currentSearchScope === 'near' ? `<span style="color:#FF6B6B; font-weight:800; font-size:11px;">📍 ${getDistanceKm(userLat, userLng, p.latitude, p.longitude).toFixed(1)}km</span>` : '';
             listEl.innerHTML += `
                 <li class="search-result-item" onclick="switchTab('map'); map.setZoom(15); map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});">
                     <div style="font-weight:800; color:#343a40;">${p.name}</div>
-                    <div style="font-size:11px; color:#868e96;">${pCat} | ❤️ ${p.likes || 0} ${distText}</div>
+                    <div style="font-size:11px; color:#868e96;">${pCat} | 👁️ ${(p.views || p.likes) || 0} ${distText}</div>
                 </li>`;
             resultCount++;
-        } else p.marker.setMap(null);
+        }
     });
     if(resultCount === 0) listEl.innerHTML = '<div class="res-empty">조건에 맞는 장소가 없습니다.</div>';
 }
@@ -453,7 +537,9 @@ function updateSliderDots(id, el) { const index = Math.round(el.scrollLeft / el.
 function renderPanel(id) {
     document.getElementById('category-nav').style.display = 'none'; 
     const place = placesData.find(p => p.id === id);
-    const myVote = localStorage.getItem('vote_' + id); 
+    if (!place) return;
+
+    incrementViewCount(id); // 조회수 증가
 
     let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
     let commentsHtmlArr = commentsArr.map((c, idx) => {
@@ -484,9 +570,7 @@ function renderPanel(id) {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </button>
             <div class="icon-actions">
-                <button class="icon-btn ${myVote === 'like' ? 'liked' : ''}" onclick="toggleVote(${place.id})" id="btn-like-${place.id}">
-                    ${myVote === 'like' ? heartFilled : heartOutline}
-                </button>
+                <div class="view-badge">👁️ ${(place.views || place.likes) || 0}</div>
                 <button class="icon-btn" onclick="sharePlace('${place.name}', '${place.address || ''}')">${shareIcon}</button>
             </div>
         </div>
@@ -641,7 +725,7 @@ async function addComment(id) {
     let updatedJson = JSON.stringify(comments); place.comments_list = updatedJson;
     renderPanel(id);
     let isZoomedOut = map.getZoom() < 13;
-    place.marker.setIcon({ content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(17, 40) });
+    place.marker.setIcon({ content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) });
     await supabaseClient.from('places').update({ comments_list: updatedJson }).eq('id', id);
 }
 
@@ -671,20 +755,9 @@ async function deleteComment(placeId, commentId) {
         comments = comments.filter(c => c.id !== commentId);
         let updatedJson = JSON.stringify(comments); place.comments_list = updatedJson; renderPanel(placeId);
         let isZoomedOut = map.getZoom() < 13;
-        place.marker.setIcon({ content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(17, 40) });
+        place.marker.setIcon({ content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) });
         await supabaseClient.from('places').update({ comments_list: updatedJson }).eq('id', placeId);
     } else alert("비밀번호가 틀렸습니다.");
-}
-
-async function toggleVote(id) {
-    let place = placesData.find(p => p.id === id); let currentVote = localStorage.getItem('vote_' + id);
-    if (currentVote === 'like') { place.likes = Math.max(0, (place.likes || 0) - 1); localStorage.removeItem('vote_' + id); } 
-    else { place.likes = (place.likes || 0) + 1; localStorage.setItem('vote_' + id, 'like'); }
-    const btn = document.getElementById('btn-like-' + id);
-    if (currentVote === 'like') { btn.classList.remove('liked'); btn.innerHTML = heartOutline; } 
-    else { btn.classList.add('liked'); btn.innerHTML = heartFilled; }
-    place.marker.setZIndex(place.likes || 0);
-    await supabaseClient.from('places').update({ likes: place.likes }).eq('id', id);
 }
 
 function moveToCurrentLocation() {
