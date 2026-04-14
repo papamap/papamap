@@ -2,6 +2,28 @@ const SUPABASE_URL = "https://jmeqvmmabgcdsuvabpgp.supabase.co";
 const SUPABASE_KEY = "sb_publishable_tpw_7GUMBP3iYiZ-EPLaNw_3u-gjX_B";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// 인스타식 상대 시간 계산 함수
+function timeAgo(dateInput) {
+    const past = new Date(dateInput);
+    const now = new Date();
+    const seconds = Math.floor((now - past) / 1000);
+    
+    if (isNaN(seconds) || seconds < 0) return dateInput; 
+    if (seconds < 60) return "방금 전";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}분 전`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}시간 전`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}일 전`;
+    const weeks = Math.floor(days / 7);
+    if (weeks < 4) return `${weeks}주 전`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months}개월 전`;
+    const years = Math.floor(days / 365);
+    return `${years}년 전`;
+}
+
 const ADMIN_PW = "123qwe"; // 요청하신 관리자 비밀번호
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 10; 
@@ -27,9 +49,29 @@ function checkSecurityAndLogin() {
         localStorage.removeItem('adminLockout');
     }
 
-    const pw = prompt("관리자 비밀번호를 입력하세요:");
+    // 세션 체크 (간단히 localStorage로 유지)
+    if (sessionStorage.getItem('adminAuthenticated') === 'true') {
+        document.getElementById('admin-main').style.display = 'block';
+        loadAdminPlaces();
+    } else {
+        document.getElementById('login-screen').style.display = 'block';
+        // Enter키 지원
+        document.getElementById('admin-pw-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') submitAdminLogin();
+        });
+    }
+}
+
+function submitAdminLogin() {
+    const pwInput = document.getElementById('admin-pw-input');
+    const pw = pwInput.value;
+    let attempts = parseInt(localStorage.getItem('adminAttempts') || '0');
+    const now = Date.now();
+
     if(pw === ADMIN_PW) {
         localStorage.setItem('adminAttempts', '0'); 
+        sessionStorage.setItem('adminAuthenticated', 'true');
+        document.getElementById('login-screen').style.display = 'none';
         document.getElementById('admin-main').style.display = 'block';
         loadAdminPlaces();
     } else {
@@ -41,8 +83,8 @@ function checkSecurityAndLogin() {
             location.reload();
         } else {
             alert(`비밀번호가 틀렸습니다. (남은 기회: ${MAX_ATTEMPTS - attempts}번)`);
-            document.getElementById('login-screen').innerHTML = `<h2>새로고침(F5)하여 다시 시도해주세요.</h2>`;
-            document.getElementById('login-screen').style.display = 'block';
+            pwInput.value = '';
+            pwInput.focus();
         }
     }
 }
@@ -212,7 +254,7 @@ function loadAllComments() {
     if(allComments.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#adb5bd;">작성된 댓글이 없습니다.</td></tr>`; return; }
 
     tbody.innerHTML = allComments.map(c => {
-        const dateStr = new Date(c.id).toLocaleString('ko-KR');
+        const dateStr = timeAgo(c.date || c.id);
         return `
         <tr>
             <td style="font-weight:700; color:#5c7cfa;">${escapeHtml(c.placeName)}</td>
