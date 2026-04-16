@@ -253,7 +253,7 @@ img { -webkit-user-drag: none; }
 .form-row-group { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
 .form-row-group select { flex: 1; border: 1px solid #dee2e6; border-radius: 10px; padding: 12px 10px; font-size: 13px; outline: none; box-sizing: border-box; }
 .form-row-group input, .form-row-group textarea { flex: 2; margin-bottom: 0 !important; box-sizing: border-box; }
-.modal-content input[type="text"], .modal-content textarea, .modal-content select.full-width { width: 100%; margin-bottom: 12px; padding: 12px 14px; box-sizing: border-box; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; background: rgba(255,255,255,0.6); }
+.modal-content input[type="text"], .modal-content input[type="password"], .modal-content textarea, .modal-content select.full-width { width: 100%; margin-bottom: 12px; padding: 12px 14px; box-sizing: border-box; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; background: rgba(255,255,255,0.6); }
 .modal-content input:read-only { background: rgba(241, 243, 245, 0.5); color: #868e96; }
 .modal-content textarea { resize: none; line-height: 1.4; }
 
