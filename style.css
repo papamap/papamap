@@ -25,52 +25,19 @@ img { -webkit-user-drag: none; }
 
 #map { width: 100%; height: 100vh; background: #e9ecef; z-index: 0; position: relative; }
 
-/* 3. 최신식 핀 형태 마커 디자인 */
-.custom-marker { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 10; }
-.custom-marker:hover .marker-label { 
-    visibility: visible; /* 마우스 올리면 보임 */
-    opacity: 1; 
-    transform: translateX(-50%) translateY(-5px); 
-}
-
-.custom-marker:hover .marker-pin {
-    transform: rotate(-45deg) scale(1.1); /* 핀도 살짝 커짐 */
-}
-
-/* 축소 시(zoomed) 상태에서도 호버 적용 */
-.custom-marker.zoomed .marker-pin { 
-    width: 12px; height: 12px; 
-}
-
-.custom-marker.zoomed:hover .marker-label {
-    margin-bottom: 4px;
-}
-.marker-pin { 
-    width: 28px; height: 28px; /* 36px에서 28px로 축소 */
-    border-radius: 50% 50% 50% 0; 
-    background: #ffffff; 
-    border: 2.5px solid; /* 선 두께도 약간 조절 */
-    transform: rotate(-45deg); 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    box-shadow: 0 3px 8px rgba(0,0,0,0.15); 
-    transition: all 0.2s ease; 
-}
-
-.marker-icon { 
-    transform: rotate(45deg); 
-    font-size: 13px; /* 아이콘 크기 살짝 조정 */
-    line-height: 1; 
-}
+/* --- 완벽하게 수정된 핀 마커 및 툴팁 디자인 --- */
+.custom-marker { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; z-index: 10; }
+.marker-pin { width: 28px; height: 28px; border-radius: 50% 50% 50% 0; background: #ffffff; border: 2.5px solid; transform: rotate(-45deg); display: flex; justify-content: center; align-items: center; box-shadow: 0 3px 8px rgba(0,0,0,0.15); transition: all 0.2s ease; }
+.marker-icon { transform: rotate(45deg); font-size: 13px; display: flex; justify-content: center; align-items: center; line-height: 1; }
 .marker-indoor .marker-pin { border-color: #FF6B6B; }
 .marker-outdoor .marker-pin { border-color: #37B24D; }
 .marker-moonsen .marker-pin { border-color: #845EF7; }
+
 .marker-label { 
-    visibility: hidden;  /* 평소에는 숨김 */
+    visibility: hidden; 
     opacity: 0; 
     position: absolute;
-    bottom: 100%; /* 핀의 정수리 바로 위에 위치 */
+    bottom: 100%; 
     left: 50%;
     transform: translateX(-50%);
     background: rgba(33, 37, 41, 0.9);
@@ -84,14 +51,25 @@ img { -webkit-user-drag: none; }
     transition: all 0.2s ease;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     z-index: 1000;
-    margin-bottom: 8px; /* 핀과 라벨 사이의 간격 */
+    margin-bottom: 8px; 
+}
 
+.custom-marker:hover .marker-label { 
+    visibility: visible; 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(-5px); 
+}
+.custom-marker:hover .marker-pin { transform: rotate(-45deg) scale(1.1); z-index: 100; }
 .custom-marker.zoomed .marker-pin { width: 14px; height: 14px; border-width: 2px; }
+.custom-marker.zoomed .marker-icon { display: none !important; }
 .custom-marker.zoomed.marker-indoor .marker-pin { background: #FF6B6B; }
 .custom-marker.zoomed.marker-outdoor .marker-pin { background: #37B24D; }
 .custom-marker.zoomed.marker-moonsen .marker-pin { background: #845EF7; }
+.custom-marker.zoomed:hover .marker-label { margin-bottom: 4px; }
+/* --------------------------------------------- */
 
 .info-panel { position: absolute; top: calc(max(16px, env(safe-area-inset-top)) + 64px); left: 16px; width: 340px; max-width: calc(100vw - 32px); z-index: 10; pointer-events: none; max-height: calc(100vh - 120px - env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; box-sizing: border-box; box-shadow: 0 12px 40px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.6); opacity: 0; transform: translateX(-20px); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.info-panel.show { opacity: 1; pointer-events: auto; transform: translateX(0); }
 
 .top5-overlay { position: absolute; top: calc(max(16px, env(safe-area-inset-top)) + 64px); right: 16px; z-index: 10; width: 220px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.6); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .top5-header { font-size: 13px; font-weight: 800; color: #343a40; margin-bottom: 4px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.05); }
@@ -100,7 +78,8 @@ img { -webkit-user-drag: none; }
 .top5-item:hover { background: rgba(0,0,0,0.03); }
 .top5-rank { font-weight: 800; color: #FF6B6B; width: 18px; text-align: center; flex-shrink: 0; }
 .top5-name { color: #495057; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.top5-views { color: #868e96; font-size: 11px; font-weight: 500; flex-shrink: 0; }.info-panel.show { opacity: 1; pointer-events: auto; transform: translateX(0); }
+.top5-views { color: #868e96; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+
 .panel-top-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; padding: 16px 20px; pointer-events: none; }
 .panel-top-bar > * { pointer-events: auto; }
 .btn-back-arrow { width: 32px; height: 32px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); border-radius: 50%; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 2px 6px rgba(0,0,0,0.1); color: #495057; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.1s; padding: 0; }
@@ -110,7 +89,6 @@ img { -webkit-user-drag: none; }
 .icon-btn svg { width: 16px; height: 16px; }
 .icon-btn:active { transform: scale(0.9); background: #f8f9fa; }
 .view-badge { background: rgba(241, 243, 245, 0.8); backdrop-filter: blur(4px); border: 1px solid rgba(0,0,0,0.05); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: #495057; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); flex-shrink: 0; }
-
 
 .info-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; display: flex; flex-direction: column; }
 .info-scroll-area::-webkit-scrollbar { width: 6px; }
@@ -275,7 +253,7 @@ img { -webkit-user-drag: none; }
 .form-row-group { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
 .form-row-group select { flex: 1; border: 1px solid #dee2e6; border-radius: 10px; padding: 12px 10px; font-size: 13px; outline: none; box-sizing: border-box; }
 .form-row-group input, .form-row-group textarea { flex: 2; margin-bottom: 0 !important; box-sizing: border-box; }
-.modal-content input[type="text"], .modal-content input[type="password"], .modal-content textarea, .modal-content select.full-width { width: 100%; margin-bottom: 12px; padding: 12px 14px; box-sizing: border-box; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; background: rgba(255,255,255,0.6); }
+.modal-content input[type="text"], .modal-content textarea, .modal-content select.full-width { width: 100%; margin-bottom: 12px; padding: 12px 14px; box-sizing: border-box; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; background: rgba(255,255,255,0.6); }
 .modal-content input:read-only { background: rgba(241, 243, 245, 0.5); color: #868e96; }
 .modal-content textarea { resize: none; line-height: 1.4; }
 
