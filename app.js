@@ -14,6 +14,7 @@ var currentNoticeId = null;
 var userLocationMarker = null;
 
 const shareIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>`;
+const viewIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; margin-bottom:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
 
 // 인스타식 상대 시간 계산 함수
 function timeAgo(dateInput) {
@@ -270,18 +271,19 @@ function getMarkerClass(cat) {
 }
 
 function getMarkerHTML(place, isZoomedOut) {
-    let emoji = '🧸'; 
+    // 🧸 -> 🏠, 🎪 -> 🎨 로 직관성 개선
+    let emoji = '🏠'; 
     if (place.category === '야외') emoji = '🌳'; 
-    else if (place.category === '문센') emoji = '🎪';
+    else if (place.category === '문센') emoji = '🎨';
     let cls = getMarkerClass(place.category);
     
     if (isZoomedOut) { return `<div class="custom-marker zoomed ${cls}"><div class="marker-pin"></div></div>`; }
+    // 지도 복잡도를 낮추기 위해 ${escapeHtml(place.name)} 라벨 영역 삭제
     return `
     <div class="custom-marker ${cls}">
         <div class="marker-pin">
             <div class="marker-icon">${emoji}</div>
         </div>
-        <div class="marker-label">${escapeHtml(place.name)}</div>
     </div>`;
 }
 
@@ -442,7 +444,7 @@ function renderTop5(bounds) {
                 <div class="top5-item" onclick="map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});">
                     <span class="top5-rank">${idx + 1}</span>
                     <span class="top5-name">${p.name}</span>
-                    <span class="top5-views">👁️ ${(p.views || p.likes) || 0}</span>
+                   <span class="top5-views" style="display:flex; align-items:center;">${viewIcon} ${(p.views || p.likes) || 0}</span>
                 </div>
             `).join('')}
         </div>
@@ -547,7 +549,7 @@ function executeSearch() {
             listEl.innerHTML += `
                 <li class="search-result-item" onclick="switchTab('map'); map.setZoom(15); map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});">
                     <div style="font-weight:800; color:#343a40;">${p.name}</div>
-                    <div style="font-size:11px; color:#868e96;">${pCat} | 👁️ ${(p.views || p.likes) || 0} ${distText}</div>
+                    <div style="font-size:11px; color:#868e96; display:flex; align-items:center;">${pCat} <span style="margin: 0 6px;">|</span> ${viewIcon} ${(p.views || p.likes) || 0} ${distText}</div>
                 </li>`;
             resultCount++;
         }
@@ -621,8 +623,8 @@ function renderPanel(id) {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </button>
             <div class="icon-actions">
-                <div class="view-badge">👁️ ${(place.views || place.likes) || 0}</div>
-                <button class="icon-btn" onclick="sharePlace('${place.name}', '${place.address || ''}')">${shareIcon}</button>
+<div class="view-badge">${viewIcon} ${(place.views || place.likes) || 0}</div>
+<button class="icon-btn" onclick="sharePlace('${place.name}', '${place.address || ''}')">${shareIcon}</button>
             </div>
         </div>
 
