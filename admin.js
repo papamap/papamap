@@ -24,69 +24,58 @@ function timeAgo(dateInput) {
     return `${years}년 전`;
 }
 
-const ADMIN_PW = "123qwe"; // 요청하신 관리자 비밀번호
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_MINUTES = 10; 
-
 let adminPlaces = [];
 let adminInquiries = [];
 
-window.onload = function() {
-    checkSecurityAndLogin();
-};
-
-function checkSecurityAndLogin() {
-    let attempts = parseInt(localStorage.getItem('adminAttempts') || '0');
-    let lockoutTime = parseInt(localStorage.getItem('adminLockout') || '0');
-    const now = Date.now();
-
-    if (lockoutTime > now) {
-        const remaining = Math.ceil((lockoutTime - now) / 60000);
-        document.getElementById('login-screen').innerHTML = `<h2>보안 잠금 중</h2><p>${remaining}분 후에 다시 시도해주세요.</p>`;
-        document.getElementById('login-screen').style.display = 'block';
-        return;
+// 페이지 로드 시 로그인 상태 체크
+window.onload = async function() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    
+    if (session) {
+        // 이미 로그인된 상태
+        showAdminMain();
     } else {
-        localStorage.removeItem('adminLockout');
-    }
-
-    // 세션 체크 (간단히 localStorage로 유지)
-    if (sessionStorage.getItem('adminAuthenticated') === 'true') {
-        document.getElementById('admin-main').style.display = 'block';
-        loadAdminPlaces();
-    } else {
+        // 로그인이 필요한 상태
         document.getElementById('login-screen').style.display = 'block';
-        // Enter키 지원
-        document.getElementById('admin-pw-input').addEventListener('keypress', function(e) {
+        
+        // Enter키 지원 (비밀번호 칸에서 엔터 누르면 로그인)
+        document.getElementById('admin-password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') submitAdminLogin();
         });
     }
+};
+
+// 실제 로그인 처리 함수
+async function submitAdminLogin() {
+    const email = document.getElementById('admin-email').value.trim();
+    const password = document.getElementById('admin-password').value;
+    const errorEl = document.getElementById('login-error');
+
+    if(!email || !password) return;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
+    });
+
+    if (error) {
+        errorEl.innerText = "로그인 정보가 일치하지 않습니다.";
+        errorEl.style.display = 'block';
+    } else {
+        showAdminMain();
+    }
 }
 
-function submitAdminLogin() {
-    const pwInput = document.getElementById('admin-pw-input');
-    const pw = pwInput.value;
-    let attempts = parseInt(localStorage.getItem('adminAttempts') || '0');
-    const now = Date.now();
+function showAdminMain() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-main').style.display = 'block';
+    loadAdminPlaces();
+}
 
-    if(pw === ADMIN_PW) {
-        localStorage.setItem('adminAttempts', '0'); 
-        sessionStorage.setItem('adminAuthenticated', 'true');
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('admin-main').style.display = 'block';
-        loadAdminPlaces();
-    } else {
-        attempts += 1;
-        localStorage.setItem('adminAttempts', attempts);
-        if (attempts >= MAX_ATTEMPTS) {
-            localStorage.setItem('adminLockout', now + (LOCKOUT_MINUTES * 60000));
-            alert(`${MAX_ATTEMPTS}회 오류로 ${LOCKOUT_MINUTES}분간 접속이 차단됩니다.`);
-            location.reload();
-        } else {
-            alert(`비밀번호가 틀렸습니다. (남은 기회: ${MAX_ATTEMPTS - attempts}번)`);
-            pwInput.value = '';
-            pwInput.focus();
-        }
-    }
+// 로그아웃 기능
+async function adminLogout() {
+    await supabaseClient.auth.signOut();
+    location.reload();
 }
 
 function switchTab(tab) {
@@ -97,6 +86,7 @@ function switchTab(tab) {
 
     if (tab === 'inquiries') loadInquiries();
     if (tab === 'comments') loadAllComments();
+    if (tab === 'board') loadAdminBoard(); // 게시판 로드 추가
 }
 
 async function loadAdminPlaces() {
@@ -294,3 +284,65 @@ function renderInquiriesTable() {
 
 function escapeQuote(str) { return !str ? '' : str.replace(/"/g, '&quot;'); }
 function escapeHtml(text) { return !text ? '' : text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])); }
+
+let adminBoardData = [];
+
+async function loadAdminBoard() {
+    const tbody = document.getElementById('board-tbody');
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px;">게시글을 불러오는 중...</td></tr>`;
+
+    const { data, error } = await supabaseClient.from('notices').select('*').order('created_at', { ascending: false });
+    if (!error && data) {
+        adminBoardData = data;
+        renderAdminBoard();
+    } else {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">게시글이 없습니다.</td></tr>`;
+    }
+}
+
+function renderAdminBoard() {
+    const tbody = document.getElementById('board-tbody');
+    if (adminBoardData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">게시글이 없습니다.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = adminBoardData.map(n => {
+        const dateStr = new Date(n.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const noticeBtn = n.is_notice 
+            ? `<button class="btn btn-save" style="background:#FF6B6B;" onclick="toggleNotice(${n.id}, false)">📌 해제</button>` 
+            : `<button class="btn btn-save" style="background:#adb5bd;" onclick="toggleNotice(${n.id}, true)">일반</button>`;
+
+        return `
+        <tr>
+            <td style="color:#adb5bd; font-weight:700;">#${n.id}</td>
+            <td style="text-align:center;">${noticeBtn}</td>
+            <td style="font-weight:600;">${escapeHtml(n.author || '익명')}</td>
+            <td style="font-weight:700;">${escapeHtml(n.title)}</td>
+            <td style="font-size:12px; color:#868e96;">${dateStr}</td>
+            <td><button class="btn btn-del" onclick="deleteAdminBoard(${n.id})">삭제</button></td>
+        </tr>
+    `}).join('');
+}
+
+async function toggleNotice(id, isNotice) {
+    const { error } = await supabaseClient.from('notices').update({ is_notice: isNotice }).eq('id', id);
+    if (!error) {
+        const item = adminBoardData.find(x => x.id === id);
+        if (item) item.is_notice = isNotice;
+        renderAdminBoard();
+    } else {
+        alert("공지 설정 변경 실패: " + error.message);
+    }
+}
+
+async function deleteAdminBoard(id) {
+    if(!confirm("이 게시글을 삭제하시겠습니까?")) return;
+    const { error } = await supabaseClient.from('notices').delete().eq('id', id);
+    if (!error) {
+        adminBoardData = adminBoardData.filter(x => x.id !== id);
+        renderAdminBoard();
+    } else {
+        alert("게시글 삭제 실패: " + error.message);
+    }
+}

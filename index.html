@@ -5,7 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#ffffff" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
-    <title>아빠맵</title>
+    <title>아빠맵 - 내 주변 문화센터 및 아기랑 갈만한 곳 지도</title>
+    
+    <meta name="description" content="전국 백화점, 마트 문화센터(문센) 위치부터 주말에 아기랑 가기 좋은 실내/야외 나들이 장소까지 지도로 한눈에! 부모들의 찐 리뷰가 담긴 육아 필수 지도 아빠맵.">
+    
+    <meta name="keywords" content="문화센터, 문센, 아기랑 갈만한 곳, 주말 아기랑, 아기랑 나들이, 백화점 문화센터, 이마트 문센, 육아지도">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="아빠맵 - 우리 동네 문화센터 & 나들이 지도">
+    <meta property="og:description" content="내 주변 문센 위치와 아기랑 갈만한 곳을 지도로 빠르게 찾아보세요.">
+    <meta property="og:site_name" content="아빠맵">
+    <meta property="og:image" content="">
     
     <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=xly4p0hm2g"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -188,9 +198,6 @@
             </div>
             <label class="form-label" style="margin-top: 0;">제목</label>
             <input type="text" id="notice-title" placeholder="제목을 입력하세요">
-            <label class="manual-toggle-wrap" style="margin-bottom:16px;">
-                <input type="checkbox" id="notice-is-pinned" style="margin:0;"> 📌 공지로 등록 (상단 노출)
-            </label>
             <label class="form-label">상세 내용</label>
             <textarea id="notice-content-text" placeholder="내용을 입력하세요" rows="6" class="full-width"></textarea>
             

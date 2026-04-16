@@ -46,14 +46,19 @@
     </style>
 </head>
 <body>
-    <div id="login-screen" style="display:none; text-align:center; margin-top: 100px;">
-        <h2>접근 권한이 필요합니다</h2>
-        <p style="color:#868e96; font-size:14px; margin-bottom:20px;">무작위 대입 방지 기능이 작동 중입니다.</p>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
-            <input type="password" id="admin-pw-input" placeholder="비밀번호 입력" style="padding:12px; border:1px solid #dee2e6; border-radius:12px; width:200px; text-align:center; outline:none; font-size:16px;">
-            <button onclick="submitAdminLogin()" style="padding:10px 40px; border:none; border-radius:12px; background:#343a40; color:white; font-weight:800; cursor:pointer;">확인</button>
+    <div id="login-screen" style="display:none; text-align:center; margin-top: 80px;">
+    <div style="background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: inline-block; width: 320px;">
+        <h2 style="margin-bottom: 10px;">관리자 로그인</h2>
+        <p style="color:#868e96; font-size:13px; margin-bottom:24px;">승인된 관리자만 접근 가능합니다.</p>
+        
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <input type="email" id="admin-email" placeholder="이메일" style="padding:14px; border:1px solid #dee2e6; border-radius:10px; outline:none;">
+            <input type="password" id="admin-password" placeholder="비밀번호" style="padding:14px; border:1px solid #dee2e6; border-radius:10px; outline:none;">
+            <button onclick="submitAdminLogin()" style="padding:14px; border:none; border-radius:10px; background:#343a40; color:white; font-weight:800; cursor:pointer; margin-top:10px;">로그인</button>
         </div>
+        <p id="login-error" style="color:#FF6B6B; font-size:12px; margin-top:16px; display:none;"></p>
     </div>
+</div>
 
     <div id="admin-main" style="display:none;">
         <div class="header">
@@ -61,10 +66,26 @@
             <a href="index.html" style="color:#5c7cfa; text-decoration:none; font-weight:700; font-size:14px;">본 서비스로 이동 ➔</a>
         </div>
 
-        <div class="tabs">
+    <div class="tabs">
             <button class="tab-btn active" id="btn-tab-places" onclick="switchTab('places')">장소 승인 및 관리</button>
-            <button class="tab-btn" id="btn-tab-comments" onclick="switchTab('comments')">댓글(추가정보) 관리</button>
+            <button class="tab-btn" id="btn-tab-board" onclick="switchTab('board')">게시판 관리</button>  <button class="tab-btn" id="btn-tab-comments" onclick="switchTab('comments')">댓글 관리</button>
             <button class="tab-btn" id="btn-tab-inquiries" onclick="switchTab('inquiries')">문의사항 확인</button>
+        </div>
+
+        <div id="section-board" class="section">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 8%;">ID</th>
+                        <th style="width: 10%;">공지여부</th>
+                        <th style="width: 15%;">작성자</th>
+                        <th style="width: 47%;">제목</th>
+                        <th style="width: 10%;">작성일시</th>
+                        <th style="width: 10%;">관리</th>
+                    </tr>
+                </thead>
+                <tbody id="board-tbody"></tbody>
+            </table>
         </div>
 
         <div id="section-places" class="section active">

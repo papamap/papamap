@@ -200,17 +200,26 @@ function openWriteNoticeModal(id = null) {
     modal.style.display = 'flex';
 }
 
+// 기존 saveNotice() 내부 로직 일부 변경
 async function saveNotice() {
-    const title = document.getElementById('notice-title').value.trim(); const content = document.getElementById('notice-content-text').value.trim();
-    const author = document.getElementById('notice-author').value.trim() || '익명'; const pw = document.getElementById('notice-pw').value.trim();
-    const isPinned = document.getElementById('notice-is-pinned').checked; const editId = document.getElementById('write-notice-modal').dataset.editId;
+    const title = document.getElementById('notice-title').value.trim(); 
+    const content = document.getElementById('notice-content-text').value.trim();
+    const author = document.getElementById('notice-author').value.trim() || '익명'; 
+    const pw = document.getElementById('notice-pw').value.trim();
+    
+    // 이 줄 삭제: const isPinned = document.getElementById('notice-is-pinned').checked; 
+    const editId = document.getElementById('write-notice-modal').dataset.editId;
     
     if(!title || !pw) return alert("제목과 비밀번호를 모두 입력하세요.");
     const btnSave = document.querySelector('#write-notice-modal .btn-save'); btnSave.innerText = "업로드 중..."; btnSave.disabled = true;
 
     let imgUrls = await noticeMediaManager.uploadAll();
-    let payload = { title: title, content: content, is_notice: isPinned, author: author, pw: pw };
+    
+    // is_notice를 무조건 false로 고정 (관리자만 나중에 변경 가능)
+    let payload = { title: title, content: content, is_notice: false, author: author, pw: pw };
     if(imgUrls !== null) payload.image_url = imgUrls; 
+
+    // ... 하단 로직은 기존과 동일 ...
 
     if (editId) {
         const n = noticesData.find(x => x.id == editId);
@@ -282,20 +291,62 @@ function getDistanceKm(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+// --- 기존 fetchWeather 함수를 이 코드로 덮어쓰세요 ---
 let lastWeatherLat = null; let lastWeatherLng = null;
 async function fetchWeather(lat, lng) {
     if (lastWeatherLat !== null && getDistanceKm(lastWeatherLat, lastWeatherLng, lat, lng) < 20.0) return;
     try {
-        let res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`);
-        if(!res.ok) throw new Error('API Error');
-        let data = await res.json();
-        if(data && data.current_weather) {
-            let temp = Math.round(data.current_weather.temperature); let code = data.current_weather.weathercode; let icon = '🌸';
-            if(code >= 1 && code <= 3) icon = '⛅'; if(code >= 51 && code <= 67) icon = '🌧️'; if(code >= 71 && code <= 77) icon = '❄️';
-            document.getElementById('weather-info').innerHTML = `${icon} ${temp}°C`; lastWeatherLat = lat; lastWeatherLng = lng;
+        // 1. 날씨와 미세먼지 API 동시에 호출 (무료, API 키 불필요)
+        const [weatherRes, aqiRes] = await Promise.all([
+            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`),
+            fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=pm10,pm2_5`)
+        ]);
+
+        if(!weatherRes.ok || !aqiRes.ok) throw new Error('API Error');
+        
+        const weatherData = await weatherRes.json();
+        const aqiData = await aqiRes.json();
+
+        // 2. 날씨 아이콘 및 온도 세팅
+        let temp = Math.round(weatherData.current_weather.temperature); 
+        let code = weatherData.current_weather.weathercode; 
+        let icon = '🌸';
+        if(code >= 1 && code <= 3) icon = '⛅'; 
+        if(code >= 51 && code <= 67) icon = '🌧️'; 
+        if(code >= 71 && code <= 77) icon = '❄️';
+
+        // 3. 미세먼지(PM10) 수치 기반 한국 기준 상태 계산
+        let pm10 = aqiData.current.pm10;
+        let aqiIcon = '😊'; let aqiText = '좋음'; let isBadAir = false;
+        
+        if (pm10 > 150) { aqiIcon = '👿'; aqiText = '매우나쁨'; isBadAir = true; }
+        else if (pm10 > 80) { aqiIcon = '😷'; aqiText = '나쁨'; isBadAir = true; }
+        else if (pm10 > 30) { aqiIcon = '😐'; aqiText = '보통'; }
+
+        // 비가 오거나(눈 포함) 미세먼지가 나쁘면 마스크/우산 아이콘으로 덮어쓰기
+        let isRaining = (code >= 51 && code <= 77);
+        if (isRaining) aqiIcon = '☔';
+
+        // 4. 화면 상단 날씨/미세먼지 위젯 업데이트
+        document.getElementById('weather-info').innerHTML = `${icon} ${temp}°C | ${aqiIcon} ${aqiText}`;
+        lastWeatherLat = lat; lastWeatherLng = lng;
+
+        // 5. [킬러 콘텐츠 핵심] 날씨가 구리거나 미세먼지가 나쁘면 '실내' 자동 추천
+        // (앱이 처음 켜질 때만 작동하도록, activeCategory가 '전체'일 때만 실행)
+        if ((isBadAir || isRaining) && activeCategory === '전체') {
+            // 0.5초 뒤에 스르륵 카테고리를 '실내'로 변경
+            setTimeout(() => {
+                setCategory('실내');
+                alert(`현재 ${isRaining ? '비/눈이 오네요 ☔' : '미세먼지가 나빠요 😷'}\n쾌적한 '실내' 장소 위주로 보여드릴게요!`);
+            }, 800);
         }
-    } catch(e) { document.getElementById('weather-info').innerHTML = `⛅ 18°C`; }
+
+    } catch(e) { 
+        document.getElementById('weather-info').innerHTML = `⛅ 18°C`; 
+        console.error("날씨/미세먼지 연동 실패:", e);
+    }
 }
+// -----------------------------------------------------
 
 function updateUserLocationMarker(lat, lng) {
     var pos = new naver.maps.LatLng(lat, lng);
