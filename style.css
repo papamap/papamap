@@ -16,30 +16,29 @@ img { -webkit-user-drag: none; }
 
 .chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; padding: 6px 12px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px; font-size: 12px; font-weight: 700; color: #495057; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; user-select: none; }
 .chip.active { background: #343a40; color: white; border-color: #343a40; }
-.chip[data-cat="실내"] { color: #5c7cfa; }
-.chip[data-cat="실내"].active { background: #5c7cfa; border-color: #5c7cfa; color: white; }
-.chip[data-cat="야외"] { color: #0ca678; }
-.chip[data-cat="야외"].active { background: #20c997; border-color: #20c997; color: white; }
-.chip[data-cat="문센"] { color: #f59f00; }
-.chip[data-cat="문센"].active { background: #f59f00; border-color: #f59f00; color: white; }
+.chip[data-cat="실내"] { color: #FF6B6B; }
+.chip[data-cat="실내"].active { background: #FF6B6B; border-color: #FF6B6B; color: white; }
+.chip[data-cat="야외"] { color: #37B24D; }
+.chip[data-cat="야외"].active { background: #37B24D; border-color: #37B24D; color: white; }
+.chip[data-cat="문센"] { color: #845EF7; }
+.chip[data-cat="문센"].active { background: #845EF7; border-color: #845EF7; color: white; }
 
 #map { width: 100%; height: 100vh; background: #e9ecef; z-index: 0; position: relative; }
 
 /* 3. 최신식 핀 형태 마커 디자인 */
 .custom-marker { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 10; }
 .custom-marker:hover { transform: scale(1.15) translateY(-5px); z-index: 100; }
-.marker-pin { width: 32px; height: 32px; border-radius: 50% 50% 50% 0; background: linear-gradient(135deg, #ffffff 0%, #f1f3f5 100%); border: 3px solid; transform: rotate(-45deg); display: flex; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.15), inset -2px -2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
-.marker-icon { transform: rotate(45deg); font-size: 15px; display: flex; justify-content: center; align-items: center; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15)); }
-.marker-indoor .marker-pin { border-color: #5c7cfa; }
-.marker-outdoor .marker-pin { border-color: #20c997; }
-.marker-moonsen .marker-pin { border-color: #f59f00; }
-.marker-label { margin-top: 4px; font-size: 12px; font-weight: 800; color: #212529; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap; pointer-events: none; }
+.marker-pin { width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: #ffffff; border: 3px solid; transform: rotate(-45deg); display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: 0.2s; }
+.marker-icon { transform: rotate(45deg); font-size: 16px; display: flex; justify-content: center; align-items: center; line-height: 1; }
+.marker-indoor .marker-pin { border-color: #FF6B6B; }
+.marker-outdoor .marker-pin { border-color: #37B24D; }
+.marker-moonsen .marker-pin { border-color: #845EF7; }
+.marker-label { display: none !important; }
 
 .custom-marker.zoomed .marker-pin { width: 14px; height: 14px; border-width: 2px; }
-.custom-marker.zoomed .marker-icon, .custom-marker.zoomed .marker-label, .custom-marker.zoomed .cmt-badge { display: none !important; }
-.custom-marker.zoomed.marker-indoor .marker-pin { background: #5c7cfa; }
-.custom-marker.zoomed.marker-outdoor .marker-pin { background: #20c997; }
-.custom-marker.zoomed.marker-moonsen .marker-pin { background: #f59f00; }
+.custom-marker.zoomed.marker-indoor .marker-pin { background: #FF6B6B; }
+.custom-marker.zoomed.marker-outdoor .marker-pin { background: #37B24D; }
+.custom-marker.zoomed.marker-moonsen .marker-pin { background: #845EF7; }
 
 .info-panel { position: absolute; top: calc(max(16px, env(safe-area-inset-top)) + 64px); left: 16px; width: 340px; max-width: calc(100vw - 32px); z-index: 10; pointer-events: none; max-height: calc(100vh - 120px - env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; box-sizing: border-box; box-shadow: 0 12px 40px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.6); opacity: 0; transform: translateX(-20px); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column; overflow: hidden; padding: 0; }
 
@@ -130,9 +129,9 @@ img { -webkit-user-drag: none; }
 
 .radio-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .radio-label { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #495057; font-weight: 600; padding: 8px 12px; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.5); }
-.radio-label:has(input[value="실내"]:checked) { border-color: #5c7cfa; background: rgba(92, 124, 250, 0.1); color: #5c7cfa; }
-.radio-label:has(input[value="야외"]:checked) { border-color: #0ca678; background: rgba(12, 166, 120, 0.1); color: #0ca678; }
-.radio-label:has(input[value="문센"]:checked) { border-color: #f59f00; background: rgba(245, 159, 0, 0.1); color: #f59f00; }
+.radio-label:has(input[value="실내"]:checked) { border-color: #FF6B6B; background: rgba(255, 107, 107, 0.1); color: #FF6B6B; }
+.radio-label:has(input[value="야외"]:checked) { border-color: #37B24D; background: rgba(55, 178, 77, 0.1); color: #37B24D; }
+.radio-label:has(input[value="문센"]:checked) { border-color: #845EF7; background: rgba(132, 94, 247, 0.1); color: #845EF7; }
 .radio-label input { display: none; } 
 
 .btn-free-toggle { background: rgba(241, 243, 245, 0.6); border: 1px solid rgba(222, 226, 230, 0.6); color: #495057; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 0 16px; cursor: pointer; transition: 0.2s; white-space: nowrap; flex-shrink: 0; }
