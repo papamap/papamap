@@ -190,25 +190,20 @@ function openWriteNoticeModal(id = null) {
     const modal = document.getElementById('write-notice-modal'); const titleEl = document.getElementById('modal-notice-title');
     if (id) {
         const n = noticesData.find(x => x.id === id);
-        document.getElementById('notice-title').value = n.title; document.getElementById('notice-content-text').value = n.content; document.getElementById('notice-is-pinned').checked = n.is_notice;
+        document.getElementById('notice-title').value = n.title; document.getElementById('notice-content-text').value = n.content;
         document.getElementById('notice-author').value = n.author || ''; document.getElementById('notice-author').disabled = true; document.getElementById('notice-pw').value = ''; 
         noticeMediaManager.loadUrls(n.image_url); modal.dataset.editId = id; titleEl.innerText = "게시글 수정";
     } else {
-        document.getElementById('notice-title').value = ''; document.getElementById('notice-content-text').value = ''; document.getElementById('notice-is-pinned').checked = false;
+        document.getElementById('notice-title').value = ''; document.getElementById('notice-content-text').value = ''; 
         document.getElementById('notice-author').value = ''; document.getElementById('notice-author').disabled = false; document.getElementById('notice-pw').value = ''; 
         noticeMediaManager.loadUrls(''); delete modal.dataset.editId; titleEl.innerText = "게시글 작성";
     }
     modal.style.display = 'flex';
 }
 
-// 기존 saveNotice() 내부 로직 일부 변경
 async function saveNotice() {
-    const title = document.getElementById('notice-title').value.trim(); 
-    const content = document.getElementById('notice-content-text').value.trim();
-    const author = document.getElementById('notice-author').value.trim() || '익명'; 
-    const pw = document.getElementById('notice-pw').value.trim();
-    
-    // 이 줄 삭제: const isPinned = document.getElementById('notice-is-pinned').checked; 
+    const title = document.getElementById('notice-title').value.trim(); const content = document.getElementById('notice-content-text').value.trim();
+    const author = document.getElementById('notice-author').value.trim() || '익명'; const pw = document.getElementById('notice-pw').value.trim();
     const editId = document.getElementById('write-notice-modal').dataset.editId;
     
     if(!title || !pw) return alert("제목과 비밀번호를 모두 입력하세요.");
@@ -216,11 +211,9 @@ async function saveNotice() {
 
     let imgUrls = await noticeMediaManager.uploadAll();
     
-    // is_notice를 무조건 false로 고정 (관리자만 나중에 변경 가능)
-    let payload = { title: title, content: content, is_notice: false, author: author, pw: pw };
+    // is_notice 값을 찾지 않고 무조건 일반 글로 저장합니다 (false)
+    let payload = { title: title, content: content, is_notice: false, author: author, pw: pw }; 
     if(imgUrls !== null) payload.image_url = imgUrls; 
-
-    // ... 하단 로직은 기존과 동일 ...
 
     if (editId) {
         const n = noticesData.find(x => x.id == editId);
@@ -511,12 +504,16 @@ function closePanel() {
     updateVisibleMarkers(); // 정보창 닫힐 때 Top 5 갱신
 }
 
-// 승인된 장소만 표시 (is_approved === true)
 async function loadPlaces() {
     const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
     if (!error && data) {
         placesData.forEach(p => { if(p.marker) p.marker.setMap(null); });
-        placesData = data; 
+        
+        // 💡 핵심: 이름에 있는 \n 기호 및 그 뒷부분을 완벽히 날려버리는 정화 작업
+        placesData = data.map(p => {
+            if(p.name) p.name = p.name.split('\\n')[0].split('\n')[0].trim();
+            return p;
+        });
         
         let isZoomedOut = map.getZoom() < 13;
         placesData.forEach(place => {
