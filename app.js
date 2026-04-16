@@ -275,7 +275,9 @@ function getMarkerHTML(place, isZoomedOut) {
     if (place.category === '야외') emoji = '🌳'; 
     else if (place.category === '문센') emoji = '🎨';
     let cls = getMarkerClass(place.category);
-    const safeName = escapeHtml(place.name); // 장소명 안전하게 처리
+    
+    // 혹시 모를 특수문자 오류를 방지하기 위해 장소명을 안전하게 변환
+    const safeName = escapeHtml(place.name); 
     
     if (isZoomedOut) { 
         return `
