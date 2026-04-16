@@ -27,13 +27,64 @@ img { -webkit-user-drag: none; }
 
 /* 3. 최신식 핀 형태 마커 디자인 */
 .custom-marker { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 10; }
-.custom-marker:hover { transform: scale(1.15) translateY(-5px); z-index: 100; }
-.marker-pin { width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: #ffffff; border: 3px solid; transform: rotate(-45deg); display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: 0.2s; }
-.marker-icon { transform: rotate(45deg); font-size: 16px; display: flex; justify-content: center; align-items: center; line-height: 1; }
+.custom-marker:hover .marker-label { 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(-5px); /* 살짝 떠오르는 애니메이션 */
+}
+
+.custom-marker:hover .marker-pin {
+    transform: rotate(-45deg) scale(1.1); /* 핀도 살짝 커짐 */
+}
+
+/* 축소 시(zoomed) 상태에서도 호버 적용 */
+.custom-marker.zoomed .marker-pin { 
+    width: 12px; height: 12px; 
+}
+
+.custom-marker.zoomed:hover .marker-label {
+    opacity: 1;
+    top: -30px;
+}
+.marker-pin { 
+    width: 28px; height: 28px; /* 36px에서 28px로 축소 */
+    border-radius: 50% 50% 50% 0; 
+    background: #ffffff; 
+    border: 2.5px solid; /* 선 두께도 약간 조절 */
+    transform: rotate(-45deg); 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15); 
+    transition: all 0.2s ease; 
+}
+
+.marker-icon { 
+    transform: rotate(45deg); 
+    font-size: 13px; /* 아이콘 크기 살짝 조정 */
+    line-height: 1; 
+}
 .marker-indoor .marker-pin { border-color: #FF6B6B; }
 .marker-outdoor .marker-pin { border-color: #37B24D; }
 .marker-moonsen .marker-pin { border-color: #845EF7; }
-.marker-label { display: none !important; }
+.marker-label { 
+    display: block !important; /* 다시 활성화 */
+    position: absolute;
+    top: -35px; /* 핀 위쪽으로 위치 */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(33, 37, 41, 0.9); /* 어두운 배경으로 가독성 확보 */
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    pointer-events: none; /* 마우스 이벤트 방해 금지 */
+    opacity: 0; /* 평소에는 투명하게 */
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
 
 .custom-marker.zoomed .marker-pin { width: 14px; height: 14px; border-width: 2px; }
 .custom-marker.zoomed.marker-indoor .marker-pin { background: #FF6B6B; }
