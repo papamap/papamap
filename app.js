@@ -271,19 +271,26 @@ function getMarkerClass(cat) {
 }
 
 function getMarkerHTML(place, isZoomedOut) {
-    // 🧸 -> 🏠, 🎪 -> 🎨 로 직관성 개선
     let emoji = '🏠'; 
     if (place.category === '야외') emoji = '🌳'; 
     else if (place.category === '문센') emoji = '🎨';
     let cls = getMarkerClass(place.category);
+    const safeName = escapeHtml(place.name); // 장소명 안전하게 처리
     
-    if (isZoomedOut) { return `<div class="custom-marker zoomed ${cls}"><div class="marker-pin"></div></div>`; }
-    // 지도 복잡도를 낮추기 위해 ${escapeHtml(place.name)} 라벨 영역 삭제
+    if (isZoomedOut) { 
+        return `
+        <div class="custom-marker zoomed ${cls}" title="${safeName}">
+            <div class="marker-pin"></div>
+            <div class="marker-label">${safeName}</div>
+        </div>`; 
+    }
+
     return `
-    <div class="custom-marker ${cls}">
+    <div class="custom-marker ${cls}" title="${safeName}">
         <div class="marker-pin">
             <div class="marker-icon">${emoji}</div>
         </div>
+        <div class="marker-label">${safeName}</div>
     </div>`;
 }
 
