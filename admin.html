@@ -2,39 +2,51 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>관리자 대시보드</title>
+<title>아빠맵 관리자</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body{font-family:'Pretendard',sans-serif;background:#f1f3f5;padding:24px}
-.tabs{display:flex;gap:10px;margin-bottom:20px}
-.tab-btn{padding:10px 20px;border-radius:12px;border:none;cursor:pointer;background:#fff}
-.tab-btn.active{background:#343a40;color:#fff}
-.section{display:none;background:#fff;padding:20px;border-radius:16px}
-.section.active{display:block}
-table{width:100%;border-collapse:collapse}
-th,td{padding:12px;border-bottom:1px solid #dee2e6;text-align:left}
-.stat-box{padding:20px;background:#e9ecef;border-radius:12px;margin-bottom:10px;font-weight:bold}
+body{font-family:sans-serif;background:#f1f3f5;padding:24px;}
+.tabs{display:flex;gap:10px;margin-bottom:20px;}
+.tab-btn{padding:10px 20px;border-radius:12px;border:none;cursor:pointer;background:#fff;font-weight:bold;}
+.tab-btn.active{background:#343a40;color:#fff;}
+.section{display:none;background:#fff;padding:20px;border-radius:16px;}
+.section.active{display:block;}
+table{width:100%;border-collapse:collapse;text-align:left;}
+th,td{padding:12px;border-bottom:1px solid #dee2e6;font-size:14px;}
+.stat-box{padding:20px;background:#e9ecef;border-radius:12px;margin-bottom:10px;font-weight:bold;}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;color:white;background:#5c7cfa;}
 </style>
 </head>
 <body>
+<div id="login-screen" style="text-align:center;margin-top:80px;">
+<div style="background:white;padding:40px;display:inline-block;border-radius:20px;">
+<input type="email" id="admin-email" placeholder="이메일" style="margin-bottom:10px;padding:10px;"><br>
+<input type="password" id="admin-password" placeholder="비밀번호" style="margin-bottom:10px;padding:10px;"><br>
+<button onclick="submitAdminLogin()" style="padding:10px 20px;background:#343a40;color:white;border:none;border-radius:8px;">로그인</button>
+</div></div>
+<div id="admin-main" style="display:none;">
 <h1>아빠맵 관리자</h1>
 <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('places')">장소 관리</button>
-    <button class="tab-btn" onclick="switchTab('board')">게시판/팝업 관리</button>
-    <button class="tab-btn" onclick="switchTab('inquiries')">수정/문의 사항</button>
-    <button class="tab-btn" onclick="switchTab('stats')">통계 현황</button>
+<button class="tab-btn active" onclick="switchTab('places')">장소 관리</button>
+<button class="tab-btn" onclick="switchTab('board')">게시판/팝업 관리</button>
+<button class="tab-btn" onclick="switchTab('inquiries')">수정/문의 사항</button>
+<button class="tab-btn" onclick="switchTab('stats')">통계 현황</button>
 </div>
 <div id="section-stats" class="section">
-    <h2>방문자 및 조회수 통계</h2>
-    <div class="stat-box">오늘 전체 방문자: 개발 준비중 (DB 연동 필요)</div>
-    <div class="stat-box">가장 많이 조회된 장소: 개발 준비중</div>
-    <div class="stat-box">최다 조회 게시글: 개발 준비중</div>
+<div class="stat-box">총 등록 장소 수: <span id="stat-places">0</span>개</div>
+<div class="stat-box">전체 누적 조회수 (모든 장소 합산): <span id="stat-views">0</span>회</div>
+<div class="stat-box">가장 많이 조회된 장소: <span id="stat-top-place">-</span></div>
+</div>
+<div id="section-places" class="section active">
+<table><thead><tr><th>ID</th><th>상태</th><th>장소명</th><th>카테고리</th><th>관리</th></tr></thead><tbody id="admin-tbody"></tbody></table>
 </div>
 <div id="section-board" class="section">
-    <table>
-        <thead><tr><th>ID</th><th>상태</th><th>제목</th><th>팝업기한</th><th>설정</th></tr></thead>
-        <tbody id="board-tbody"></tbody>
-    </table>
+<table><thead><tr><th>ID</th><th>제목</th><th>팝업/공지 상태</th><th>팝업 종료일</th><th>관리</th></tr></thead><tbody id="board-tbody"></tbody></table>
 </div>
+<div id="section-inquiries" class="section">
+<table><thead><tr><th>접수일시</th><th>내용 (수정요청 포함)</th></tr></thead><tbody id="inquiries-tbody"></tbody></table>
+</div>
+</div>
+<script src="admin.js"></script>
 </body>
 </html>
