@@ -741,11 +741,39 @@ function openAppMap(type, name, lat, lng) {
 }
 
 async function fetchKakaoImage(query, imgElementId, topBarId, sliderId, headerWrapId) {
-    const topBarEl = topBarId ? document.getElementById(topBarId) : null; const sliderEl = sliderId ? document.getElementById(sliderId) : null; const headerWrapEl = headerWrapId ? document.getElementById(headerWrapId) : null;
+    const topBarEl = topBarId ? document.getElementById(topBarId) : null; 
+    const sliderEl = sliderId ? document.getElementById(sliderId) : null; 
+    const headerWrapEl = headerWrapId ? document.getElementById(headerWrapId) : null;
+    
     try {
-        const res = await fetch(`https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(query)}&size=1`, { headers: { "Authorization": `KakaoAK ${KAKao_REST_KEY}` } }); const data = await res.json();
-        if(data.documents && data.documents.length > 0) { const imgEl = document.getElementById(imgElementId); if(imgEl) { imgEl.src = data.documents[0].image_url; imgEl.style.display = 'block'; } if(topBarEl) { topBarEl.classList.remove('no-image'); topBarEl.classList.add('has-image'); } if(sliderEl) { sliderEl.style.display = 'flex'; } if(headerWrapEl) { headerWrapEl.classList.remove('no-image'); headerWrapEl.classList.add('has-image'); } } else { if(headerWrapEl) headerWrapEl.classList.add('no-image'); }
-    } catch(e) { if(headerWrapEl) headerWrapEl.classList.add('no-image'); }
+        const res = await fetch(`https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(query)}&size=1`, { headers: { "Authorization": `KakaoAK ${KAKao_REST_KEY}` } }); 
+        const data = await res.json();
+        
+        if(data.documents && data.documents.length > 0) { 
+            const imgEl = document.getElementById(imgElementId); 
+            if(imgEl) { 
+                imgEl.src = data.documents[0].image_url; 
+                imgEl.style.display = 'block'; 
+            } 
+            if(topBarEl) { 
+                topBarEl.classList.remove('no-image'); 
+                topBarEl.classList.add('has-image'); 
+            } 
+            if(sliderEl) { 
+                sliderEl.style.display = 'flex'; 
+            } 
+            if(headerWrapEl) { 
+                headerWrapEl.classList.remove('no-image'); 
+                headerWrapEl.classList.add('has-image'); 
+                
+                headerWrapEl.style.display = 'block'; 
+            } 
+        } else { 
+            if(headerWrapEl) headerWrapEl.style.display = 'none'; 
+        }
+    } catch(e) { 
+        if(headerWrapEl) headerWrapEl.style.display = 'none'; 
+    }
 }
 
 function sharePlace(name, address) { if (navigator.share) navigator.share({ title: `아빠맵 - ${name}`, text: `${name}\n아빠맵에서 확인하세요!`, url: window.location.href }); else alert("URL을 복사해주세요."); }
