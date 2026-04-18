@@ -311,41 +311,58 @@ html.is-mobile .search-panel.show {
     white-space: nowrap;
 }
 
-/* --- 모바일 정보창 정밀 레이아웃 조정 --- */
+/* 1. 상단바 공백 제거 및 지도 확장 */
+.top-bar-container {
+    top: 0 !important;
+    padding-top: max(16px, env(safe-area-inset-top));
+}
+
+/* 2. 정보창 헤더 버튼 및 여백 교정 */
+.panel-header-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px 0 20px; /* 좌우 여백을 원복하여 좁게 만듦 */
+    z-index: 110;
+}
+
 html.is-mobile .info-panel {
     padding: 0 !important;
     margin: 0 !important;
-    left: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
 }
 
-/* 텍스트와 하단 정보들 사이 간격 확보 */
-.info-tag-wrap {
-    margin-top: 12px !important;
-    border-top: 1px solid rgba(0,0,0,0.05);
-    padding-top: 16px;
+/* 3. 댓글란 입력 필드 레이아웃 복구 */
+.comment-inputs-top {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    width: 100%;
+}
+.comment-inputs-top input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.6);
 }
 
-/* 날씨 박스 우측 정렬 */
+/* 4. 날씨 세로 정렬 및 위치 조정 */
 .body-weather-box {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 4px;
-    margin-top: 20px;
+    margin-top: 4px; /* 장소명 첫 줄과 맞춤 */
 }
-
 .weather-item-row {
     font-size: 11px;
     font-weight: 800;
     color: #495057;
     background: rgba(241, 243, 245, 0.8);
-    padding: 4px 8px;
+    padding: 3px 8px;
     border-radius: 8px;
-}
-
-/* 닫기 버튼 모바일에서도 노출 (X버튼 복구) */
-html.is-mobile .btn-panel-close { 
-    display: flex !important; 
+    white-space: nowrap;
 }
