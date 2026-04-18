@@ -31,10 +31,12 @@ th,td{padding:12px;border-bottom:1px solid #dee2e6;text-align:left}
     <div class="stat-box">최다 조회 게시글: 개발 준비중</div>
 </div>
 <div id="section-board" class="section">
+    <button onclick="loadBoardList()">게시판 목록 새로고침</button>
     <table>
-        <thead><tr><th>ID</th><th>상태</th><th>제목</th><th>팝업기한</th><th>설정</th></tr></thead>
+        <thead><tr><th>ID</th><th>공지여부</th><th>제목</th><th>작성일</th><th>팝업기한</th><th>설정</th></tr></thead>
         <tbody id="board-tbody"></tbody>
     </table>
 </div>
+<script src="admin.js"></script>
 </body>
 </html>

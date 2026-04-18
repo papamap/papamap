@@ -21,7 +21,6 @@
         <button class="chip" data-cat="문센">문센</button>
     </div>
 </div>
-<div id="weather-reco">날씨 정보를 불러오는 중입니다...</div>
 <div id="map"></div>
 
 <div id="main-popup" class="modal-overlay">
@@ -36,11 +35,19 @@
 </div>
 
 <div id="info-panel" class="info-panel">
+    <div class="drag-handle"></div>
     <div class="panel-top-bar">
-        <button class="btn-back-arrow" onclick="closePanel()">←</button>
-        <div id="weather-info" onclick="window.open('https://weather.naver.com/', '_blank')">☀️ 24°C</div>
+        <div id="weather-info" onclick="window.open('https://weather.naver.com/', '_blank')">☀️ 24°C / 미세먼지 보통</div>
     </div>
-    <div class="info-scroll-area" id="info-content"></div>
+    <div class="info-scroll-area" id="info-content">
+        <div class="photo-grid" id="photo-grid-container">
+            <div class="photo-item"><img src="https://via.placeholder.com/150" alt="1"></div>
+            <div class="photo-item"><img src="https://via.placeholder.com/150" alt="2"></div>
+            <div class="photo-item"><img src="https://via.placeholder.com/150" alt="3"></div>
+            <div class="photo-item"><img src="https://via.placeholder.com/150" alt="4"></div>
+            <div class="photo-item"><img src="https://via.placeholder.com/150" alt="5"></div>
+        </div>
+    </div>
 </div>
 
 <div id="top5-overlay" class="top5-overlay">
