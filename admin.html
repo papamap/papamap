@@ -7,15 +7,13 @@
 <style>
 body{font-family:'Pretendard',sans-serif;background:#f1f3f5;padding:24px}
 .tabs{display:flex;gap:10px;margin-bottom:20px}
-.tab-btn{padding:10px 20px;border-radius:12px;border:none;cursor:pointer;background:#fff;font-weight:600;color:#495057}
+.tab-btn{padding:10px 20px;border-radius:12px;border:none;cursor:pointer;background:#fff}
 .tab-btn.active{background:#343a40;color:#fff}
-.section{display:none;background:#fff;padding:20px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.05)}
+.section{display:none;background:#fff;padding:20px;border-radius:16px}
 .section.active{display:block}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{padding:12px;border-bottom:1px solid #dee2e6;text-align:left;font-size:14px}
-th{background:#f8f9fa;font-weight:700}
-.stat-box{padding:20px;background:#f8f9fa;border-radius:12px;margin-bottom:10px;font-weight:bold;color:#343a40;border:1px solid #e9ecef}
-.btn-action{padding:6px 12px;border-radius:8px;border:none;background:#228be6;color:white;cursor:pointer;font-size:12px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px;border-bottom:1px solid #dee2e6;text-align:left}
+.stat-box{padding:20px;background:#e9ecef;border-radius:12px;margin-bottom:10px;font-weight:bold}
 </style>
 </head>
 <body>
@@ -26,10 +24,6 @@ th{background:#f8f9fa;font-weight:700}
     <button class="tab-btn" onclick="switchTab('inquiries')">수정/문의 사항</button>
     <button class="tab-btn" onclick="switchTab('stats')">통계 현황</button>
 </div>
-<div id="section-places" class="section active">
-    <h2>장소 관리 (사진 최대 10장)</h2>
-    <p>장소 등록 및 수정 시 사진을 최대 10장까지 업로드할 수 있으며, 모바일 앱 내에서 드래그하여 순서를 변경할 수 있습니다.</p>
-</div>
 <div id="section-stats" class="section">
     <h2>방문자 및 조회수 통계</h2>
     <div class="stat-box">오늘 전체 방문자: 개발 준비중 (DB 연동 필요)</div>
@@ -37,23 +31,10 @@ th{background:#f8f9fa;font-weight:700}
     <div class="stat-box">최다 조회 게시글: 개발 준비중</div>
 </div>
 <div id="section-board" class="section">
-    <h2>게시판 목록 (최신순 / 공지우선)</h2>
     <table>
-        <thead><tr><th>ID</th><th>상태 (공지여부)</th><th>제목</th><th>팝업기한</th><th>설정</th></tr></thead>
-        <tbody id="board-tbody">
-            <tr>
-                <td>1</td>
-                <td>[공지]</td>
-                <td>아빠맵 오픈 기념 이벤트</td>
-                <td id="popup-date-1">-</td>
-                <td><button class="btn-action" onclick="setPopup(1)">팝업기한 설정</button></td>
-            </tr>
-        </tbody>
+        <thead><tr><th>ID</th><th>상태</th><th>제목</th><th>팝업기한</th><th>설정</th></tr></thead>
+        <tbody id="board-tbody"></tbody>
     </table>
 </div>
-<div id="section-inquiries" class="section">
-    <h2>수정/문의 사항</h2>
-</div>
-<script src="admin.js"></script>
 </body>
 </html>
