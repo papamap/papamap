@@ -326,9 +326,15 @@ let lastWeatherLat = null; let lastWeatherLng = null;
 async function fetchWeather(lat, lng) {
     if (lastWeatherLat !== null && getDistanceKm(lastWeatherLat, lastWeatherLng, lat, lng) < 20.0) return;
     try {
-        const [weatherRes, aqiRes] = await Promise.all([fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`), fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=pm10,pm2_5`)]);
-        const weatherData = await weatherRes.json(); const aqiData = await aqiRes.json();
-        let temp = Math.round(weatherData.current_weather.temperature); let code = weatherData.current_weather.weathercode; 
+        const [weatherRes, aqiRes] = await Promise.all([
+            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`), 
+            fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=pm10,pm2_5`)
+        ]);
+        const weatherData = await weatherRes.json(); 
+        const aqiData = await aqiRes.json();
+        
+        let temp = Math.round(weatherData.current_weather.temperature); 
+        let code = weatherData.current_weather.weathercode; 
         let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
         
         let pm10 = aqiData.current.pm10 * 0.8; 
@@ -344,21 +350,29 @@ async function fetchWeather(lat, lng) {
         currentWeatherHtml = `${icon} ${temp}°C | ${aqiIcon} ${aqiText}`;
         lastWeatherLat = lat; lastWeatherLng = lng;
         
-       const wInfo = document.getElementById('weather-info');
-    if (wInfo) {
-        wInfo.innerHTML = currentWeatherHtml;
-    }
+        const wInfo = document.getElementById('weather-info');
+        if (wInfo) {
+            wInfo.innerHTML = currentWeatherHtml;
+        }
 
-    const sugEl = document.getElementById('weather-suggestion');
-    if (isBadAir || isRaining) { 
-        sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; 
-    } else { 
-        sugEl.innerHTML = `💡 날씨와 미세먼지가 모두 좋네요! <b>야외</b> 나들이를 떠나볼까요?`; 
-    }
-    
-    window.isWeatherSuggestionVisible = true;
-    if (!document.getElementById('info-content').classList.contains('show')) {
-        sugEl.style.display = 'block';
+        const sugEl = document.getElementById('weather-suggestion');
+        if (sugEl) {
+            if (isBadAir || isRaining) { 
+                sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; 
+            } else { 
+                sugEl.innerHTML = `💡 날씨와 미세먼지가 모두 좋네요! <b>야외</b> 나들이를 떠나볼까요?`; 
+            }
+            
+            window.isWeatherSuggestionVisible = true;
+            const infoContent = document.getElementById('info-content');
+            if (infoContent && !infoContent.classList.contains('show')) {
+                sugEl.style.display = 'block';
+            }
+        }
+    // 🔥 실수로 누락되었던 에러 처리(catch) 구문 복구!
+    } catch(e) {
+        const wInfo = document.getElementById('weather-info');
+        if (wInfo) wInfo.innerHTML = `⛅ --°C | 😐 보통`;
     }
 }
 
