@@ -274,3 +274,15 @@ html.is-mobile .info-body-wrap { padding-bottom: calc(56px + env(safe-area-inset
 .icon-btn svg { width: 14px !important; height: 14px !important; }
 
 html.is-mobile .btn-panel-close { display: none !important; }
+
+html.is-mobile .search-panel { 
+    position: absolute !important; 
+    left: 50% !important; 
+    right: auto !important; 
+    transform: translateX(-50%) translateY(-10px) !important; 
+    width: calc(100vw - 32px) !important; 
+    margin: 0 !important;
+}
+html.is-mobile .search-panel.show { 
+    transform: translateX(-50%) translateY(0) !important; 
+}
