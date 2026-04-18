@@ -359,14 +359,15 @@ async function fetchWeather(lat, lng) {
             
             const blueStarSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:4px; flex-shrink:0;"><path d="M12 0C12 6.62742 17.3726 12 24 12C17.3726 12 12 17.3726 12 24C12 17.3726 6.62742 12 0 12C6.62742 12 12 6.62742 12 0Z" fill="#5c7cfa"/></svg>`;
             
+            // 🔥 [수정] 이모지와 온도 사이 간격을 6px -> 3px로 좁혀 공간 낭비를 줄였습니다.
             sugEl.innerHTML = `
                 <div style="display:flex; align-items:center; width:100%; overflow:hidden;">
                     <div id="ai-banner-fixed" style="display:flex; align-items:center; flex-shrink:0; font-size:12px; color:#495057; white-space:nowrap;">
-                        <span style="margin-right:6px; font-size:13px; line-height:1; display:flex; align-items:center; transform:translateY(-1px);">${icon}</span>
+                        <span style="margin-right:3px; font-size:13px; line-height:1; display:flex; align-items:center; transform:translateY(-1px);">${icon}</span>
                         <b>${temp}°C</b> <span style="color:#adb5bd; margin:0 4px; font-weight:400;">/</span> <b>${aqiText}</b>
                         <span style="margin:0 8px; color:#dee2e6;">|</span>
                     </div>
-                    <div id="ai-banner-wrap" style="flex:1; overflow:hidden; white-space:nowrap; position:relative;">
+                    <div id="ai-banner-wrap" style="flex:1; overflow:hidden; white-space:nowrap; position:relative; min-width:0;">
                         <div id="ai-banner-text" style="display:inline-block; font-size:12px; color:#495057;">
                             ${blueStarSvg}<span style="font-weight:500; vertical-align:middle;">${aiText}</span>
                         </div>
@@ -374,11 +375,15 @@ async function fetchWeather(lat, lng) {
                 </div>
             `;
             
+            // 🔥 [수정] width: fit-content와 box-sizing을 적용하여 배너가 화면을 넘지 않고 유동적으로 변하게 했습니다.
             sugEl.style.marginTop = '8px';
+            sugEl.style.width = 'fit-content';
             sugEl.style.maxWidth = 'calc(100vw - 32px)'; 
+            sugEl.style.boxSizing = 'border-box';
             sugEl.style.padding = '7px 14px'; 
             sugEl.style.background = 'rgba(255, 255, 255, 0.7)'; 
             sugEl.style.backdropFilter = 'blur(16px)';
+            sugEl.style.webkitBackdropFilter = 'blur(16px)';
             sugEl.style.border = '1px solid rgba(255,255,255,0.6)';
             sugEl.style.borderRadius = '16px';
             sugEl.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)';
