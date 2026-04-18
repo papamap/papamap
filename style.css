@@ -146,10 +146,12 @@ html.is-mobile .info-header-wrap.no-image { height: 40px; min-height: 40px; }
 .btn-free-toggle:active { transform: scale(0.95); }
 .btn-free-toggle.active { background: #343a40; color: white; border-color: #343a40; }
 
-html.is-mobile .search-panel { left: 50%; right: auto; width: calc(100vw - 32px); transform: translateX(-50%) translateY(-10px); }
+.search-panel { position: absolute; top: max(16px, env(safe-area-inset-top)); z-index: 1500; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 8px 32px rgba(0,0,0,0.1); display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: all 0.3s ease; max-height: calc(100vh - 32px - env(safe-area-inset-bottom)); box-sizing: border-box; }
+.search-panel.show { opacity: 1; pointer-events: auto; }
+html.is-mobile .search-panel { left: 50%; transform: translateX(-50%) translateY(-10px); width: calc(100vw - 32px); }
 html.is-mobile .search-panel.show { transform: translateX(-50%) translateY(0); }
-html.is-pc .search-panel { position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; width: 340px; max-width: calc(100vw - 32px); z-index: 1500; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 8px 32px rgba(0,0,0,0.1); display: flex; flex-direction: column; opacity: 0; pointer-events: none; transform: translateX(20px); transition: all 0.3s ease; max-height: calc(100vh - 32px - env(safe-area-inset-bottom)); }
-html.is-pc .search-panel.show { opacity: 1; pointer-events: auto; transform: translateX(0); }
+html.is-pc .search-panel { right: 16px; width: 340px; transform: translateX(20px); }
+html.is-pc .search-panel.show { transform: translateX(0); }
 
 .search-header { display: flex; gap: 8px; padding: 16px; border-bottom: 1px solid rgba(0,0,0,0.05); align-items: flex-start; }
 .search-input-area { flex: 1; display: flex; flex-direction: column; gap: 8px; }
