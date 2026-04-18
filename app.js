@@ -439,7 +439,7 @@ function initBottomSheet() {
         if(scrollArea) {
             if (sheetState === 2) { 
                 scrollArea.style.overflowY = 'auto'; 
-                scrollArea.style.touchAction = 'auto'; 
+                scrollArea.style.touchAction = 'pan-y'; // 브라우저에 상하 스크롤을 허용한다고 명시
             } else { 
                 scrollArea.style.overflowY = 'hidden'; 
                 scrollArea.style.touchAction = 'none'; 
@@ -454,7 +454,13 @@ function initBottomSheet() {
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         if (e.target.closest('.image-slider')) return; 
         
-        if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
+        // 🔥 [핵심 수정 1] 최대화 상태(2)에서 스크롤 영역을 터치하면
+        // 무조건 '드래그 대기' 상태로 두고 네이티브 스크롤을 뺏지 않습니다.
+        if (sheetState === 2 && scrollArea && scrollArea.contains(e.target)) {
+            isDragging = false; 
+            isDetermined = false;
+            return; 
+        }
 
         isDragging = true; isDetermined = false; 
         startTransform = getTransformBase(); 
@@ -467,7 +473,10 @@ function initBottomSheet() {
         const clientY = e.touches[0].clientY; const clientX = e.touches[0].clientX; 
         let deltaY = clientY - startY; let deltaX = clientX - startX;
 
+        // 🔥 [핵심 수정 2] 최대화 상태에서 손가락이 움직일 때
         if (!isDragging && sheetState === 2 && scrollArea && scrollArea.contains(e.target)) {
+            // 스크롤이 맨 위(0)인데 '아래로 당길 때(deltaY > 5)'만 창을 축소하는 드래그 모드로 전환!
+            // '위로 올릴 때(deltaY < 0)'는 아무 짓도 안 하므로 자연스럽게 본문 스크롤이 작동합니다.
             if (scrollArea.scrollTop <= 0 && deltaY > 5 && Math.abs(deltaY) > Math.abs(deltaX)) {
                 isDragging = true; isDetermined = true;
                 startY = clientY; startTransform = getTransformBase();
