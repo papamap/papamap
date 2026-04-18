@@ -983,9 +983,9 @@ async function savePlace() {
 }
 
 async function fetchSeoulApiData(areaName, placeId) {
-    const congestWrap = document.getElementById(`live-congest-wrap-${placeId}`);
     const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
     const congestDetail = document.getElementById(`congest-detail-${placeId}`);
+    const congestBtn = document.getElementById(`btn-congest-toggle-${placeId}`);
     
     const parkBox = document.getElementById(`live-park-${placeId}`);
     const parkBtn = document.getElementById(`btn-park-toggle-${placeId}`);
@@ -1000,19 +1000,17 @@ async function fetchSeoulApiData(areaName, placeId) {
         if(data.CITYDATA) {
             const cd = data.CITYDATA;
             
-            // 1. 혼잡도 적용 (현재값만 노출, 예측은 숨김)
+            // 1. 혼잡도 적용
             if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
-                if(congestWrap) congestWrap.style.display = 'flex';
-                
                 const pop = cd.LIVE_PPLTN_STTS[0];
                 let cur = pop.AREA_CONGEST_LVL;
                 if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(cur)};">${cur}</span>`;
                 
                 let fcst = pop.FCST_PPLTN || [];
-                if(fcst.length > 3 && congestDetail) {
+                if(fcst.length > 3 && congestDetail && congestBtn) {
                     let f2 = fcst[1]; 
                     let f4 = fcst[3];
-                    let t2 = f2.FCST_TIME.split(' ')[1]; // "14:00" 형식 추출
+                    let t2 = f2.FCST_TIME.split(' ')[1]; 
                     let t4 = f4.FCST_TIME.split(' ')[1];
                     
                     congestDetail.innerHTML = `
@@ -1027,10 +1025,13 @@ async function fetchSeoulApiData(areaName, placeId) {
                             </div>
                         </div>
                     `;
+                    congestBtn.style.display = 'block'; // 예측 데이터가 있을 때만 버튼 노출
                 }
+            } else {
+                if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">정보 없음</span>`;
             }
 
-            // 2. 주차장 적용 (버튼 활성화 및 숨김 영역에 리스트 삽입)
+            // 2. 주차장 적용
             const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
             if(validPrk.length > 0) {
                 let totalRemain = 0;
@@ -1046,35 +1047,22 @@ async function fetchSeoulApiData(areaName, placeId) {
                 if(parkBox && parkBtn) { 
                     parkBox.innerHTML = prkHtml; 
                     parkBtn.style.display = 'block'; 
-                    parkBtn.innerHTML = `🚗 총 ${totalRemain}대 여유 ▼`; // 버튼에 총 여유 대수 표시
+                    parkBtn.innerHTML = `🚗 총 ${totalRemain}대 여유 ▼`; 
                 }
             }
+        } else if (data.RESULT) {
+             if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">오류: ${data.RESULT.MESSAGE}</span>`;
         }
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+        console.error(e); 
+        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 요망)</span>`;
+    }
 }
 
 function getCongestColor(lvl) {
     if(lvl === '여유') return '#37B24D';
     if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 혼잡') return '#FF6B6B';
-    if(lvl === '혼잡') return '#e03131';
+    if(lvl === '약간 붐빔') return '#FF6B6B';
+    if(lvl === '붐빔') return '#e03131';
     return '#495057';
-}
-
-// 펼치기/접기 (아코디언) 기능
-function toggleLiveDetail(targetId, btnEl) {
-    const el = document.getElementById(targetId);
-    if(!el) return;
-    
-    if(el.style.display === 'none' || el.style.display === '') {
-        el.style.display = 'flex';
-        btnEl.innerHTML = btnEl.innerHTML.replace('▼', '▲');
-        btnEl.style.color = '#495057'; // 펼치면 차분한 색으로 변경
-    } else {
-        el.style.display = 'none';
-        btnEl.innerHTML = btnEl.innerHTML.replace('▲', '▼');
-        // 버튼 텍스트에 따라 원래 색상 복귀
-        if(btnEl.innerText.includes('예측')) btnEl.style.color = '#adb5bd';
-        else btnEl.style.color = '#37B24D';
-    }
 }
