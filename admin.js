@@ -81,18 +81,14 @@ function renderAdminTable() {
     const tbody = document.getElementById('admin-tbody');
     const searchWord = document.getElementById('admin-search').value.trim().toLowerCase();
     
-    // 🔥 새 토글 방식의 필터값 가져오기 (켜져 있는 버튼들 파악)
     const activeCats = Array.from(document.querySelectorAll('.cat-toggle.active')).map(b => b.dataset.val);
     const activeStatuses = Array.from(document.querySelectorAll('.status-toggle.active')).map(b => b.dataset.val);
 
     let filtered = adminPlaces.filter(p => {
         const matchName = p.name.toLowerCase().includes(searchWord);
         const pCat = (p.category && p.category.includes('야외')) ? '야외' : (p.category && p.category.includes('문센') ? '문센' : '실내');
-        
-        // 카테고리와 승인상태가 켜져있는 버튼 목록에 포함되어 있는지 확인
         const matchCat = activeCats.includes(pCat);
         const matchApprove = activeStatuses.includes(String(p.is_approved));
-        
         return matchName && matchCat && matchApprove;
     });
 
@@ -105,7 +101,33 @@ function renderAdminTable() {
     tbody.innerHTML = filtered.map(p => {
         const nCat = (p.category && p.category.includes('야외')) ? '야외' : (p.category && p.category.includes('문센') ? '문센' : '실내');
         const catClass = nCat === '야외' ? 'cat-outdoor' : (nCat === '문센' ? 'cat-moonsen' : 'cat-indoor');
+        
+        // 🔥 수정 요청글인지 확인하고 꼬리표 떼어내기
+        const match = (p.comment || '').match(/^\[수정요청_ID:(\d+)\]\n/);
+        let origId = null;
+        let isEditReq = false;
+        let displayComment = p.comment || '';
+
+        if (match) {
+            isEditReq = true;
+            origId = parseInt(match[1]);
+            displayComment = displayComment.replace(match[0], ''); // 화면에 보일 땐 꼬리표 숨김
+        }
+
+        const nameBadge = isEditReq ? `<div style="color:#f59f00; font-weight:800; font-size:11px; margin-bottom:2px;">[📝수정요청]</div>` : '';
         const approvedBadge = p.is_approved ? `<span style="color:#20c997; font-weight:800;">✅ 표시됨</span>` : `<span style="color:#FF6B6B; font-weight:800;">❗ 미승인</span>`;
+
+        // 🔥 버튼 분기 처리 (수정요청이면 '수정 반영' 버튼 노출)
+        let actionBtns = `<button class="btn btn-save" onclick="quickSave(${p.id}, this)">저장</button>`;
+        if (!p.is_approved) {
+            if (isEditReq) {
+                actionBtns += `<button class="btn btn-approve" style="background:#f59f00;" onclick="approveEdit(${p.id}, ${origId})">수정 반영</button>`;
+            } else {
+                actionBtns += `<button class="btn btn-approve" onclick="approvePlace(${p.id})">승인</button>`;
+            }
+        }
+        actionBtns += `<button class="btn btn-del" onclick="deletePlace(${p.id})">삭제</button>`;
+
         return `
         <tr>
             <td style="text-align: center;"><input type="checkbox" class="cb-item" value="${p.id}" onchange="updateBulkBar()"></td>
@@ -117,16 +139,14 @@ function renderAdminTable() {
                     <option value="문센" ${nCat === '문센' ? 'selected' : ''}>문센</option>
                 </select>
             </td>
-            <td><input type="text" id="name-${p.id}" value="${escapeQuote(p.name)}" placeholder="장소명"></td>
+            <td>${nameBadge}<input type="text" id="name-${p.id}" value="${escapeQuote(p.name)}" placeholder="장소명"></td>
             <td><input type="text" id="park-${p.id}" value="${escapeQuote(p.parking_fee || '')}" placeholder="무료 등"></td>
             <td><input type="text" id="entry-${p.id}" value="${escapeQuote(p.entry_fee || '')}" placeholder="없음 등"></td>
             <td><input type="text" id="nurse-${p.id}" value="${escapeQuote(p.nursing_room || '')}" placeholder="수유실 정보"></td>
-            <td><input type="text" id="desc-${p.id}" value="${escapeQuote(p.comment || '')}" placeholder="상세 설명"></td>
+            <td><input type="text" id="desc-${p.id}" value="${escapeQuote(displayComment)}" placeholder="상세 설명"></td>
             <td>
                 <div style="display:flex; flex-direction:column; gap:4px;">
-                    <button class="btn btn-save" onclick="quickSave(${p.id}, this)">저장</button>
-                    ${!p.is_approved ? `<button class="btn btn-approve" onclick="approvePlace(${p.id})">승인</button>` : ''}
-                    <button class="btn btn-del" onclick="deletePlace(${p.id})">삭제</button>
+                    ${actionBtns}
                 </div>
             </td>
         </tr>`}).join('');
@@ -157,17 +177,33 @@ async function bulkAction(actionType) {
 }
 
 async function quickSave(id, btnElement) {
-    const newCat = document.getElementById(`cat-${id}`).value; const newName = document.getElementById(`name-${id}`).value.trim();
-    const newPark = document.getElementById(`park-${id}`).value.trim(); const newEntry = document.getElementById(`entry-${id}`).value.trim();
-    const newNurse = document.getElementById(`nurse-${id}`).value.trim(); const newDesc = document.getElementById(`desc-${id}`).value.trim();
+    const newCat = document.getElementById(`cat-${id}`).value; 
+    const newName = document.getElementById(`name-${id}`).value.trim();
+    const newPark = document.getElementById(`park-${id}`).value.trim(); 
+    const newEntry = document.getElementById(`entry-${id}`).value.trim();
+    const newNurse = document.getElementById(`nurse-${id}`).value.trim(); 
+    const newDesc = document.getElementById(`desc-${id}`).value.trim();
+    
     if(!newName) return alert("장소명 필수");
-    const originalText = btnElement.innerText; btnElement.innerText = "저장중.."; btnElement.disabled = true;
-    const { error } = await supabaseClient.from('places').update({ category: newCat, name: newName, parking_fee: newPark, entry_fee: newEntry, nursing_room: newNurse, comment: newDesc }).eq('id', id);
+
+    // 🔥 꼬리표 유지 로직 (저장할 때 꼬리표가 날아가지 않도록 붙여줌)
+    const p = adminPlaces.find(x => x.id === id);
+    let finalDesc = newDesc;
+    const match = (p.comment || '').match(/^\[수정요청_ID:\d+\]\n/);
+    if (match) finalDesc = match[0] + newDesc;
+
+    const originalText = btnElement.innerText; 
+    btnElement.innerText = "저장중.."; btnElement.disabled = true;
+    
+    const { error } = await supabaseClient.from('places').update({ category: newCat, name: newName, parking_fee: newPark, entry_fee: newEntry, nursing_room: newNurse, comment: finalDesc }).eq('id', id);
+    
     if(!error) {
-        const p = adminPlaces.find(x => x.id === id); p.category = newCat; p.name = newName; p.parking_fee = newPark; p.entry_fee = newEntry; p.nursing_room = newNurse; p.comment = newDesc;
+        p.category = newCat; p.name = newName; p.parking_fee = newPark; p.entry_fee = newEntry; p.nursing_room = newNurse; p.comment = finalDesc;
         btnElement.innerText = "✔ 완료"; btnElement.style.background = "#20c997";
         setTimeout(() => { btnElement.innerText = originalText; btnElement.style.background = "#5c7cfa"; btnElement.disabled = false; }, 1500);
-    } else { alert("수정 에러: " + error.message); btnElement.disabled = false; }
+    } else { 
+        alert("수정 에러: " + error.message); btnElement.disabled = false; 
+    }
 }
 
 async function approvePlace(id) {
@@ -282,4 +318,37 @@ async function deleteAdminBoard(id) {
 function toggleAdminFilter(btn) {
     btn.classList.toggle('active');
     renderAdminTable();
+}
+
+// 🔥 '수정 반영' 버튼 클릭 시 실행되는 함수
+async function approveEdit(reqId, origId) {
+    if(!confirm("이 수정 요청을 '원본 장소'에 덮어씌워 반영하시겠습니까?")) return;
+
+    const reqPlace = adminPlaces.find(x => x.id === reqId);
+    
+    // DB에 넣기 전 꼬리표 떼어내기
+    const cleanComment = (reqPlace.comment || '').replace(/^\[수정요청_ID:\d+\]\n/, '');
+
+    // 1. 원본 데이터 덮어쓰기
+    const updateData = {
+        category: reqPlace.category,
+        name: reqPlace.name,
+        parking_fee: reqPlace.parking_fee,
+        entry_fee: reqPlace.entry_fee,
+        nursing_room: reqPlace.nursing_room,
+        comment: cleanComment,
+        website_url: reqPlace.website_url,
+        business_hours: reqPlace.business_hours,
+    };
+    if (reqPlace.image_url) updateData.image_url = reqPlace.image_url;
+
+    const { error: updateErr } = await supabaseClient.from('places').update(updateData).eq('id', origId);
+    if (updateErr) return alert("원본 반영 실패: " + updateErr.message);
+
+    // 2. 반영 끝난 임시글(수정요청글) 삭제
+    const { error: delErr } = await supabaseClient.from('places').delete().eq('id', reqId);
+    if (delErr) return alert("반영은 완료되었으나 임시 요청글 삭제에 실패했습니다.");
+
+    alert("수정 내용이 원본에 성공적으로 반영되었습니다!");
+    loadAdminPlaces(); // 데이터 목록 새로고침
 }
