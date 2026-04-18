@@ -413,3 +413,17 @@ html.is-mobile .panel-top-bar {
     background: rgba(255,255,255,0.6);
     outline: none;
 }
+
+html.is-mobile .info-panel {
+    top: auto !important;
+    bottom: calc(56px + env(safe-area-inset-bottom)) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: 85vh !important;
+    max-width: 100% !important;
+    border-radius: 24px 24px 0 0 !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
