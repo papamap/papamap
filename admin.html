@@ -37,17 +37,6 @@
         .cat-indoor { color: #5c7cfa; background: rgba(92,124,250,0.1); }
         .cat-outdoor { color: #0ca678; background: rgba(12,166,120,0.1); }
         .cat-moonsen { color: #f59f00; background: rgba(245,159,0,0.1); }
-    .admin-filter-container { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
-    .admin-search-box { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; width: 200px; outline: none; }
-    .toggle-group { display: flex; gap: 4px; background: #f1f3f5; padding: 4px; border-radius: 8px; border: 1px solid #dee2e6; }
-    .toggle-btn { background: transparent; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 800; color: #868e96; cursor: pointer; transition: 0.2s; }
-    .toggle-btn.active { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .cat-toggle[data-val="실내"].active { color: #FF6B6B; }
-    .cat-toggle[data-val="야외"].active { color: #37B24D; }
-    .cat-toggle[data-val="문센"].active { color: #845EF7; }
-    .status-toggle[data-val="true"].active { color: #343a40; } /* 승인 */
-    .status-toggle[data-val="false"].active { color: #FF6B6B; } /* 미승인 */
-    .toggle-divider { width: 2px; height: 16px; background: #dee2e6; border-radius: 1px; }
     </style>
 </head>
 <body>
@@ -96,22 +85,17 @@
         <div id="section-places" class="section active">
             <div class="control-bar">
                 <input type="text" id="admin-search" placeholder="장소명 검색..." onkeyup="renderAdminTable()">
-                <div class="admin-filters">
-    <input type="text" id="admin-search-input" placeholder="장소명 검색" onkeyup="applyAdminFilters()">
-
-    <div class="toggle-group category-group">
-        <button class="admin-toggle cat-toggle active" data-val="실내">실내</button>
-        <button class="admin-toggle cat-toggle active" data-val="야외">야외</button>
-        <button class="admin-toggle cat-toggle active" data-val="문센">문센</button>
-    </div>
-
-    <div class="toggle-divider"></div>
-
-    <div class="toggle-group status-group">
-        <button class="admin-toggle status-toggle" data-val="true">승인</button>
-        <button class="admin-toggle status-toggle active" data-val="false">미승인</button>
-    </div>
-</div>
+                <select id="admin-category" onchange="renderAdminTable()">
+                    <option value="">모든 카테고리</option>
+                    <option value="실내">실내</option>
+                    <option value="야외">야외</option>
+                    <option value="문센">문센</option>
+                </select>
+                <select id="admin-approval" onchange="renderAdminTable()">
+                    <option value="">승인/미승인 전체</option>
+                    <option value="false">❗ 미승인 장소만 보기</option>
+                    <option value="true">✅ 승인된 장소만 보기</option>
+                </select>
                 <div class="stat-badge" id="total-count">총 0개</div>
             </div>
 
