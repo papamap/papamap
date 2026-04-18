@@ -428,7 +428,8 @@ function initBottomSheet() {
     const panel = document.getElementById('info-content');
     if(!panel || !isMobile) return; 
     
-    let startY = 0; let isDragging = false; let startTransform = 0;
+    let startY = 0; let startX = 0; let isDragging = false; 
+    let isDetermined = false; let startTransform = 0;
 
     function getTransformBase() { return sheetState === 1 ? 55 : (sheetState === 2 ? 15 : 80); }
     
@@ -446,22 +447,51 @@ function initBottomSheet() {
     const startDrag = (e) => {
         if (!isMobile) return; 
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        if (e.target.closest('.image-slider')) return; 
+        
+        // 최상단 상태에서 내용을 스크롤 중이면 창 드래그 취소
         if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
 
-        isDragging = true; startY = e.touches[0].clientY; startTransform = getTransformBase(); panel.style.transition = 'none';
+        isDragging = true; 
+        isDetermined = false; // 가로인지 세로인지 아직 모름
+        startY = e.touches[0].clientY; 
+        startX = e.touches[0].clientX; 
+        startTransform = getTransformBase(); 
+        panel.style.transition = 'none';
     };
 
     const moveDrag = (e) => {
         if (!isDragging || !isMobile) return;
+        const clientY = e.touches[0].clientY; 
+        const clientX = e.touches[0].clientX; 
+        let deltaY = clientY - startY; 
+        let deltaX = clientX - startX;
+
+        // 움직임 방향 판단 (가로 스와이프면 창 이동 취소)
+        if (!isDetermined) {
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
+                isDragging = false; 
+                panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                panel.style.transform = `translateY(${startTransform}%)`;
+                return;
+            } else if (Math.abs(deltaY) > 5) {
+                isDetermined = true; // 세로 스와이프 확정
+            } else {
+                return;
+            }
+        }
+
         if(e.cancelable) e.preventDefault(); 
-        const clientY = e.touches[0].clientY; let deltaY = clientY - startY; let newY = startTransform + (deltaY / window.innerHeight * 100);
-        if (newY < 15) newY = 15; panel.style.transform = `translateY(${newY}%)`;
+        let newY = startTransform + (deltaY / window.innerHeight * 100);
+        if (newY < 15) newY = 15; 
+        panel.style.transform = `translateY(${newY}%)`;
     };
 
     const endDrag = (e) => {
         if (!isDragging || !isMobile) return;
-        isDragging = false; const clientY = e.changedTouches[0].clientY; let deltaY = clientY - startY;
+        isDragging = false; 
+        const clientY = e.changedTouches[0].clientY; 
+        let deltaY = clientY - startY;
+
         if (sheetState === 1 && Math.abs(deltaY) > 10) { sheetState = 2; } 
         else if (deltaY < -30) { if(sheetState === 1 || sheetState === 3) sheetState = 2; } 
         else if (deltaY > 30) { if(sheetState === 2) sheetState = 1; else if(sheetState === 1) sheetState = 3; else if(sheetState === 3) { closePanel(); return; } }
@@ -471,217 +501,4 @@ function initBottomSheet() {
     panel.addEventListener('touchstart', startDrag, {passive: true});
     window.addEventListener('touchmove', moveDrag, {passive: false});
     window.addEventListener('touchend', endDrag);
-}
-
-async function loadPlaces() {
-    try {
-        const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
-        if (error) throw error;
-        if (data) {
-            placesData.forEach(p => { if(p.marker) p.marker.setMap(null); });
-            placesData = data.map(p => { if(p.name) p.name = p.name.split('\\n')[0].split('\n')[0].trim(); return p; });
-            let isZoomedOut = map.getZoom() < 13;
-            placesData.forEach(place => {
-                let jitterLat = place.latitude + (Math.random() - 0.5) * 0.0002; let jitterLng = place.longitude + (Math.random() - 0.5) * 0.0002;
-                place.marker = new naver.maps.Marker({ position: new naver.maps.LatLng(jitterLat, jitterLng), icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }, zIndex: (place.views || place.likes) || 0 });
-                place.marker.addListener('click', function() { map.panTo(place.marker.getPosition()); renderPanel(place.id); if(isMobile) closeSearchPanel(); });
-                // 마우스 오버 시 무조건 맨 앞으로
-                place.marker.addListener('mouseover', function() { place.marker.setZIndex(99999); });
-                place.marker.addListener('mouseout', function() { place.marker.setZIndex((place.views || place.likes) || 0); });
-            });
-            applyFilters('전체');
-        }
-    } catch (err) { alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message); }
-}
-
-function openSearchPanel() { closePanel(); document.getElementById('search-panel').classList.add('show'); document.getElementById('search-input').focus(); }
-function closeSearchPanel() { document.getElementById('search-panel').classList.remove('show'); document.getElementById('search-scope-toggle').classList.remove('show'); applyFilters(); }
-function setSearchScope(scope) {
-    currentSearchScope = scope; document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active')); document.getElementById('scope-' + scope).classList.add('active');
-    if(scope === 'near' && navigator.geolocation) { const btn = document.querySelector('.search-input-area .scope-btn:last-child'); btn.style.opacity = '0.5'; navigator.geolocation.getCurrentPosition(pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; executeSearch(); btn.style.opacity = '1'; }, () => { btn.style.opacity = '1'; }, { enableHighAccuracy: false, timeout: 5000 }); } else executeSearch();
-}
-
-function executeSearch() {
-    const query = document.getElementById('search-input').value.trim().toLowerCase(); const listEl = document.getElementById('search-results-list'); listEl.innerHTML = '';
-    const bounds = map.getBounds(); let resultCount = 0;
-    placesData.forEach(p => {
-        const pCat = normalizeCat(p.category); const nameMatch = p.name.toLowerCase().includes(query); const catMatch = pCat.toLowerCase().includes(query); const isCatActive = (activeCategory === '전체' || pCat === activeCategory);
-        let inScope = true; if (currentSearchScope === 'bounds') inScope = bounds.hasLatLng(new naver.maps.LatLng(p.latitude, p.longitude)); else if (currentSearchScope === 'near') inScope = (getDistanceKm(userLat, userLng, p.latitude, p.longitude) <= 5.0);
-        if ((!query || nameMatch || catMatch) && inScope && isCatActive) {
-            const distText = currentSearchScope === 'near' ? `<span style="color:#FF6B6B; font-weight:800; font-size:11px;">📍 ${getDistanceKm(userLat, userLng, p.latitude, p.longitude).toFixed(1)}km</span>` : '';
-            listEl.innerHTML += `<li class="search-result-item" onclick="switchTab('map'); map.setZoom(15); map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});"><div style="font-weight:800; color:#343a40;">${p.name}</div><div style="font-size:11px; color:#868e96; display:flex; align-items:center;">${pCat} ${distText}</div></li>`; resultCount++;
-        }
-    });
-    if(resultCount === 0) listEl.innerHTML = '<div class="res-empty">조건에 맞는 장소가 없습니다.</div>';
-}
-
-function openAppMap(type, name, lat, lng) {
-    let scheme = '', fallback = '';
-    if (type === 'kakao') { scheme = 'kakaomap://search?q=' + encodeURIComponent(name); fallback = 'https://map.kakao.com/link/search/' + encodeURIComponent(name); } else if (type === 'naver') { scheme = 'nmap://search?query=' + encodeURIComponent(name) + '&appname=appamap'; fallback = 'https://m.map.naver.com/search2/search.naver?query=' + encodeURIComponent(name); } else if (type === 'tmap') { scheme = 'tmap://search?name=' + encodeURIComponent(name); fallback = 'https://tmap.co.kr/tmap2/mobile/route.jsp?name=' + encodeURIComponent(name) + '&lat=' + lat + '&lon=' + lng; }
-    if (isMobile) { const now = new Date().getTime(); setTimeout(() => { if (new Date().getTime() - now < 2000) window.open(fallback, '_blank'); }, 1000); location.href = scheme; } else { window.open(fallback, '_blank'); } document.getElementById('map-link-modal').style.display='none';
-}
-
-async function fetchKakaoImage(query, imgElementId, topBarId, sliderId, headerWrapId) {
-    const topBarEl = topBarId ? document.getElementById(topBarId) : null; const sliderEl = sliderId ? document.getElementById(sliderId) : null; const headerWrapEl = headerWrapId ? document.getElementById(headerWrapId) : null;
-    try {
-        const res = await fetch(`https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(query)}&size=1`, { headers: { "Authorization": `KakaoAK ${KAKao_REST_KEY}` } }); const data = await res.json();
-        if(data.documents && data.documents.length > 0) { const imgEl = document.getElementById(imgElementId); if(imgEl) { imgEl.src = data.documents[0].image_url; imgEl.style.display = 'block'; } if(topBarEl) { topBarEl.classList.remove('no-image'); topBarEl.classList.add('has-image'); } if(sliderEl) { sliderEl.style.display = 'flex'; } if(headerWrapEl) { headerWrapEl.classList.remove('no-image'); headerWrapEl.classList.add('has-image'); } } else { if(headerWrapEl) headerWrapEl.classList.add('no-image'); }
-    } catch(e) { if(headerWrapEl) headerWrapEl.classList.add('no-image'); }
-}
-
-function sharePlace(name, address) { if (navigator.share) navigator.share({ title: `아빠맵 - ${name}`, text: `${name}\n아빠맵에서 확인하세요!`, url: window.location.href }); else alert("URL을 복사해주세요."); }
-function openMapPopup(name, lat, lng) { document.getElementById('link-naver').onclick = () => openAppMap('naver', name, lat, lng); document.getElementById('link-kakao').onclick = () => openAppMap('kakao', name, lat, lng); document.getElementById('link-tmap').onclick = () => openAppMap('tmap', name, lat, lng); document.getElementById('map-link-modal').style.display = 'flex'; }
-function showMoreComments(id) { const items = document.querySelectorAll(`.cmt-item-${id}`); let shown = 0; let hiddenCount = 0; items.forEach(item => { if (item.style.display === 'none') { if (shown < 3) { item.style.display = 'flex'; shown++; } else hiddenCount++; } }); const btn = document.getElementById(`btn-more-${id}`); if (hiddenCount > 0) btn.innerText = `추가정보 더보기 ▼`; else btn.style.display = 'none'; }
-function updateSliderDots(id, el) { const index = Math.round(el.scrollLeft / el.offsetWidth); const dots = document.querySelectorAll('#slider-dots-' + id + ' .slider-dot'); dots.forEach((dot, i) => { dot.className = 'slider-dot' + (i === index ? ' active' : ''); }); }
-
-function renderPanel(id) {
-    const place = placesData.find(p => p.id === id); if (!place) return;
-    incrementViewCount(id); 
-
-    const ws = document.getElementById('weather-suggestion');
-    if(ws) ws.style.display = 'none';
-
-    let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
-    let commentsHtmlArr = commentsArr.map((c, idx) => {
-        let dateStr = timeAgo(c.date || c.id); 
-        return `<div class="comment-item cmt-item-${place.id}" style="display: ${idx < 3 ? 'flex' : 'none'}; flex-direction:column;"><div class="comment-header"><div class="c-author">${escapeHtml(c.author)} <span style="font-weight:400; color:#868e96; margin-left:4px; font-size:10px;">${dateStr}</span></div><div style="display:flex; align-items:center; gap:8px;"><button class="comment-delete" onclick="editComment(${place.id}, ${c.id})">수정</button><button class="comment-delete" onclick="deleteComment(${place.id}, ${c.id})">삭제</button></div></div><div>${formatDescription(c.text)}</div></div>`
-    });
-    let visibleComments = commentsHtmlArr.join(''); let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" class="btn-more-cmts">추가정보 더보기 ▼</button>` : '';
-    let urls = place.image_url ? place.image_url.split(',') : []; let isHasImage = urls.length > 0; let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
-
-    const panel = document.getElementById('info-content');
-    panel.dataset.placeId = place.id;
-    panel.innerHTML = `
-        <div id="drag-handle" class="drag-handle"></div>
-        <div class="panel-top-bar" id="top-bar-${place.id}">
-            <div class="panel-weather" onclick="window.open('https://weather.naver.com/', '_blank')">${currentWeatherHtml}</div>
-            <div class="icon-actions"><button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button><button class="icon-btn" onclick="closePanel()">✕</button></div>
-        </div>
-        <div class="info-scroll-area" id="scroll-area-${place.id}">
-            <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
-                <div style="position:relative; width:100%;">
-                    <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
-                        ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" draggable="false">`).join('') : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" draggable="false" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`}
-                    </div>
-                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
-                </div>
-            </div>
-            <div class="info-body-wrap">
-                <div class="info-category" style="color: ${catColor}">${normalizeCat(place.category)}</div>
-                <div class="title-row">
-                    <div class="info-title-wrap"><div class="info-title" id="dyn-title-${place.id}" style="padding-right:0;">${place.name}</div></div>
-                    <button class="btn-edit-tiny" onclick="openEditModal(${place.id})">✏️</button>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                    ${place.address ? `<div class="info-address" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; display:flex; align-items:center; gap:4px; margin-bottom:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${place.address}</div>` : ''}
-                    ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="padding: 4px 8px; font-size: 10px; margin: 0; background: rgba(255,255,255,0.9); box-shadow: 0 2px 6px rgba(0,0,0,0.15); color: #495057; text-decoration: none;">🌐 공식홈</a>` : ''}
-                </div>
-                <div class="info-tag-wrap"><div class="info-tag-group">
-                        ${place.business_hours ? `<div class="info-tag"><span class="tag-label">시간</span><span class="tag-value">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
-                        ${place.parking_fee ? `<div class="info-tag"><span class="tag-label">주차</span><span class="tag-value">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                        ${place.entry_fee ? `<div class="info-tag"><span class="tag-label">입장료</span><span class="tag-value">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                        ${place.nursing_room ? `<div class="info-tag"><span class="tag-label">수유실</span><span class="tag-value">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
-                </div></div>
-                ${place.comment && place.comment.trim() !== '' ? `<div class="info-desc">${formatDescription(place.comment)}</div>` : ''}
-                <div class="comments-section">
-                    <div class="comment-inputs-top"><input type="text" id="cmt-author-${place.id}" placeholder="닉네임"><input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호"></div>
-                    <div class="comment-input-wrap"><textarea id="cmt-text-${place.id}" placeholder="내용" rows="1"></textarea><button onclick="addComment(${place.id})">등록</button></div>
-                    ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:12px;">추가정보 (${commentsArr.length})</div>` : ''}
-                    <div class="comments-list">${visibleComments}${moreBtn}</div>
-                </div>
-            </div>
-        </div>`;
-    
-    panel.classList.add('show');
-    
-    if (isMobile) {
-        sheetState = 1; window.applySheetState();
-    } else {
-        panel.style.transform = 'translateX(0)';
-        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
-        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
-    }
-
-    setTimeout(() => {
-        const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;
-        const titleWrap = document.querySelector('.info-title-wrap'); const titleEl = document.getElementById(`dyn-title-${place.id}`);
-        if(titleEl.offsetWidth > titleWrap.offsetWidth) { const originalHTML = titleEl.innerHTML; titleEl.innerHTML = originalHTML + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + originalHTML; titleWrap.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleWrap.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleEl.classList.add('marquee'); } else { titleWrap.style.webkitMaskImage = 'none'; titleWrap.style.maskImage = 'none'; }
-    }, 10);
-    if(!isHasImage) { if(place.category !== '문센') { fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`, `slider-${place.id}`, `header-wrap-${place.id}`); } else { document.getElementById(`header-wrap-${place.id}`).classList.add('no-image'); } }
-}
-
-function openAddModal() { const modal = document.getElementById('add-modal'); modal.style.display = 'flex'; const content = modal.querySelector('.modal-content'); if (content) content.scrollTop = 0; setTimeout(() => { const searchInput = document.getElementById('kakao-keyword'); if (searchInput) searchInput.focus(); }, 100); }
-function openEditModal(id) {
-    const place = placesData.find(p => p.id === id); document.getElementById('edit-place-id').value = id; document.querySelector('#edit-modal .modal-content').scrollTop = 0; 
-    const nCat = normalizeCat(place.category); let catInput = document.querySelector(`input[name="edit-place-category"][value="${nCat}"]`); if(catInput) catInput.checked = true;
-    document.getElementById('edit-website').value = place.website_url || ''; document.getElementById('edit-hours').value = place.business_hours || '';
-    const pInput = document.getElementById('edit-parking'); const pBtnFree = document.getElementById('btn-edit-free-parking'); const pBtnNo = document.getElementById('btn-edit-no-parking'); pBtnFree.classList.remove('active'); pBtnNo.classList.remove('active'); pInput.disabled = false; if(place.parking_fee === '무료') { pBtnFree.classList.add('active'); pInput.disabled = true; pInput.value = '무료'; pInput.dataset.oldVal = ''; } else if(place.parking_fee === '불가') { pBtnNo.classList.add('active'); pInput.disabled = true; pInput.value = '불가'; pInput.dataset.oldVal = ''; } else { pInput.value = place.parking_fee || ''; }
-    const eInput = document.getElementById('edit-entry'); const eBtnNo = document.getElementById('btn-edit-no-entry'); eBtnNo.classList.remove('active'); eInput.disabled = false; if(place.entry_fee === '없음') { eBtnNo.classList.add('active'); eInput.disabled = true; eInput.value = '없음'; eInput.dataset.oldVal = ''; } else { eInput.value = place.entry_fee || ''; }
-    const nInput = document.getElementById('edit-nursing'); const nBtn = document.getElementById('btn-edit-no-nursing'); if(place.nursing_room === '없음') { nBtn.classList.add('active'); nInput.disabled = true; nInput.value = '없음'; nInput.dataset.oldVal = ''; } else { nBtn.classList.remove('active'); nInput.disabled = false; nInput.value = place.nursing_room || ''; }
-    document.getElementById('edit-comment').value = place.comment || ''; placeEditMediaManager.loadUrls(place.image_url); document.getElementById('edit-modal').style.display = 'flex';
-}
-
-async function submitEditInfo() {
-    const id = document.getElementById('edit-place-id').value;
-    const place = placesData.find(p => p.id == id);
-    const catRadio = document.querySelector('input[name="edit-place-category"]:checked'); const cat = catRadio ? catRadio.value : '';
-    if(!cat) return alert("카테고리를 선택하세요.");
-    const btnSave = document.querySelector('#edit-modal .btn-save'); btnSave.innerText = "업로드 중..."; btnSave.disabled = true;
-    let newImgUrls = await placeEditMediaManager.uploadAll();
-    
-    let updatePayload = { category: cat, website_url: document.getElementById('edit-website').value.trim(), business_hours: document.getElementById('edit-hours').value.trim(), parking_fee: document.getElementById('edit-parking').value.trim(), entry_fee: document.getElementById('edit-entry').value.trim(), nursing_room: document.getElementById('edit-nursing').value.trim(), comment: document.getElementById('edit-comment').value.trim() };
-    if(newImgUrls !== null) updatePayload.image_url = newImgUrls;
-
-    const contentStr = "[장소수정요청] " + (place ? place.name : id) + "\n" + JSON.stringify(updatePayload);
-    const { error } = await supabaseClient.from('inquiries').insert([{ content: contentStr, contact_info: String(id) }]);
-    if(!error) { alert("수정 요청이 접수되었습니다. 기존 정보는 유지되며 관리자 확인 후 반영됩니다."); document.getElementById('edit-modal').style.display = 'none'; closePanel(); } 
-    else alert("업데이트 실패: " + error.message);
-    btnSave.innerText = "재승인 요청"; btnSave.disabled = false;
-}
-
-async function addComment(id) {
-    const author = document.getElementById('cmt-author-' + id).value.trim() || '익명'; const pw = document.getElementById('cmt-pw-' + id).value.trim(); const text = document.getElementById('cmt-text-' + id).value.trim(); const date = new Date().toISOString(); 
-    if (!text || !pw) return alert('내용과 비밀번호를 모두 입력해주세요.');
-    let place = placesData.find(p => p.id === id); let comments = place.comments_list ? JSON.parse(place.comments_list) : []; comments.unshift({ id: Date.now(), author, pw, text, date }); 
-    let updatedJson = JSON.stringify(comments); place.comments_list = updatedJson; renderPanel(id);
-    await supabaseClient.from('places').update({ comments_list: updatedJson }).eq('id', id);
-}
-
-async function editComment(placeId, commentId) {
-    const pwInput = await askPassword(); if (!pwInput) return;
-    let place = placesData.find(p => p.id === placeId); let comments = place.comments_list ? JSON.parse(place.comments_list) : []; const target = comments.find(c => c.id === commentId);
-    if (target && target.pw === pwInput) { const newText = await askTextPrompt(target.text); if (newText !== null && newText.trim() !== '') { target.text = newText.trim(); let updatedJson = JSON.stringify(comments); place.comments_list = updatedJson; renderPanel(placeId); await supabaseClient.from('places').update({ comments_list: updatedJson }).eq('id', placeId); } } else alert("비밀번호가 틀렸습니다.");
-}
-
-async function deleteComment(placeId, commentId) {
-    const pwInput = await askPassword(); if (!pwInput) return;
-    let place = placesData.find(p => p.id === placeId); let comments = place.comments_list ? JSON.parse(place.comments_list) : []; const target = comments.find(c => c.id === commentId);
-    if (target && target.pw === pwInput) { comments = comments.filter(c => c.id !== commentId); let updatedJson = JSON.stringify(comments); place.comments_list = updatedJson; renderPanel(placeId); await supabaseClient.from('places').update({ comments_list: updatedJson }).eq('id', placeId); } else alert("비밀번호가 틀렸습니다.");
-}
-
-function moveToCurrentLocation() {
-    const btn = document.querySelector('.btn-location'); btn.classList.add('btn-loading'); 
-    if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; map.setCenter(new naver.maps.LatLng(userLat, userLng)); map.setZoom(15); fetchWeather(userLat, userLng); updateUserLocationMarker(userLat, userLng); btn.classList.remove('btn-loading'); }, err => { btn.classList.remove('btn-loading'); }, { enableHighAccuracy: false, timeout: 5000 }); } else btn.classList.remove('btn-loading');
-}
-
-async function searchKakaoPlace() {
-    const kw = document.getElementById('kakao-keyword').value.trim(); if(!kw) return;
-    try {
-        const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(kw)}`, { headers: { "Authorization": `KakaoAK ${KAKao_REST_KEY}` } });
-        const data = await res.json(); const listEl = document.getElementById('kakao-result-list'); listEl.innerHTML = '';
-        if(data.documents.length === 0) listEl.innerHTML = '<li style="text-align:center;">결과가 없습니다.</li>';
-        else data.documents.forEach(doc => { const li = document.createElement('li'); li.innerHTML = `<strong>${doc.place_name}</strong><span>${doc.road_address_name || doc.address_name}</span>`; li.onclick = () => { document.getElementById('place-name').value = doc.place_name; document.getElementById('place-address').value = doc.road_address_name || doc.address_name; selectedLat = parseFloat(doc.y); selectedLng = parseFloat(doc.x); map.setCenter(new naver.maps.LatLng(selectedLat, selectedLng)); map.setZoom(16); listEl.style.display = 'none'; }; listEl.appendChild(li); }); listEl.style.display = 'block';
-    } catch(e) {}
-}
-
-async function savePlace() {
-    const catRadio = document.querySelector('input[name="place-category"]:checked'); const cat = catRadio ? catRadio.value : '';
-    var name = document.getElementById('place-name').value.trim(); if (!name || !cat) return alert("장소명과 카테고리는 필수입니다!");
-    let duplicate = placesData.find(p => p.name === name);
-    if (duplicate) { alert("이미 등록된 장소입니다. 수정 창을 엽니다."); document.getElementById('add-modal').style.display='none'; map.setCenter(new naver.maps.LatLng(duplicate.latitude, duplicate.longitude)); map.setZoom(16); renderPanel(duplicate.id); setTimeout(() => openEditModal(duplicate.id), 300); return; }
-    const btnSave = document.getElementById('btn-save-place'); btnSave.innerText = "업로드 중..."; btnSave.disabled = true; let imgUrls = await placeAddMediaManager.uploadAll();
-    const { data, error } = await supabaseClient.from('places').insert([{ category: cat, name: name, address: document.getElementById('place-address').value.trim(), website_url: document.getElementById('place-website').value.trim(), latitude: selectedLat || map.getCenter().y, longitude: selectedLng || map.getCenter().x, business_hours: document.getElementById('place-hours-time').value.trim(), parking_fee: document.getElementById('place-parking-detail').value.trim(), entry_fee: document.getElementById('place-entry-detail').value.trim(), nursing_room: document.getElementById('place-nursing-detail').value.trim(), comment: document.getElementById('place-comment').value, image_url: imgUrls, is_approved: false }]).select();
-    if (!error && data && data.length > 0) { 
-        document.getElementById('add-modal').style.display='none'; document.getElementById('place-name').value = ''; document.getElementById('place-address').value = ''; document.getElementById('kakao-keyword').value = ''; document.getElementById('place-website').value = ''; document.getElementById('place-hours-time').value = ''; document.getElementById('place-parking-detail').value = ''; document.getElementById('place-entry-detail').value = ''; document.getElementById('place-nursing-detail').value = ''; document.getElementById('place-comment').value = ''; placeAddMediaManager.loadUrls(''); alert("장소가 접수되었습니다! 관리자 승인 후 지도에 노출됩니다."); btnSave.innerText = "승인 요청하기"; btnSave.disabled = false;
-    } else { alert("등록 실패. " + error.message); btnSave.innerText = "승인 요청하기"; btnSave.disabled = false; }
 }
