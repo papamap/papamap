@@ -430,32 +430,25 @@ function initBottomSheet() {
     
     let startY = 0; let isDragging = false; let startTransform = 0;
 
-    // 1: 최소화(55%), 2: 최대화(0% - 전체화면)
     function getTransformBase() { return sheetState === 1 ? 55 : 0; }
     
     window.applySheetState = function() {
-        panel.style.transition = 'transform 0.4s cubic-bezier(0.1, 0.7, 0.3, 1), border-radius 0.3s';
+        panel.style.transition = 'transform 0.4s cubic-bezier(0.1, 0.7, 0.3, 1)';
         panel.style.transform = `translateY(${getTransformBase()}%)`;
-        
-        // 전체화면일 때 상단 라운드 해제
         panel.style.borderRadius = sheetState === 2 ? '0' : '24px 24px 0 0';
 
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         if(scrollArea) {
             if (sheetState === 2) { 
-                scrollArea.style.overflowY = 'auto'; 
-                scrollArea.style.touchAction = 'auto'; 
+                scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; 
             } else { 
-                scrollArea.style.overflowY = 'hidden'; 
-                scrollArea.style.touchAction = 'none'; 
-                scrollArea.scrollTop = 0; 
+                scrollArea.style.overflowY = 'hidden'; scrollArea.style.touchAction = 'none'; scrollArea.scrollTop = 0; 
             }
         }
     };
 
     const startDrag = (e) => {
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        // 가로 슬라이더나 이미 최대화 상태에서 내용을 내리는 중이면 드래그 무시
         if (e.target.closest('.image-slider')) return;
         if (sheetState === 2 && scrollArea && scrollArea.scrollTop > 0) return;
 
@@ -469,10 +462,6 @@ function initBottomSheet() {
         if (!isDragging) return;
         const clientY = e.touches[0].clientY;
         let deltaY = clientY - startY;
-
-        // 아래로 스크롤 중인데 창이 최대화 상태면 무시 (endDrag에서 판단)
-        if (sheetState === 2 && deltaY < 0) return;
-
         if(e.cancelable) e.preventDefault(); 
         let newY = startTransform + (deltaY / window.innerHeight * 100);
         if (newY < 0) newY = 0;
@@ -486,11 +475,11 @@ function initBottomSheet() {
         let deltaY = clientY - startY;
 
         if (sheetState === 1) {
-            if (deltaY < -30) sheetState = 2; // 조금이라도 위로 올리면 전체화면
+            if (deltaY < -30) sheetState = 2; // 위로 올리면 전체화면
+            else if (deltaY > 30) { closePanel(); return; } // 아래로 내리면 닫기
             else sheetState = 1;
         } else if (sheetState === 2) {
-            // 스크롤이 맨 위일 때 아래로 툭 치면 최소화
-            if (deltaY > 50) sheetState = 1;
+            if (deltaY > 50) sheetState = 1; // 툭 내리면 최소화
             else sheetState = 2;
         }
         window.applySheetState();
@@ -600,7 +589,6 @@ function renderPanel(id) {
     let isHasImage = urls.length > 0;
     let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
 
-    // 날씨/미세먼지 분리
     const weatherParts = currentWeatherHtml.split('|');
     const weatherText = weatherParts[0] ? weatherParts[0].trim() : '--°C';
     const dustText = weatherParts[1] ? weatherParts[1].trim() : '보통';
@@ -623,32 +611,33 @@ function renderPanel(id) {
             <div class="info-body-wrap">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 20px 0 20px;">
                     <div style="flex: 1; min-width: 0;">
-                        <div class="info-category" style="color: ${catColor}; margin-top: 0;">${normalizeCat(place.category)}</div>
-                        <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; width: 100%;">${place.name}</div>
-                        ${place.address ? `<div class="info-address" style="margin-top: 4px;">${place.address}</div>` : ''}
+                        <div class="info-category" style="color: ${catColor}; margin-top: 0; margin-bottom: 4px;">${normalizeCat(place.category)}</div>
+                        <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; font-weight: 800; color: #212529;">${place.name}</div>
+                        ${place.address ? `<div class="info-address" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; font-size:12px; margin-top:6px;">${place.address}</div>` : ''}
+                        ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="display:inline-flex; margin-top:8px; padding: 4px 8px; font-size: 10px; background: rgba(241, 243, 245, 0.8); color: #495057; text-decoration: none; border-radius:8px;">🌐 공식홈</a>` : ''}
                     </div>
-                    <div class="body-weather-box">
+                    <div class="body-weather-box" style="margin-top: 22px;">
                         <div class="weather-item-row">${weatherText}</div>
                         <div class="weather-item-row">${dustText}</div>
                     </div>
                 </div>
 
-                <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}" style="padding: 0 20px;">
-                    <div style="position:relative; width:100%; border-radius: 12px; overflow: hidden;">
-                        <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)">
-                            ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" draggable="false" style="border-radius: 12px; height: 200px;">`).join('') : ''}
+                <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}" style="padding: 16px 20px;">
+                    <div style="position:relative; width:100%; border-radius: 12px; overflow: hidden; background: #f1f3f5;">
+                        <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none; height:0;'}" onscroll="updateSliderDots(${place.id}, this)">
+                            ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" style="height: 220px; border-radius: 12px;">`).join('') : ''}
                         </div>
                         ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
                     </div>
                 </div>
 
                 <div style="padding: 0 20px 30px 20px;">
-                    <div class="info-tag-wrap"><div class="info-tag-group">
+                    <div class="info-tag-wrap" style="margin-top: 4px;"><div class="info-tag-group">
                         ${place.business_hours ? `<div class="info-tag"><span class="tag-label">시간</span><span class="tag-value">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
                         ${place.parking_fee ? `<div class="info-tag"><span class="tag-label">주차</span><span class="tag-value">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
                     </div></div>
-                    ${place.comment ? `<div class="info-desc">${formatDescription(place.comment)}</div>` : ''}
-                    <div class="comments-section">
+                    ${place.comment ? `<div class="info-desc" style="margin-top:16px;">${formatDescription(place.comment)}</div>` : ''}
+                    <div class="comments-section" style="margin-top:20px;">
                         <div class="comment-input-wrap"><textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1"></textarea><button onclick="addComment(${place.id})">등록</button></div>
                         <div class="comments-list">${visibleComments}${moreBtn}</div>
                     </div>
