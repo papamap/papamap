@@ -239,7 +239,7 @@ html.is-pc .search-panel.show { transform: translateX(0); }
 .nav-item.active { color: #212529; }
 .nav-item.active svg { stroke: #212529; }
 
-#board-view { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8f9fa; z-index: 2000; display: none; padding: 0 20px calc(90px + env(safe-area-inset-bottom)); box-sizing: border-box; overflow-y: auto; }
+#board-view { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8f9fa; z-index: 2000; display: none; padding: 0 20px calc(60px + env(safe-area-inset-bottom)); box-sizing: border-box; overflow-y: auto; }
 .board-title-row { display: flex; justify-content: space-between; align-items: center; margin-top: calc(max(24px, env(safe-area-inset-top)) + 10px); margin-bottom: 20px; }
 .board-title { font-size: 24px; font-weight: 800; color: #212529; margin: 0; display: flex; align-items: center; gap: 8px; }
 .btn-info-circle { width: 22px; height: 22px; border-radius: 50%; background: #e9ecef; color: #868e96; display: flex; justify-content: center; align-items: center; font-weight: 900; font-family: serif; font-size: 14px; cursor: pointer; border: none; transition: 0.1s; }
