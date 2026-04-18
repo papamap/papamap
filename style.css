@@ -288,3 +288,59 @@ html.is-mobile .search-panel {
 html.is-mobile .search-panel.show { 
     transform: translateX(-50%) translateY(0) !important; 
 }
+
+/* --- 모바일 정보창 레이아웃 및 버튼 스타일 고도화 --- */
+
+/* 1. 날씨/미세먼지 우측 세로 정렬 */
+.body-weather-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    margin-left: 12px;
+    flex-shrink: 0;
+}
+
+.weather-item-row {
+    font-size: 11px;
+    font-weight: 800;
+    color: #495057;
+    background: rgba(241, 243, 245, 0.8);
+    padding: 3px 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+/* 2. 모바일 정보창 전체화면(Full) 대응 및 버튼 배치 */
+html.is-mobile .info-panel {
+    height: 100vh !important;
+    top: 0 !important;
+    border-radius: 0; /* 전체화면 시 라운드 해제 (JS에서 제어) */
+}
+
+.btn-top-left {
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    z-index: 110;
+}
+
+.icon-actions {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    z-index: 110;
+    display: flex;
+    gap: 8px;
+}
+
+.info-header-wrap {
+    margin-top: 16px;
+    margin-bottom: 16px;
+    order: 2;
+}
+
+.info-body-wrap {
+    display: flex;
+    flex-direction: column;
+}
