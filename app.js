@@ -671,7 +671,15 @@ async function loadPlaces() {
             placesData.forEach(place => {
                 let jitterLat = place.latitude + (Math.random() - 0.5) * 0.0002; let jitterLng = place.longitude + (Math.random() - 0.5) * 0.0002;
                 place.marker = new naver.maps.Marker({ position: new naver.maps.LatLng(jitterLat, jitterLng), icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }, zIndex: (place.views || place.likes) || 0 });
-                place.marker.addListener('click', function() { map.panTo(place.marker.getPosition()); renderPanel(place.id); if(isMobile) closeSearchPanel(); });
+                place.marker.addListener('click', function() { 
+                    const pos = place.marker.getPosition();
+                    map.setCenter(pos);                     
+                    if (isMobile) {
+                        map.panBy(new naver.maps.Point(0, map.getSize().height * 0.25));
+                    }
+                                        renderPanel(place.id); 
+                    if(isMobile) closeSearchPanel(); 
+                });
                 place.marker.addListener('mouseover', function() { this.setZIndex(999999); });
                 place.marker.addListener('mouseout', function() { this.setZIndex((place.views || place.likes) || 0); });
             });
