@@ -1,255 +1,687 @@
-body, html { margin: 0; padding: 0; height: 100%; font-family: 'Pretendard', -apple-system, sans-serif; background-color: #f8f9fa; overflow: hidden; color: #343a40; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-user-drag: none; }
-input, textarea, select { -webkit-user-select: auto; -moz-user-select: auto; -ms-user-select: auto; user-select: auto; }
-img { -webkit-user-drag: none; }
+const SUPABASE_URL = "https://jmeqvmmabgcdsuvabpgp.supabase.co";
+const SUPABASE_KEY = "sb_publishable_tpw_7GUMBP3iYiZ-EPLaNw_3u-gjX_B";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const KAKao_REST_KEY = "f971a5a1cc6ae49cf691f170f5e03dfd"; 
 
-.top-bar-container { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; width: calc(100vw - 32px); display: flex; flex-direction: column; align-items: flex-start; z-index: 10; pointer-events: none; }
-.top-row { display: flex; width: 100%; gap: 8px; align-items: center; }
-.top-header { flex-shrink: 0; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 8px 14px; border-radius: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.6); display: flex; flex-direction: row; align-items: center; gap: 10px; pointer-events: auto; white-space: nowrap; width: max-content; }
-.header-title { font-size: 16px; font-weight: 800; color: #212529; margin: 0; display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
-#weather-info { font-size: 12px; font-weight: 700; color: #495057; background: rgba(241, 243, 245, 0.8); padding: 4px 8px; border-radius: 12px; display: flex; align-items: center; gap: 2px; cursor: pointer; transition: 0.1s; flex-shrink: 0; }
-#weather-info:active { transform: scale(0.92); }
-.btn-header-search { background: none; border: none; padding: 0; margin: 0; display: flex; justify-content: center; align-items: center; color: #495057; cursor: pointer; transition: 0.1s; flex-shrink: 0; }
-.btn-header-search:active { transform: scale(0.9); color: #FF6B6B; }
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+if (isMobile) document.documentElement.classList.add('is-mobile');
+else document.documentElement.classList.add('is-pc');
 
-.category-nav { display: flex; gap: 6px; overflow-x: auto; pointer-events: auto; scrollbar-width: none; flex: 1; align-items: center; cursor: grab; padding: 2px 0; -webkit-overflow-scrolling: touch; touch-action: pan-x; min-width: 0; flex-wrap: nowrap; }
-.category-nav:active { cursor: grabbing; }
-.category-nav::-webkit-scrollbar { display: none; }
+var map;
+var placesData = []; 
+var noticesData = [];
+var currentSearchScope = 'all'; 
+var activeCategory = '전체';
+var userLat = 37.5238506, userLng = 126.9804702; 
+var selectedLat = null, selectedLng = null;
+var currentNoticeId = null;
+var userLocationMarker = null;
+var currentWeatherHtml = "⛅ --°C | 😐 보통";
+window.isWeatherSuggestionVisible = false;
 
-.chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; padding: 6px 12px; background: rgba(255,255,255,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px; font-size: 12px; font-weight: 700; color: #495057; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; user-select: none; }
-.chip.active { background: #343a40; color: white; border-color: #343a40; }
-.chip[data-cat="실내"] { color: #FF6B6B; }
-.chip[data-cat="실내"].active { background: #FF6B6B; border-color: #FF6B6B; color: white; }
-.chip[data-cat="야외"] { color: #37B24D; }
-.chip[data-cat="야외"].active { background: #37B24D; border-color: #37B24D; color: white; }
-.chip[data-cat="문센"] { color: #845EF7; }
-.chip[data-cat="문센"].active { background: #845EF7; border-color: #845EF7; color: white; }
+const shareIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>`;
+const viewIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; margin-bottom:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
 
-#map { width: 100%; height: 100vh; background: #e9ecef; z-index: 0; position: relative; }
+function timeAgo(dateInput) {
+    const past = new Date(dateInput); const now = new Date(); const seconds = Math.floor((now - past) / 1000);
+    if (isNaN(seconds) || seconds < 0) return dateInput; 
+    if (seconds < 60) return "방금 전";
+    const minutes = Math.floor(seconds / 60); if (minutes < 60) return `${minutes}분 전`;
+    const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours}시간 전`;
+    const days = Math.floor(hours / 24); if (days < 7) return `${days}일 전`;
+    const weeks = Math.floor(days / 7); if (weeks < 4) return `${weeks}주 전`;
+    const months = Math.floor(days / 30); if (months < 12) return `${months}개월 전`;
+    const years = Math.floor(days / 365); return `${years}년 전`;
+}
 
-.custom-marker { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; z-index: 10; }
-.custom-marker:hover { z-index: 9999 !important; }
-.marker-pin { width: 28px; height: 28px; border-radius: 50% 50% 50% 0; background: #ffffff; border: 2.5px solid; transform: rotate(-45deg); display: flex; justify-content: center; align-items: center; box-shadow: 0 3px 8px rgba(0,0,0,0.15); transition: all 0.2s ease; }
-.marker-icon { transform: rotate(45deg); font-size: 13px; display: flex; justify-content: center; align-items: center; line-height: 1; }
-.marker-indoor .marker-pin { border-color: #FF6B6B; }
-.marker-outdoor .marker-pin { border-color: #37B24D; }
-.marker-moonsen .marker-pin { border-color: #845EF7; }
+let pwResolveFn = null; let textPromptResolveFn = null;
+function askPassword() { return new Promise(resolve => { pwResolveFn = resolve; document.getElementById('pw-modal').style.display = 'flex'; document.getElementById('pw-input').value = ''; document.getElementById('pw-input').focus(); }); }
+function resolvePw(val) { document.getElementById('pw-modal').style.display = 'none'; if(pwResolveFn) pwResolveFn(val); }
+function askTextPrompt(defaultText) { return new Promise(resolve => { textPromptResolveFn = resolve; document.getElementById('text-prompt-modal').style.display = 'flex'; document.getElementById('text-prompt-input').value = defaultText || ''; document.getElementById('text-prompt-input').focus(); }); }
+function resolveTextPrompt(val) { document.getElementById('text-prompt-modal').style.display = 'none'; if(textPromptResolveFn) textPromptResolveFn(val); }
 
-.marker-label { visibility: hidden; opacity: 0; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: rgba(33, 37, 41, 0.9); color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; pointer-events: none; transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; margin-bottom: 8px; }
-.custom-marker:hover .marker-label { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(-5px); }
-.custom-marker:hover .marker-pin { transform: rotate(-45deg) scale(1.1); z-index: 100; }
-.custom-marker.zoomed .marker-pin { width: 14px; height: 14px; border-width: 2px; }
-.custom-marker.zoomed .marker-icon { display: none !important; }
-.custom-marker.zoomed.marker-indoor .marker-pin { background: #FF6B6B; }
-.custom-marker.zoomed.marker-outdoor .marker-pin { background: #37B24D; }
-.custom-marker.zoomed.marker-moonsen .marker-pin { background: #845EF7; }
-.custom-marker.zoomed:hover .marker-label { margin-bottom: 4px; }
+function escapeHtml(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); }
+function linkify(text) { if (!text) return ''; var urlRegex = /(https?:\/\/[^\s]+)/g; return text.replace(urlRegex, url => `<a href="${url}" target="_blank" style="color:#FF6B6B; text-decoration:underline;">${url}</a>`); }
+function formatDescription(text) {
+    if (!text) return ''; const aTags = [];
+    let str = text.replace(/<a\s+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi, (match, url, label) => { aTags.push({ url: url, label: label }); return `__A_TAG_${aTags.length - 1}__`; });
+    str = escapeHtml(str);
+    str = str.replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" style="color:#FF6B6B; text-decoration:underline;">${url}</a>`);
+    str = str.replace(/__A_TAG_(\d+)__/g, (match, i) => `<a href="${aTags[i].url}" target="_blank" style="color:#FF6B6B; text-decoration:underline;">${aTags[i].label}</a>`);
+    return str.replace(/\n/g, '<br>');
+}
 
-.info-panel { position: absolute; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); box-shadow: 0 -4px 30px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.6); display: flex; flex-direction: column; overflow: hidden; padding: 0; transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s; z-index: 2000; pointer-events: none; opacity: 0; }
-.info-panel.show { opacity: 1; pointer-events: auto; }
-.drag-handle { width: 100%; height: 24px; display: none; justify-content: center; align-items: center; flex-shrink: 0; cursor: grab; background: transparent; touch-action: none; }
-.drag-handle::after { content: ''; width: 40px; height: 5px; background: rgba(0,0,0,0.2); border-radius: 3px; }
+function toggleOption(inputId, btnEl, placeholderTxt, toggleText) {
+    const inputEl = document.getElementById(inputId); const isActive = btnEl.classList.contains('active');
+    const siblings = btnEl.parentElement.querySelectorAll('.btn-free-toggle'); siblings.forEach(b => b.classList.remove('active'));
+    if (!isActive) { btnEl.classList.add('active'); if (!inputEl.disabled) inputEl.dataset.oldVal = inputEl.value; inputEl.value = toggleText; inputEl.disabled = true; } 
+    else { inputEl.value = inputEl.dataset.oldVal || ''; inputEl.disabled = false; inputEl.placeholder = placeholderTxt; }
+}
 
-html.is-mobile .info-panel { top: auto; bottom: calc(56px + env(safe-area-inset-bottom)); left: 0; right: 0; width: 100%; height: 85vh; border-radius: 24px 24px 0 0; transform: translateY(100%); max-width: 100%; }
-html.is-mobile .drag-handle { display: flex; }
-html.is-pc .info-panel { top: calc(max(16px, env(safe-area-inset-top)) + 64px); left: 16px; width: 340px; max-height: calc(100vh - 120px - env(safe-area-inset-bottom)); border-radius: 20px; transform: translateX(-20px); bottom: auto; }
-html.is-pc .drag-handle { display: none !important; }
+function compressImage(file, maxWidth, maxHeight, quality) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader(); reader.readAsDataURL(file);
+        reader.onload = event => {
+            const img = new Image(); img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas'); let width = img.width; let height = img.height;
+                if (width > maxWidth) { height = Math.round(height * maxWidth / width); width = maxWidth; }
+                if (height > maxHeight) { width = Math.round(width * maxHeight / height); height = maxHeight; }
+                canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(blob => resolve(new File([blob], file.name, { type: file.type || 'image/jpeg' })), file.type || 'image/jpeg', quality);
+            }; img.onerror = reject;
+        }; reader.onerror = reject;
+    });
+}
 
-html.is-pc .panel-top-bar { position: absolute; top: 12px; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; padding: 0 16px; pointer-events: none; }
-html.is-mobile .panel-top-bar { position: absolute; top: 24px; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; padding: 8px 16px; pointer-events: none; }
+let isImgDragging = false; let imgStartX, imgScrollLeft;
+function startImgDrag(e, el) { isImgDragging = true; imgStartX = e.pageX - el.offsetLeft; imgScrollLeft = el.scrollLeft; el.style.scrollSnapType = 'none'; }
+function stopImgDrag(e, el) { if(!isImgDragging) return; isImgDragging = false; el.style.scrollSnapType = 'x mandatory'; updateSliderDots(el.id.replace('slider-', ''), el); }
+function doImgDrag(e, el) { if (!isImgDragging) return; e.preventDefault(); const x = e.pageX - el.offsetLeft; const walk = (x - imgStartX) * 1.5; el.scrollLeft = imgScrollLeft - walk; }
 
-.panel-top-bar > * { pointer-events: auto; }
-.panel-weather { background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,0.08); padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 800; color: #495057; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.1s; }
-.panel-weather:active { transform: scale(0.95); }
-.btn-back-arrow { width: 32px; height: 32px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); border-radius: 50%; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 2px 6px rgba(0,0,0,0.1); color: #495057; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.1s; padding: 0; }
-.btn-back-arrow:active { transform: scale(0.9); }
-.icon-actions { display: flex; gap: 6px; flex-shrink: 0; }
-.icon-btn { width: 36px; height: 36px; background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,0.08); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: #495057; padding: 0; font-weight: 800; font-size: 14px; }
-.icon-btn svg { width: 18px; height: 18px; }
-.icon-btn:active { transform: scale(0.9); background: #f8f9fa; }
-.view-badge { background: rgba(241, 243, 245, 0.8); backdrop-filter: blur(4px); border: 1px solid rgba(0,0,0,0.05); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: #495057; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); flex-shrink: 0; }
+class MediaManager {
+    constructor(containerId, instanceName, maxFiles, shouldCompress) { this.containerId = containerId; this.instanceName = instanceName; this.maxFiles = maxFiles; this.shouldCompress = shouldCompress; this.media = []; this.dragStartIndex = null; setTimeout(() => this.initDragAndDrop(), 100); }
+    loadUrls(urlStr) { this.media = []; if(urlStr) { urlStr.split(',').forEach(u => { if(u.trim()) this.media.push({ type: 'url', data: u.trim() }); }); } this.render(); }
+    addFiles(input) { Array.from(input.files).forEach(file => { if (this.media.length < this.maxFiles) this.media.push({ type: 'file', data: file }); }); input.value = ''; this.render(); }
+    remove(idx) { this.media.splice(idx, 1); this.render(); }
+    reorder(from, to) { const item = this.media.splice(from, 1)[0]; this.media.splice(to, 0, item); this.render(); }
+    initDragAndDrop() {
+        const container = document.getElementById(this.containerId); if(!container) return;
+        container.addEventListener('dragstart', e => { const item = e.target.closest('.media-preview-item'); if(item) { this.dragStartIndex = parseInt(item.dataset.idx); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData('text/plain', this.dragStartIndex); } });
+        container.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; const wrap = document.getElementById(`wrap-${this.containerId.replace('-preview','')}`); if(wrap) wrap.classList.add('dragover'); });
+        container.addEventListener('dragleave', e => { const wrap = document.getElementById(`wrap-${this.containerId.replace('-preview','')}`); if(wrap) wrap.classList.remove('dragover'); });
+        container.addEventListener('drop', e => {
+            e.preventDefault(); const wrap = document.getElementById(`wrap-${this.containerId.replace('-preview','')}`); if(wrap) wrap.classList.remove('dragover');
+            const targetItem = e.target.closest('.media-preview-item');
+            if(targetItem && this.dragStartIndex !== null) { const dragEndIndex = parseInt(targetItem.dataset.idx); if(this.dragStartIndex !== dragEndIndex) this.reorder(this.dragStartIndex, dragEndIndex); }
+            this.dragStartIndex = null;
+        });
 
-.info-scroll-area { flex: 1; overflow-y: hidden; overflow-x: hidden; width: 100%; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; touch-action: none; }
-.info-scroll-area::-webkit-scrollbar { width: 6px; }
-.info-scroll-area::-webkit-scrollbar-track { background: transparent; }
-.info-scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
-.info-header-wrap { position: relative; width: 100%; flex-shrink: 0; }
-html.is-pc .info-header-wrap.no-image { height: 60px; min-height: 60px; } 
-html.is-mobile .info-header-wrap.no-image { height: 40px; min-height: 40px; }
+        let dragSrcEl = null, startIdx = null;
+        container.addEventListener('touchstart', e => {
+            if(e.target.tagName === 'BUTTON') return;
+            const item = e.target.closest('.media-preview-item');
+            if(item) { dragSrcEl = item; startIdx = parseInt(item.dataset.idx); item.style.opacity = '0.5'; }
+        }, {passive: true});
+        container.addEventListener('touchmove', e => {
+            if(!dragSrcEl) return; e.preventDefault();
+            const touch = e.touches[0]; const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetItem = target ? target.closest('.media-preview-item') : null;
+            container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
+            if(targetItem && targetItem !== dragSrcEl) {
+                const rect = targetItem.getBoundingClientRect(); const isLeft = (touch.clientX - rect.left) < (rect.width/2);
+                targetItem.classList.add(isLeft ? 'drag-over-left' : 'drag-over-right');
+                this.dragTargetIndex = parseInt(targetItem.dataset.idx) + (isLeft ? 0 : 1);
+            } else this.dragTargetIndex = null;
+        }, {passive: false});
+        container.addEventListener('touchend', e => {
+            if(!dragSrcEl) return;
+            dragSrcEl.style.opacity = '1'; container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
+            if(this.dragTargetIndex !== null) {
+                let endIdx = this.dragTargetIndex;
+                if(startIdx < endIdx) endIdx--;
+                if(startIdx !== endIdx) this.reorder(startIdx, endIdx);
+            }
+            dragSrcEl = null; startIdx = null; this.dragTargetIndex = null;
+        });
+    }
+    render() {
+        const container = document.getElementById(this.containerId); container.innerHTML = '';
+        this.media.forEach((m, idx) => {
+            const div = document.createElement('div'); div.className = 'media-preview-item'; div.setAttribute('draggable', 'true'); div.dataset.idx = idx;
+            if (m.type === 'url') { div.innerHTML = `<img src="${m.data}" class="media-preview-img"><button type="button" class="media-preview-del" onclick="${this.instanceName}.remove(${idx})">✖</button>`; container.appendChild(div); } 
+            else { const reader = new FileReader(); reader.onload = (e) => { div.innerHTML = `<img src="${e.target.result}" class="media-preview-img"><button type="button" class="media-preview-del" onclick="${this.instanceName}.remove(${idx})">✖</button>`; container.appendChild(div); }; reader.readAsDataURL(m.data); }
+        });
+    }
+    async uploadAll() {
+        let finalUrls = [];
+        for (let m of this.media) {
+            if (m.type === 'url') finalUrls.push(m.data);
+            else {
+                let fileToUpload = m.data;
+                if (this.shouldCompress && fileToUpload.type.startsWith('image/')) { try { fileToUpload = await compressImage(fileToUpload, 1200, 1200, 0.8); } catch(e) {} }
+                const fileExt = fileToUpload.name.split('.').pop(); const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+                const { error } = await supabaseClient.storage.from('places').upload(fileName, fileToUpload);
+                if (!error) { const { data: urlData } = supabaseClient.storage.from('places').getPublicUrl(fileName); finalUrls.push(urlData.publicUrl); }
+            }
+        }
+        return finalUrls.length > 0 ? finalUrls.join(',') : null;
+    }
+}
 
-.image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: transparent; touch-action: pan-x; cursor: grab; }
-.image-slider:active { cursor: grabbing; }
-.image-slider::-webkit-scrollbar { display: none; }
-.place-photo { flex: 0 0 100%; width: 100%; height: 240px; scroll-snap-align: center; object-fit: cover; display: block; margin: 0; pointer-events: none; border-radius: 20px 20px 0 0; background: #e9ecef; }
-.slider-dots { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; z-index: 20; pointer-events: none; }
-.slider-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.5); transition: background-color 0.2s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-.slider-dot.active { background: rgba(255,255,255,1); box-shadow: 0 0 4px rgba(0,0,0,0.4); }
+window.noticeMediaManager = new MediaManager('notice-media-preview', 'noticeMediaManager', 10, false);
+window.placeAddMediaManager = new MediaManager('place-add-media-preview', 'placeAddMediaManager', 3, true);
+window.placeEditMediaManager = new MediaManager('place-edit-media-preview', 'placeEditMediaManager', 3, true);
 
-.info-body-wrap { padding: 0 20px 30px 20px; height: auto; }
-.info-category { font-size: 11px; font-weight: 800; margin-bottom: 4px; flex-shrink: 0; margin-top: 12px; }
-.title-row { display: flex; justify-content: flex-start; align-items: center; margin-bottom: 8px; width: 100%; flex-shrink: 0; gap: 6px; }
-.info-title-wrap { flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative; }
-.info-title { font-size: 20px; font-weight: 800; color: #212529; margin: 0; display: inline-block; padding-right: 20px; }
-.marquee { animation: marquee 8s linear infinite; }
-@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-.btn-edit-tiny { background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.05); font-size: 10px; cursor: pointer; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; color: #495057; flex-shrink: 0; transition: 0.1s; }
-.btn-edit-tiny:active { transform: scale(0.9); background: #dee2e6; }
-.info-address { font-size: 12px; color: #6B7684; flex-shrink: 0; }
-.info-desc { font-size: 13px; color: #495057; line-height: 1.5; margin-bottom: 16px; background: rgba(248, 249, 250, 0.6); padding: 12px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); word-break: break-all; overflow-wrap: break-word; flex-shrink: 0; }
-.info-tag-wrap { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
-.info-tag-group { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-.info-tag { background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0,0,0,0.05); color: #495057; font-size: 12px; padding: 10px 12px; border-radius: 12px; font-weight: 600; display: flex; flex-direction: row; align-items: flex-start; width: 100%; box-sizing: border-box; }
-.tag-label { color: #868e96; font-weight: 800; font-size: 11px; flex-shrink: 0; width: 40px; margin-top: 2px; }
-.tag-value { flex: 1; line-height: 1.5; word-break: keep-all; }
+async function submitInquiry() {
+    const content = document.getElementById('inquiry-content').value.trim(); const contact = document.getElementById('inquiry-contact').value.trim();
+    if(!content) return alert('내용을 입력해주세요.');
+    const btn = document.querySelector('#inquiry-modal .btn-save'); btn.innerText = "전송 중..."; btn.disabled = true;
+    const {error} = await supabaseClient.from('inquiries').insert([{ content: content, contact_info: contact }]);
+    if(!error) { alert('접수 완료! 감사합니다.'); document.getElementById('inquiry-modal').style.display='none'; document.getElementById('inquiry-content').value = ''; document.getElementById('inquiry-contact').value = ''; } 
+    else { alert('접수 실패. 관리자에게 문의하세요.'); }
+    btn.innerText = "보내기"; btn.disabled = false;
+}
 
-.btn-map-text { padding: 12px; border-radius: 12px; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 14px; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: 0.1s; text-decoration: none; }
-.btn-map-text:active { transform: scale(0.96); }
-.bg-naver { background: #03C75A; }
-.bg-kakao { background: #FEE500; color: #191919; }
-.bg-tmap { background: #000000; }
+async function loadNotices() {
+    try {
+        const { data, error } = await supabaseClient.from('notices').select('*');
+        if (error) throw error;
+        if (data) { 
+            noticesData = data; renderNotices(); 
+            checkAndShowPopup(); 
+        }
+    } catch (err) {
+        console.error("Notices DB Error:", err);
+        const container = document.getElementById('notice-list-container');
+        if(container) {
+            container.innerHTML = `<div style="text-align:center; padding:40px; color:#FF6B6B; font-size:13px; line-height:1.5;">게시글을 불러오지 못했습니다.</div>`;
+        }
+    }
+}
 
-.comments-section { border-top: 1px solid rgba(0,0,0,0.08); padding-top: 12px; width: 100%; box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: column; }
-.comments-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.comment-item { padding: 12px; background: rgba(255, 255, 255, 0.6); border-radius: 12px; color: #495057; border: 1px solid rgba(0,0,0,0.05); word-break: break-all; overflow-wrap: break-word; font-size: 12px; line-height: 1.5; }
-.comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.c-author { font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
-.comment-delete { background: none; border: none; color: #adb5bd; cursor: pointer; font-size: 11px; padding: 0; }
-.btn-more-cmts { background: none; border: none; color: #adb5bd; font-size: 12px; font-weight: 700; cursor: pointer; padding: 8px 0; text-align: center; width: 100%; transition: 0.2s; margin-top: -4px; }
-.comment-inputs-top { display: flex; gap: 6px; margin-bottom: 6px; width: 100%; box-sizing: border-box; }
-.comment-inputs-top input { flex: 1; min-width: 0; padding: 8px; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 12px; background: rgba(255,255,255,0.6); outline: none; box-sizing: border-box; font-family: inherit; }
-.comment-input-wrap { display: flex; gap: 6px; width: 100%; box-sizing: border-box; align-items: flex-start; margin-bottom: 16px; height: 38px; } 
-.comment-input-wrap textarea { flex: 1; min-width: 0; height: 100%; padding: 10px; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 12px; background: rgba(255,255,255,0.6); outline: none; box-sizing: border-box; font-family: inherit; resize: none; line-height: 1.4; }
-.comment-input-wrap button { height: 100%; background: #495057; color: white; border: none; border-radius: 8px; padding: 0 16px; font-weight: 700; font-size: 12px; cursor: pointer; flex-shrink: 0; white-space: nowrap; box-sizing: border-box; }
+function checkAndShowPopup() {
+    const today = new Date().toISOString().split('T')[0];
+    if (localStorage.getItem('hidePopup') === today) return;
+    
+    const validPopups = noticesData.filter(n => n.is_popup && n.image_url && n.popup_end_date && new Date(n.popup_end_date) >= new Date(today));
+    if (validPopups.length > 0) {
+        let urls = []; validPopups.forEach(n => urls = urls.concat(n.image_url.split(',')));
+        if (urls.length === 0) return;
+        
+        const sliderInner = document.getElementById('popup-slider-inner');
+        sliderInner.innerHTML = urls.map(url => `<img src="${url}" draggable="false" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:start; user-select:none;">`).join('');
+        
+        if(urls.length > 1) {
+            document.getElementById('popup-slider-dots').innerHTML = urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('');
+            document.querySelectorAll('.popup-nav-btn').forEach(b => b.style.display = 'flex');
+        } else {
+            document.getElementById('popup-slider-dots').innerHTML = '';
+            document.querySelectorAll('.popup-nav-btn').forEach(b => b.style.display = 'none');
+        }
+        
+        document.getElementById('popup-modal').style.display = 'flex';
+        initPopupDrag();
+    }
+}
 
-.file-upload-wrap { background: rgba(248, 249, 250, 0.6); border: 1px dashed rgba(206, 212, 218, 0.8); border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; width: 100%; box-sizing: border-box; transition: 0.2s; }
-.file-upload-wrap.dragover { background: #e9ecef; border-color: #adb5bd; }
-.file-upload-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.file-upload-header .form-label { margin: 0; }
-.file-upload-btn { background: #343a40; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; }
-.file-upload-wrap input[type="file"] { display: none; } 
+function updatePopupDots() {
+    const el = document.getElementById('popup-slider-inner');
+    const index = Math.round(el.scrollLeft / el.offsetWidth);
+    const dots = document.querySelectorAll('#popup-slider-dots .slider-dot');
+    dots.forEach((dot, i) => dot.className = 'slider-dot' + (i === index ? ' active' : ''));
+}
 
-.media-preview-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; min-height: 20px; touch-action: pan-x; }
-.media-preview-container::-webkit-scrollbar { display: none; }
-.media-preview-item { position: relative; width: 76px; height: 76px; flex-shrink: 0; border-radius: 8px; overflow: hidden; border: 1px solid #dee2e6; cursor: grab; background: white; }
-.media-preview-item:active { cursor: grabbing; }
-.media-preview-img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.media-preview-del { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border: none; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-.file-limit-text { font-size: 10.5px; color: #adb5bd; margin-top: 6px; display: block; font-weight: 500; letter-spacing: -0.5px; }
+function scrollPopup(dir) {
+    const el = document.getElementById('popup-slider-inner');
+    el.scrollBy({ left: dir * el.offsetWidth, behavior: 'smooth' });
+}
 
-.radio-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.radio-label { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #495057; font-weight: 600; padding: 8px 12px; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.5); }
-.radio-label:has(input[value="실내"]:checked) { border-color: #FF6B6B; background: rgba(255, 107, 107, 0.1); color: #FF6B6B; }
-.radio-label:has(input[value="야외"]:checked) { border-color: #37B24D; background: rgba(55, 178, 77, 0.1); color: #37B24D; }
-.radio-label:has(input[value="문센"]:checked) { border-color: #845EF7; background: rgba(132, 94, 247, 0.1); color: #845EF7; }
-.radio-label input { display: none; } 
+function initPopupDrag() {
+    const el = document.getElementById('popup-slider-inner');
+    let isDown = false; let startX; let scrollLeft;
 
-.btn-free-toggle { background: rgba(241, 243, 245, 0.6); border: 1px solid rgba(222, 226, 230, 0.6); color: #495057; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 0 16px; cursor: pointer; transition: 0.2s; white-space: nowrap; flex-shrink: 0; }
-.btn-free-toggle:active { transform: scale(0.95); }
-.btn-free-toggle.active { background: #343a40; color: white; border-color: #343a40; }
+    el.addEventListener('mousedown', (e) => {
+        isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft; el.style.scrollSnapType = 'none'; 
+    });
+    el.addEventListener('mouseleave', () => { isDown = false; el.style.scrollSnapType = 'x mandatory'; });
+    el.addEventListener('mouseup', () => { isDown = false; el.style.scrollSnapType = 'x mandatory'; });
+    el.addEventListener('mousemove', (e) => {
+        if (!isDown) return; e.preventDefault(); const x = e.pageX - el.offsetLeft; const walk = (x - startX) * 2; el.scrollLeft = scrollLeft - walk;
+    });
+}
 
-html.is-mobile .search-panel { left: 50%; right: auto; width: calc(100vw - 32px); transform: translateX(-50%) translateY(-10px); }
-html.is-mobile .search-panel.show { transform: translateX(-50%) translateY(0); }
-html.is-pc .search-panel { position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; width: 340px; max-width: calc(100vw - 32px); z-index: 1500; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 8px 32px rgba(0,0,0,0.1); display: flex; flex-direction: column; opacity: 0; pointer-events: none; transform: translateX(20px); transition: all 0.3s ease; max-height: calc(100vh - 32px - env(safe-area-inset-bottom)); }
-html.is-pc .search-panel.show { opacity: 1; pointer-events: auto; transform: translateX(0); }
+function closePopup(hideToday) {
+    if(hideToday) localStorage.setItem('hidePopup', new Date().toISOString().split('T')[0]);
+    document.getElementById('popup-modal').style.display = 'none';
+}
 
-.search-header { display: flex; gap: 8px; padding: 16px; border-bottom: 1px solid rgba(0,0,0,0.05); align-items: flex-start; }
-.search-input-area { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-.search-input-area input { width: 100%; border: none; background: rgba(241, 243, 245, 0.6); padding: 12px 14px; border-radius: 12px; font-size: 14px; outline: none; box-sizing: border-box; }
-.search-scope-toggle { display: none; gap: 6px; } 
-.search-scope-toggle.show { display: flex; }
-.scope-btn { flex: 1; padding: 8px 0; border-radius: 8px; border: 1px solid rgba(222, 226, 230, 0.6); background: rgba(255,255,255,0.5); font-size: 11px; font-weight: 700; cursor: pointer; color: #495057; transition: 0.2s; white-space: nowrap; }
-.scope-btn.active { background: #343a40; color: white; border-color: #343a40; }
-.search-close-btn { background: none; border: none; font-size: 26px; color: #adb5bd; cursor: pointer; padding: 0 4px; line-height: 1; }
-.search-results-list { list-style: none; margin: 0; padding: 12px 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
-.search-result-item { padding: 14px; background: rgba(255,255,255,0.7); border-radius: 14px; border: 1px solid rgba(241, 243, 245, 0.6); cursor: pointer; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-.res-empty { text-align: center; color: #868e96; font-size: 13px; padding: 20px 0; }
+function renderNotices() {
+    const container = document.getElementById('notice-list-container');
+    if(noticesData.length === 0) { container.innerHTML = '<div style="text-align:center; padding:40px; color:#adb5bd;">등록된 글이 없습니다.</div>'; return; }
+    
+    noticesData.sort((a, b) => { 
+        if (a.is_notice !== b.is_notice) return a.is_notice ? -1 : 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); 
+    });
+    
+    container.innerHTML = noticesData.map(n => {
+        const dateStr = timeAgo(n.created_at); const firstImg = n.image_url ? n.image_url.split(',')[0] : null;
+        const badge = n.is_notice ? `<span class="n-badge">공지</span> ` : '';
+        const authorTxt = n.author ? `<span style="color:#868e96; margin-right:6px;">${escapeHtml(n.author)}</span>` : '';
+        const autoDesc = escapeHtml(n.content || '').replace(/<br>/g, ' ').substring(0, 60) + ((n.content||'').length > 60 ? '...' : '');
+        return `
+        <div class="notice-card" onclick="showNoticeDetail(${n.id})">
+            <div class="notice-content"><div class="n-date">${badge}${authorTxt}${dateStr}</div><div class="n-title">${n.title}</div><div class="n-desc">${autoDesc}</div></div>
+            ${firstImg ? `<img src="${firstImg}" class="notice-thumb">` : ''}
+        </div>`}).join('');
+}
 
-.fab-container { position: absolute; bottom: calc(70px + env(safe-area-inset-bottom)); right: 20px; display: flex; flex-direction: column; gap: 12px; z-index: 100; transition: opacity 0.2s; }
-.fab-btn { width: 52px; height: 52px; border: none; border-radius: 26px; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 6px 16px rgba(0,0,0,0.15); transition: transform 0.1s; }
-.fab-btn:active { transform: scale(0.92); }
-.btn-location { background: rgba(255,255,255,0.9); border: 1px solid #e9ecef; }
-.btn-loading { opacity: 0.4; pointer-events: none; animation: pulse 1s infinite alternate; }
-@keyframes pulse { from { transform: scale(1); } to { transform: scale(0.92); } }
-.btn-add { background: linear-gradient(135deg, #FF6B6B, #FF8E53); font-size: 30px; font-weight: 300; }
+function showNoticeDetail(id) {
+    const n = noticesData.find(x => x.id === id); currentNoticeId = id;
+    document.getElementById('notice-list-view').style.display = 'none'; document.getElementById('notice-detail-view').style.display = 'flex';
+    document.getElementById('detail-title').innerHTML = n.title;
+    const authorTxt = n.author ? `<span style="margin-right:8px; color:#495057;">${escapeHtml(n.author)}</span>` : '';
+    document.getElementById('detail-date').innerHTML = `${authorTxt}${timeAgo(n.created_at)}`;
+    let bodyHtml = linkify(escapeHtml(n.content || '')).replace(/\n/g, '<br>');
+    if (n.image_url) {
+        let urls = n.image_url.split(','); let imgsHtml = urls.map(url => `<img src="${url}" class="notice-detail-img">`).join('');
+        bodyHtml = `<div style="margin-bottom:16px;">${imgsHtml}</div>` + bodyHtml;
+    }
+    document.getElementById('detail-body').innerHTML = bodyHtml;
+}
 
-.bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: calc(56px + env(safe-area-inset-bottom)); background: rgba(255,255,255,0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid rgba(0,0,0,0.08); display: flex; z-index: 3000; padding-bottom: env(safe-area-inset-bottom); box-sizing: border-box; }
-.nav-item { flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: #adb5bd; cursor: pointer; transition: 0.2s; gap: 8px; }
-.nav-item svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.nav-item.active { color: #212529; }
-.nav-item.active svg { stroke: #212529; }
+function showNoticeList() { document.getElementById('notice-list-view').style.display = 'block'; document.getElementById('notice-detail-view').style.display = 'none'; }
+function openWriteNoticeModal(id = null) {
+    const modal = document.getElementById('write-notice-modal'); const titleEl = document.getElementById('modal-notice-title');
+    if (id) { const n = noticesData.find(x => x.id === id); document.getElementById('notice-title').value = n.title; document.getElementById('notice-content-text').value = n.content; document.getElementById('notice-author').value = n.author || ''; document.getElementById('notice-author').disabled = true; document.getElementById('notice-pw').value = ''; noticeMediaManager.loadUrls(n.image_url); modal.dataset.editId = id; titleEl.innerText = "게시글 수정"; } 
+    else { document.getElementById('notice-title').value = ''; document.getElementById('notice-content-text').value = ''; document.getElementById('notice-author').value = ''; document.getElementById('notice-author').disabled = false; document.getElementById('notice-pw').value = ''; noticeMediaManager.loadUrls(''); delete modal.dataset.editId; titleEl.innerText = "게시글 작성"; }
+    modal.style.display = 'flex';
+}
 
-#board-view { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f8f9fa; z-index: 2000; display: none; padding: 0 20px calc(90px + env(safe-area-inset-bottom)); box-sizing: border-box; overflow-y: auto; }
-.board-title-row { display: flex; justify-content: space-between; align-items: center; margin-top: calc(max(24px, env(safe-area-inset-top)) + 10px); margin-bottom: 20px; }
-.board-title { font-size: 24px; font-weight: 800; color: #212529; margin: 0; display: flex; align-items: center; gap: 8px; }
-.btn-info-circle { width: 22px; height: 22px; border-radius: 50%; background: #e9ecef; color: #868e96; display: flex; justify-content: center; align-items: center; font-weight: 900; font-family: serif; font-size: 14px; cursor: pointer; border: none; transition: 0.1s; }
-.btn-info-circle:active { transform: scale(0.9); background: #dee2e6; }
-.btn-write-notice { background: #343a40; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.1s; }
-.btn-write-notice:active { transform: scale(0.95); }
+async function saveNotice() {
+    const title = document.getElementById('notice-title').value.trim(); const content = document.getElementById('notice-content-text').value.trim();
+    const author = document.getElementById('notice-author').value.trim() || '익명'; const pw = document.getElementById('notice-pw').value.trim();
+    const editId = document.getElementById('write-notice-modal').dataset.editId;
+    if(!title || !pw) return alert("제목과 비밀번호를 모두 입력하세요.");
+    const btnSave = document.querySelector('#write-notice-modal .btn-save'); btnSave.innerText = "업로드 중..."; btnSave.disabled = true;
+    let imgUrls = await noticeMediaManager.uploadAll();
+    let payload = { title: title, content: content, is_notice: false, author: author, pw: pw }; 
+    if(imgUrls !== null) payload.image_url = imgUrls; 
+    if (editId) {
+        const n = noticesData.find(x => x.id == editId);
+        if (n.pw && n.pw !== pw) { alert("비밀번호 불일치"); btnSave.innerText = "등록하기"; btnSave.disabled = false; return; }
+        const { error } = await supabaseClient.from('notices').update(payload).eq('id', editId);
+        if(!error) { document.getElementById('write-notice-modal').style.display = 'none'; loadNotices(); showNoticeDetail(parseInt(editId)); }
+    } else {
+        const { error } = await supabaseClient.from('notices').insert([payload]);
+        if(!error) { document.getElementById('write-notice-modal').style.display = 'none'; loadNotices(); }
+    }
+    btnSave.innerText = "등록하기"; btnSave.disabled = false;
+}
+async function deleteNotice() {
+    const n = noticesData.find(x => x.id === currentNoticeId);
+    const inputPw = await askPassword(); if (!inputPw) return;
+    if (n.pw && n.pw !== inputPw) return alert("비밀번호 불일치");
+    if(confirm("이 글을 삭제하시겠습니까?")) { const { error } = await supabaseClient.from('notices').delete().eq('id', currentNoticeId); if(!error) { showNoticeList(); loadNotices(); } }
+}
 
-.notice-list { display: flex; flex-direction: column; gap: 12px; }
-.notice-card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.04); display: flex; gap: 12px; cursor: pointer; transition: 0.1s; align-items: center; }
-.notice-card:active { transform: scale(0.98); }
-.notice-content { flex: 1; min-width: 0; }
-.notice-thumb { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; flex-shrink: 0; background: #f1f3f5; }
-.n-date { font-size: 11px; color: #adb5bd; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-.n-badge { background: #FF6B6B; color: white; font-size: 9px; padding: 2px 6px; border-radius: 6px; }
-.n-title { font-size: 15px; font-weight: 800; color: #212529; margin-bottom: 6px; line-height: 1.4; word-break: keep-all; }
-.n-desc { font-size: 12px; color: #868e96; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+function switchTab(tab) {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    if (tab === 'map') { document.getElementById('nav-map').classList.add('active'); document.getElementById('board-view').style.display = 'none'; document.getElementById('top-bar').style.display = 'flex'; document.getElementById('fab-buttons').style.display = 'flex'; } 
+    else { document.getElementById('nav-board').classList.add('active'); document.getElementById('board-view').style.display = 'block'; document.getElementById('top-bar').style.display = 'none'; document.getElementById('fab-buttons').style.display = 'none'; closePanel(); closeSearchPanel(); showNoticeList(); }
+}
 
-#notice-detail-view { display: none; flex-direction: column; }
-.notice-detail-header { position: sticky; top: 0; background: #f8f9fa; z-index: 10; padding: calc(max(24px, env(safe-area-inset-top)) + 10px) 0 16px 0; border-bottom: 1px solid rgba(0,0,0,0.08); margin-bottom: 20px; margin-top: 0; }
-.detail-top-row { display: flex; justify-content: space-between; align-items: center; }
-.btn-back { background: none; border: none; font-size: 16px; font-weight: 800; color: #495057; display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 0; }
-.btn-edit-notice, .btn-delete-notice { background: none; border: none; color: #adb5bd; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0; }
-.detail-title-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 16px; gap: 12px; }
-.detail-title { font-size: 20px; font-weight: 800; color: #212529; margin: 0; line-height: 1.4; word-break: keep-all; flex: 1; }
-.detail-date { font-size: 11px; color: #adb5bd; font-weight: 600; white-space: nowrap; padding-bottom: 2px; }
-.detail-body { font-size: 14px; color: #495057; line-height: 1.6; word-break: break-all; white-space: pre-wrap; }
-.notice-detail-img { width: 100%; height: auto; border-radius: 12px; margin-bottom: 10px; display: block; object-fit: contain; }
+function normalizeCat(c) { if(!c) return '실내'; if(c.includes('야외')) return '야외'; if(c.includes('문센')) return '문센'; return '실내'; }
+function getMarkerClass(cat) { const nCat = normalizeCat(cat); return nCat === '야외' ? 'marker-outdoor' : (nCat === '문센' ? 'marker-moonsen' : 'marker-indoor'); }
+function getMarkerHTML(place, isZoomedOut) {
+    let emoji = place.category === '야외' ? '🌳' : (place.category === '문센' ? '🎨' : '🏢'); 
+    let cls = getMarkerClass(place.category); const safeName = escapeHtml(place.name); 
+    if (isZoomedOut) return `<div class="custom-marker zoomed ${cls}"><div class="marker-pin"></div><div class="marker-label">${safeName}</div></div>`; 
+    return `<div class="custom-marker ${cls}"><div class="marker-pin"><div class="marker-icon">${emoji}</div></div><div class="marker-label">${safeName}</div></div>`;
+}
+function getDistanceKm(lat1, lon1, lat2, lon2) {
+    var R = 6371; var dLat = (lat2-lat1)*Math.PI/180; var dLon = (lon2-lon1)*Math.PI/180;
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
 
-.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(33, 37, 41, 0.5); z-index: 4000; justify-content: center; align-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-.modal-content { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.6); padding: 24px; border-radius: 24px; width: 85%; max-width: 440px; box-shadow: 0 16px 48px rgba(0,0,0,0.2); box-sizing: border-box; max-height: 90vh; overflow-x: hidden; overflow-y: auto; position: relative; }
+let lastWeatherLat = null; let lastWeatherLng = null;
+async function fetchWeather(lat, lng) {
+    if (lastWeatherLat !== null && getDistanceKm(lastWeatherLat, lastWeatherLng, lat, lng) < 20.0) return;
+    try {
+        const [weatherRes, aqiRes] = await Promise.all([fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`), fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=pm10,pm2_5`)]);
+        const weatherData = await weatherRes.json(); const aqiData = await aqiRes.json();
+        let temp = Math.round(weatherData.current_weather.temperature); let code = weatherData.current_weather.weathercode; 
+        let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
+        
+        let pm10 = aqiData.current.pm10 * 0.8; 
+        let pm25 = aqiData.current.pm2_5 * 0.8;
+        let aqiIcon = '😊'; let aqiText = '좋음'; let isBadAir = false; 
+        
+        if (pm10 > 150 || pm25 > 75) { aqiIcon = '👿'; aqiText = '매우나쁨'; isBadAir = true; } 
+        else if (pm10 > 80 || pm25 > 35) { aqiIcon = '😷'; aqiText = '나쁨'; isBadAir = true; } 
+        else if (pm10 > 30 || pm25 > 15) { aqiIcon = '😐'; aqiText = '보통'; }
+        
+        let isRaining = (code >= 51 && code <= 77);
+        if (isRaining) aqiIcon = '☔';
+        currentWeatherHtml = `${icon} ${temp}°C | ${aqiIcon} ${aqiText}`;
+        lastWeatherLat = lat; lastWeatherLng = lng;
+        
+        document.getElementById('weather-info').innerHTML = currentWeatherHtml;
 
-#popup-modal .popup-modal-content { padding: 0; max-width: 320px; border-radius: 20px; overflow: hidden; background: white; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
-.popup-img-container { position: relative; width: 100%; aspect-ratio: 4 / 5; background: #f8f9fa; }
-.popup-nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.7); border: none; width: 36px; height: 36px; border-radius: 50%; display: none; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #495057; font-weight: bold; font-size: 16px; backdrop-filter: blur(4px); z-index: 10; transition: 0.2s; }
-.popup-nav-btn.prev { left: 12px; }
-.popup-nav-btn.next { right: 12px; }
-.popup-nav-btn:active { background: white; transform: translateY(-50%) scale(0.9); }
-.popup-btn-row { display: flex; width: 100%; border-top: 1px solid #f1f3f5; }
-.popup-btn-half { flex: 1; padding: 16px; background: white; border: none; font-size: 14px; cursor: pointer; transition: 0.1s; display: flex; justify-content: center; align-items: center; }
-.popup-btn-half:active { background: #f8f9fa; }
-.popup-btn-left { font-weight: 600; color: #868e96; border-right: 1px solid #f1f3f5; }
-.popup-btn-right { font-weight: 800; color: #FF6B6B; }
+        const sugEl = document.getElementById('weather-suggestion');
+        if (isBadAir || isRaining) { 
+            sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; 
+        } else { 
+            sugEl.innerHTML = `💡 날씨와 미세먼지가 모두 좋네요! <b>야외</b> 나들이를 떠나볼까요?`; 
+        }
+        
+        window.isWeatherSuggestionVisible = true;
+        if (!document.getElementById('info-content').classList.contains('show')) {
+            sugEl.style.display = 'block';
+        }
+    } catch(e) {
+        document.getElementById('weather-info').innerHTML = `⛅ --°C | 😐 보통`;
+    }
+}
 
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 12px; }
-.modal-header h3 { margin: 0; font-size: 18px; color: #212529; }
-.panel-close-btn-static { background: rgba(248, 249, 250, 0.6); border: none; width: 28px; height: 28px; border-radius: 14px; font-size: 16px; font-weight: bold; color: #adb5bd; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; padding:0; margin-left: auto; }
-.panel-close-btn-static:active { transform: scale(0.9); background: #e9ecef; color: #495057; }
+function updateUserLocationMarker(lat, lng) {
+    var pos = new naver.maps.LatLng(lat, lng);
+    if (!userLocationMarker) { userLocationMarker = new naver.maps.Marker({ position: pos, map: map, icon: { content: '<div style="width:16px; height:16px; background:#4285F4; border-radius:50%; border:3px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>', anchor: new naver.maps.Point(11, 11) }, zIndex: 9999 }); } 
+    else { userLocationMarker.setPosition(pos); }
+}
 
-.form-label { font-size: 12px; font-weight: 800; color: #495057; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; margin-top: 14px;}
-.req { color: #FF6B6B; }
-.manual-toggle-wrap { font-size: 13px; color: #495057; font-weight: 700; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+let currentZoomedOut = false;
+async function incrementViewCount(id) {
+    let place = placesData.find(p => p.id === id); if (!place) return;
+    const lastViewed = localStorage.getItem('last_view_' + id); const now = Date.now(); if (lastViewed && (now - parseInt(lastViewed)) < 1000 * 60 * 5) return; 
+    place.views = (place.views || 0) + 1; localStorage.setItem('last_view_' + id, now.toString());
+    const { error } = await supabaseClient.from('places').update({ views: place.views }).eq('id', id);
+    if (error) await supabaseClient.from('places').update({ likes: place.views }).eq('id', id);
+}
 
-.btn-inquiry-small { background: rgba(241, 243, 245, 0.6); color: #495057; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; font-size: 11px; font-weight: 700; padding: 4px 8px; cursor: pointer; transition: 0.1s; }
-.btn-inquiry-small:active { transform: scale(0.95); background: #e9ecef; }
+function updateVisibleMarkers() {
+    if (!map) return; const bounds = map.getBounds(); const isZoomedOut = map.getZoom() < 13;
+    placesData.forEach(p => {
+        if (!p.marker) return; const pCat = normalizeCat(p.category); const isCatActive = (activeCategory === '전체' || pCat === activeCategory);
+        if (isCatActive && bounds.hasLatLng(p.marker.getPosition())) { if (!p.marker.getMap()) p.marker.setMap(map); } else { if (p.marker.getMap()) p.marker.setMap(null); }
+    });
+}
 
-.kakao-search-box { display: flex; gap: 8px; margin-bottom: 8px; }
-.kakao-search-box input { flex: 1; margin: 0 !important; }
-.kakao-search-box button { background: #495057; color: white; border: none; border-radius: 10px; padding: 0 16px; font-weight: 800; font-size: 13px; cursor: pointer; }
+window.onload = function() {
+    map = new naver.maps.Map('map', { center: new naver.maps.LatLng(userLat, userLng), zoom: 14, mapDataControl: false });
+    fetchWeather(userLat, userLng);
+    if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; map.setCenter(new naver.maps.LatLng(userLat, userLng)); fetchWeather(userLat, userLng); updateUserLocationMarker(userLat, userLng); }, err => {}); }
+    naver.maps.Event.addListener(map, 'click', function() { closePanel(); closeSearchPanel(); });
+    naver.maps.Event.addListener(map, 'idle', function() { fetchWeather(map.getCenter().y, map.getCenter().x); updateVisibleMarkers(); });
+    naver.maps.Event.addListener(map, 'zoom_changed', function() {
+        let isZoomedOut = map.getZoom() < 13;
+        if (currentZoomedOut !== isZoomedOut) { currentZoomedOut = isZoomedOut; placesData.forEach(p => { if (p.marker) p.marker.setIcon({ content: getMarkerHTML(p, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }); }); }
+        if (isZoomedOut) document.getElementById('map').classList.add('zoomed-out'); else document.getElementById('map').classList.remove('zoomed-out'); updateVisibleMarkers();
+    });
+    loadPlaces(); loadNotices();
+    initBottomSheet();
+};
 
-#kakao-result-list { list-style: none; padding: 0; margin: 0 0 12px 0; max-height: 120px; overflow-y: auto; display: none; border: 1px solid #dee2e6; border-radius: 10px; background: white; }
-#kakao-result-list li { padding: 10px 12px; border-bottom: 1px solid #f1f3f5; cursor: pointer; font-size: 13px; }
+function setCategory(cat) {
+    if (activeCategory === cat && cat !== '전체') cat = '전체'; activeCategory = cat;
+    document.querySelectorAll('.category-nav .chip').forEach(el => { if(el.dataset.cat === cat) el.classList.add('active'); else el.classList.remove('active'); }); applyFilters(cat);
+}
+function applyFilters(overrideCat) { activeCategory = overrideCat || activeCategory; updateVisibleMarkers(); if(document.getElementById('search-panel').classList.contains('show')) executeSearch(); }
 
-.form-row-group { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
-.form-row-group select { flex: 1; border: 1px solid #dee2e6; border-radius: 10px; padding: 12px 10px; font-size: 13px; outline: none; box-sizing: border-box; }
-.form-row-group input, .form-row-group textarea { flex: 2; margin-bottom: 0 !important; box-sizing: border-box; }
-.modal-content input[type="text"], .modal-content input[type="password"], .modal-content textarea, .modal-content select.full-width { width: 100%; margin-bottom: 12px; padding: 12px 14px; box-sizing: border-box; border: 1px solid rgba(222, 226, 230, 0.6); border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; background: rgba(255,255,255,0.6); }
-.modal-content input:read-only { background: rgba(241, 243, 245, 0.5); color: #868e96; }
-.modal-content textarea { resize: none; line-height: 1.4; }
+let sheetState = 0; // 0: hidden, 1: mid, 2: max, 3: min
+function closePanel() { 
+    const panel = document.getElementById('info-content');
+    panel.classList.remove('show'); sheetState = 0;
+    
+    panel.style.transform = isMobile ? 'translateY(100%)' : 'translateX(-20px)'; 
+    
+    updateVisibleMarkers(); 
+    if (window.isWeatherSuggestionVisible) {
+        const ws = document.getElementById('weather-suggestion');
+        if(ws) ws.style.display = 'block';
+    }
+}
 
-.btn-group { display: flex; gap: 8px; margin-top: 14px; width: 100%; }
-.btn-action { padding: 14px; border: none; border-radius: 10px; cursor: pointer; flex: 1; font-weight: 700; font-size: 14px; }
-.btn-cancel { background: rgba(233, 236, 239, 0.8); color: #495057; }
-.btn-save { background: #FF6B6B; color: white; }
+function initBottomSheet() {
+    const panel = document.getElementById('info-content');
+    if(!panel || !isMobile) return; 
+    
+    let startY = 0; let isDragging = false; let startTransform = 0;
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    function getTransformBase() { return sheetState === 1 ? 55 : (sheetState === 2 ? 15 : 80); }
+    
+    window.applySheetState = function() {
+        if (!isMobile) { panel.style.transform = 'none'; return; }
+        panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        panel.style.transform = `translateY(${getTransformBase()}%)`;
+        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
+        if(scrollArea) {
+            if (sheetState === 2) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; } 
+            else { scrollArea.style.overflowY = 'hidden'; scrollArea.style.touchAction = 'none'; scrollArea.scrollTop = 0; }
+        }
+    };
+
+    const startDrag = (e) => {
+        if (!isMobile) return; 
+        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
+        if (e.target.closest('.image-slider')) return; 
+        if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
+
+        isDragging = true; startY = e.touches[0].clientY; startTransform = getTransformBase(); panel.style.transition = 'none';
+    };
+
+    const moveDrag = (e) => {
+        if (!isDragging || !isMobile) return;
+        if(e.cancelable) e.preventDefault(); 
+        const clientY = e.touches[0].clientY; let deltaY = clientY - startY; let newY = startTransform + (deltaY / window.innerHeight * 100);
+        if (newY < 15) newY = 15; panel.style.transform = `translateY(${newY}%)`;
+    };
+
+    const endDrag = (e) => {
+        if (!isDragging || !isMobile) return;
+        isDragging = false; const clientY = e.changedTouches[0].clientY; let deltaY = clientY - startY;
+        if (sheetState === 1 && Math.abs(deltaY) > 10) { sheetState = 2; } 
+        else if (deltaY < -30) { if(sheetState === 1 || sheetState === 3) sheetState = 2; } 
+        else if (deltaY > 30) { if(sheetState === 2) sheetState = 1; else if(sheetState === 1) sheetState = 3; else if(sheetState === 3) { closePanel(); return; } }
+        window.applySheetState();
+    };
+
+    panel.addEventListener('touchstart', startDrag, {passive: true});
+    window.addEventListener('touchmove', moveDrag, {passive: false});
+    window.addEventListener('touchend', endDrag);
+}
+
+async function loadPlaces() {
+    try {
+        const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
+        if (error) throw error;
+        if (data) {
+            placesData.forEach(p => { if(p.marker) p.marker.setMap(null); });
+            placesData = data.map(p => { if(p.name) p.name = p.name.split('\\n')[0].split('\n')[0].trim(); return p; });
+            let isZoomedOut = map.getZoom() < 13;
+            placesData.forEach(place => {
+                let jitterLat = place.latitude + (Math.random() - 0.5) * 0.0002; let jitterLng = place.longitude + (Math.random() - 0.5) * 0.0002;
+                place.marker = new naver.maps.Marker({ position: new naver.maps.LatLng(jitterLat, jitterLng), icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }, zIndex: (place.views || place.likes) || 0 });
+                place.marker.addListener('click', function() { map.panTo(place.marker.getPosition()); renderPanel(place.id); if(isMobile) closeSearchPanel(); });
+                // 마우스 오버 시 무조건 맨 앞으로
+                place.marker.addListener('mouseover', function() { place.marker.setZIndex(99999); });
+                place.marker.addListener('mouseout', function() { place.marker.setZIndex((place.views || place.likes) || 0); });
+            });
+            applyFilters('전체');
+        }
+    } catch (err) { alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message); }
+}
+
+function openSearchPanel() { closePanel(); document.getElementById('search-panel').classList.add('show'); document.getElementById('search-input').focus(); }
+function closeSearchPanel() { document.getElementById('search-panel').classList.remove('show'); document.getElementById('search-scope-toggle').classList.remove('show'); applyFilters(); }
+function setSearchScope(scope) {
+    currentSearchScope = scope; document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active')); document.getElementById('scope-' + scope).classList.add('active');
+    if(scope === 'near' && navigator.geolocation) { const btn = document.querySelector('.search-input-area .scope-btn:last-child'); btn.style.opacity = '0.5'; navigator.geolocation.getCurrentPosition(pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; executeSearch(); btn.style.opacity = '1'; }, () => { btn.style.opacity = '1'; }, { enableHighAccuracy: false, timeout: 5000 }); } else executeSearch();
+}
+
+function executeSearch() {
+    const query = document.getElementById('search-input').value.trim().toLowerCase(); const listEl = document.getElementById('search-results-list'); listEl.innerHTML = '';
+    const bounds = map.getBounds(); let resultCount = 0;
+    placesData.forEach(p => {
+        const pCat = normalizeCat(p.category); const nameMatch = p.name.toLowerCase().includes(query); const catMatch = pCat.toLowerCase().includes(query); const isCatActive = (activeCategory === '전체' || pCat === activeCategory);
+        let inScope = true; if (currentSearchScope === 'bounds') inScope = bounds.hasLatLng(new naver.maps.LatLng(p.latitude, p.longitude)); else if (currentSearchScope === 'near') inScope = (getDistanceKm(userLat, userLng, p.latitude, p.longitude) <= 5.0);
+        if ((!query || nameMatch || catMatch) && inScope && isCatActive) {
+            const distText = currentSearchScope === 'near' ? `<span style="color:#FF6B6B; font-weight:800; font-size:11px;">📍 ${getDistanceKm(userLat, userLng, p.latitude, p.longitude).toFixed(1)}km</span>` : '';
+            listEl.innerHTML += `<li class="search-result-item" onclick="switchTab('map'); map.setZoom(15); map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});"><div style="font-weight:800; color:#343a40;">${p.name}</div><div style="font-size:11px; color:#868e96; display:flex; align-items:center;">${pCat} ${distText}</div></li>`; resultCount++;
+        }
+    });
+    if(resultCount === 0) listEl.innerHTML = '<div class="res-empty">조건에 맞는 장소가 없습니다.</div>';
+}
+
+function openAppMap(type, name, lat, lng) {
+    let scheme = '', fallback = '';
+    if (type === 'kakao') { scheme = 'kakaomap://search?q=' + encodeURIComponent(name); fallback = 'https://map.kakao.com/link/search/' + encodeURIComponent(name); } else if (type === 'naver') { scheme = 'nmap://search?query=' + encodeURIComponent(name) + '&appname=appamap'; fallback = 'https://m.map.naver.com/search2/search.naver?query=' + encodeURIComponent(name); } else if (type === 'tmap') { scheme = 'tmap://search?name=' + encodeURIComponent(name); fallback = 'https://tmap.co.kr/tmap2/mobile/route.jsp?name=' + encodeURIComponent(name) + '&lat=' + lat + '&lon=' + lng; }
+    if (isMobile) { const now = new Date().getTime(); setTimeout(() => { if (new Date().getTime() - now < 2000) window.open(fallback, '_blank'); }, 1000); location.href = scheme; } else { window.open(fallback, '_blank'); } document.getElementById('map-link-modal').style.display='none';
+}
+
+async function fetchKakaoImage(query, imgElementId, topBarId, sliderId, headerWrapId) {
+    const topBarEl = topBarId ? document.getElementById(topBarId) : null; const sliderEl = sliderId ? document.getElementById(sliderId) : null; const headerWrapEl = headerWrapId ? document.getElementById(headerWrapId) : null;
+    try {
+        const res = await fetch(`https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(query)}&size=1`, { headers: { "Authorization": `KakaoAK ${KAKao_REST_KEY}` } }); const data = await res.json();
+        if(data.documents && data.documents.length > 0) { const imgEl = document.getElementById(imgElementId); if(imgEl) { imgEl.src = data.documents[0].image_url; imgEl.style.display = 'block'; } if(topBarEl) { topBarEl.classList.remove('no-image'); topBarEl.classList.add('has-image'); } if(sliderEl) { sliderEl.style.display = 'flex'; } if(headerWrapEl) { headerWrapEl.classList.remove('no-image'); headerWrapEl.classList.add('has-image'); } } else { if(headerWrapEl) headerWrapEl.classList.add('no-image'); }
+    } catch(e) { if(headerWrapEl) headerWrapEl.classList.add('no-image'); }
+}
+
+function sharePlace(name, address) { if (navigator.share) navigator.share({ title: `아빠맵 - ${name}`, text: `${name}\n아빠맵에서 확인하세요!`, url: window.location.href }); else alert("URL을 복사해주세요."); }
+function openMapPopup(name, lat, lng) { document.getElementById('link-naver').onclick = () => openAppMap('naver', name, lat, lng); document.getElementById('link-kakao').onclick = () => openAppMap('kakao', name, lat, lng); document.getElementById('link-tmap').onclick = () => openAppMap('tmap', name, lat, lng); document.getElementById('map-link-modal').style.display = 'flex'; }
+function showMoreComments(id) { const items = document.querySelectorAll(`.cmt-item-${id}`); let shown = 0; let hiddenCount = 0; items.forEach(item => { if (item.style.display === 'none') { if (shown < 3) { item.style.display = 'flex'; shown++; } else hiddenCount++; } }); const btn = document.getElementById(`btn-more-${id}`); if (hiddenCount > 0) btn.innerText = `추가정보 더보기 ▼`; else btn.style.display = 'none'; }
+function updateSliderDots(id, el) { const index = Math.round(el.scrollLeft / el.offsetWidth); const dots = document.querySelectorAll('#slider-dots-' + id + ' .slider-dot'); dots.forEach((dot, i) => { dot.className = 'slider-dot' + (i === index ? ' active' : ''); }); }
+
+function renderPanel(id) {
+    const place = placesData.find(p => p.id === id); if (!place) return;
+    incrementViewCount(id); 
+
+    const ws = document.getElementById('weather-suggestion');
+    if(ws) ws.style.display = 'none';
+
+    let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
+    let commentsHtmlArr = commentsArr.map((c, idx) => {
+        let dateStr = timeAgo(c.date || c.id); 
+        return `<div class="comment-item cmt-item-${place.id}" style="display: ${idx < 3 ? 'flex' : 'none'}; flex-direction:column;"><div class="comment-header"><div class="c-author">${escapeHtml(c.author)} <span style="font-weight:400; color:#868e96; margin-left:4px; font-size:10px;">${dateStr}</span></div><div style="display:flex; align-items:center; gap:8px;"><button class="comment-delete" onclick="editComment(${place.id}, ${c.id})">수정</button><button class="comment-delete" onclick="deleteComment(${place.id}, ${c.id})">삭제</button></div></div><div>${formatDescription(c.text)}</div></div>`
+    });
+    let visibleComments = commentsHtmlArr.join(''); let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" class="btn-more-cmts">추가정보 더보기 ▼</button>` : '';
+    let urls = place.image_url ? place.image_url.split(',') : []; let isHasImage = urls.length > 0; let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
+
+    const panel = document.getElementById('info-content');
+    panel.dataset.placeId = place.id;
+    panel.innerHTML = `
+        <div id="drag-handle" class="drag-handle"></div>
+        <div class="panel-top-bar" id="top-bar-${place.id}">
+            <div class="panel-weather" onclick="window.open('https://weather.naver.com/', '_blank')">${currentWeatherHtml}</div>
+            <div class="icon-actions"><button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button><button class="icon-btn" onclick="closePanel()">✕</button></div>
+        </div>
+        <div class="info-scroll-area" id="scroll-area-${place.id}">
+            <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
+                <div style="position:relative; width:100%;">
+                    <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
+                        ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" draggable="false">`).join('') : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" draggable="false" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`}
+                    </div>
+                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
+                </div>
+            </div>
+            <div class="info-body-wrap">
+                <div class="info-category" style="color: ${catColor}">${normalizeCat(place.category)}</div>
+                <div class="title-row">
+                    <div class="info-title-wrap"><div class="info-title" id="dyn-title-${place.id}" style="padding-right:0;">${place.name}</div></div>
+                    <button class="btn-edit-tiny" onclick="openEditModal(${place.id})">✏️</button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                    ${place.address ? `<div class="info-address" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; display:flex; align-items:center; gap:4px; margin-bottom:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${place.address}</div>` : ''}
+                    ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="padding: 4px 8px; font-size: 10px; margin: 0; background: rgba(255,255,255,0.9); box-shadow: 0 2px 6px rgba(0,0,0,0.15); color: #495057; text-decoration: none;">🌐 공식홈</a>` : ''}
+                </div>
+                <div class="info-tag-wrap"><div class="info-tag-group">
+                        ${place.business_hours ? `<div class="info-tag"><span class="tag-label">시간</span><span class="tag-value">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
+                        ${place.parking_fee ? `<div class="info-tag"><span class="tag-label">주차</span><span class="tag-value">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                        ${place.entry_fee ? `<div class="info-tag"><span class="tag-label">입장료</span><span class="tag-value">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                        ${place.nursing_room ? `<div class="info-tag"><span class="tag-label">수유실</span><span class="tag-value">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
+                </div></div>
+                ${place.comment && place.comment.trim() !== '' ? `<div class="info-desc">${formatDescription(place.comment)}</div>` : ''}
+                <div class="comments-section">
+                    <div class="comment-inputs-top"><input type="text" id="cmt-author-${place.id}" placeholder="닉네임"><input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호"></div>
+                    <div class="comment-input-wrap"><textarea id="cmt-text-${place.id}" placeholder="내용" rows="1"></textarea><button onclick="addComment(${place.id})">등록</button></div>
+                    ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:12px;">추가정보 (${commentsArr.length})</div>` : ''}
+                    <div class="comments-list">${visibleComments}${moreBtn}</div>
+                </div>
+            </div>
+        </div>`;
+    
+    panel.classList.add('show');
+    
+    if (isMobile) {
+        sheetState = 1; window.applySheetState();
+    } else {
+        panel.style.transform = 'translateX(0)';
+        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
+        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
+    }
+
+    setTimeout(() => {
+        const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;
+        const titleWrap = document.querySelector('.info-title-wrap'); const titleEl = document.getElementById(`dyn-title-${place.id}`);
+        if(titleEl.offsetWidth > titleWrap.offsetWidth) { const originalHTML = titleEl.innerHTML; titleEl.innerHTML = originalHTML + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + originalHTML; titleWrap.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleWrap.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleEl.classList.add('marquee'); } else { titleWrap.style.webkitMaskImage = 'none'; titleWrap.style.maskImage = 'none'; }
+    }, 10);
+    if(!isHasImage) { if(place.category !== '문센') { fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`, `slider-${place.id}`, `header-wrap-${place.id}`); } else { document.getElementById(`header-wrap-${place.id}`).classList.add('no-image'); } }
+}
+
+function openAddModal() { const modal = document.getElementById('add-modal'); modal.style.display = 'flex'; const content = modal.querySelector('.modal-content'); if (content) content.scrollTop = 0; setTimeout(() => { const searchInput = document.getElementById('kakao-keyword'); if (searchInput) searchInput.focus(); }, 100); }
+function openEditModal(id) {
+    const place = placesData.find(p => p.id === id); document.getElementById('edit-place-id').value = id; document.querySelector('#edit-modal .modal-content').scrollTop = 0; 
+    const nCat = normalizeCat(place.category); let catInput = document.querySelector(`input[name="edit-place-category"][value="${nCat}"]`); if(catInput) catInput.checked = true;
+    document.getElementById('edit-website').value = place.website_url || ''; document.getElementById('edit-hours').value = place.business_hours || '';
+    const pInput = document.getElementById('edit-parking'); const pBtnFree = document.getElementById('btn-edit-free-parking'); const pBtnNo = document.getElementById('btn-edit-no-parking'); pBtnFree.classList.remove('active'); pBtnNo.classList.remove('active'); pInput.disabled = false; if(place.parking_fee === '무료') { pBtnFree.classList.add('active'); pInput.disabled = true; pInput.value = '무료'; pInput.dataset.oldVal = ''; } else if(place.parking_fee === '불가') { pBtnNo.classList.add('active'); pInput.disabled = true; pInput.value = '불가'; pInput.dataset.oldVal = ''; } else { pInput.value = place.parking_fee || ''; }
+    const eInput = document.getElementById('edit-entry'); const eBtnNo = document.getElementById('btn-edit-no-entry'); eBtnNo.classList.remove('active'); eInput.disabled = false; if(place.entry_fee === '없음') { eBtnNo.classList.add('active'); eInput.disabled = true; eInput.value = '없음'; eInput.dataset.oldVal = ''; } else { eInput.value = place.entry_fee || ''; }
+    const nInput = document.getElementById('edit-nursing'); const nBtn = document.getElementById('btn-edit-no-nursing'); if(place.nursing_room === '없음') { nBtn.classList.add('active'); nInput.disabled = true; nInput.value = '없음'; nInput.dataset.oldVal = ''; } else { nBtn.classList.remove('active'); nInput.disabled = false; nInput.value = place.nursing_room || ''; }
+    document.getElementById('edit-comment').value = place.comment || ''; placeEditMediaManager.loadUrls(place.image_url); document.getElementById('edit-modal').style.display = 'flex';
+}
+
+async function submitEditInfo() {
+    const id = document.getElementById('edit-place-id').value;
+    const place = placesData.find(p => p.id == id);
+    const catRadio = document.querySelector('input[name="edit-place-category"]:checked'); const cat = catRadio ? catRadio.value : '';
+    if(!cat) return alert("카테고리를 선택하세요.");
+    const btnSave = document.querySelector('#edit-modal .btn-save'); btnSave.innerText = "업로드 중..."; btnSave.disabled = true;
+    let newImgUrls = await placeEditMediaManager.uploadAll();
+    
+    let updatePayload = { category: cat, website_url: document.getElementById('edit-website').value.trim(), business_hours: document.getElementById('edit-hours').value.trim(), parking_fee: document.getElementById('edit-parking').value.trim(), entry_fee: document.getElementById('edit-entry').value.trim(), nursing_room: document.getElementById('edit-nursing').value.trim(), comment: document.getElementById('edit-comment').value.trim() };
+    if(newImgUrls !== null) updatePayload.image_url = newImgUrls;
+
+    const contentStr = "[장소수정요청] " + (place ? place.name : id) + "\n" + JSON.stringify(updatePayload);
+    const { error } = await supabaseClient.from('inquiries').insert([{ content: contentStr, contact_info: String(id) }]);
+    if(!error) { alert("수정 요청이 접수되었습니다. 기존 정보는 유지되며 관리자 확인 후 반영됩니다."); document.getElementById('edit-modal').style.display = 'none'; closePanel(); } 
+    else alert("업데이트 실패: " + error.message);
+    btnSave.innerText = "재승인 요청"; btnSave.disabled = false;
+}
+
+async function addComment(id) {
+    const author = document.getElementById('cmt-author-' + id).value.trim() || '익명'; const pw = document.getElementById('cmt-pw-' + id).value.trim(); const text = document.getElementById('cmt-text-' + id).value.trim(); const date = new Date().toISOString(); 
+    if (!text || !pw) return alert('내용과 비밀번호를 모두 입력해주세요.');
+    let place = placesData.find(p => p.id === id); let comments = place.comments_list ? JSON.parse(place.comments_list) : []; comments.unshift({ id: Date.now(), author, pw, text, date }); 
+    let updatedJson = JSON.stringify(comments); place.comments_list = updatedJson; renderPanel(id);
+    await supabaseClient.from('places').update({ comments_list: updatedJson }).eq('id', id);
+}
+
+async function editComment(placeId, commentId) {
+    const pwInput = await askPassword(); if (!pwInput) return;
+    let place = placesData.find(p => p.id === placeId); let comments = place.comments_list ? JSON.parse(place.comments_list) : []; const target = comments.find(c => c.id === commentId);
+    if (target && target.pw === pwInput) { const newText = await askTextPrompt(target.text); if (newText !== null && newText.trim() !== '') { target.text = newText.trim(); let updatedJson = JSON.stringify(comments); place.comments_list = updatedJson; renderPanel(placeId); await supabaseClient.from('places').update({ comments_list: updatedJson }).eq('id', placeId); } } else alert("비밀번호가 틀렸습니다.");
+}
+
+async function deleteComment(placeId, commentId) {
+    const pwInput = await askPassword(); if (!pwInput) return;
+    let place = placesData.find(p => p.id === placeId); let comments = place.comments_list ? JSON.parse(place.comments_list) : []; const target = comments.find(c => c.id === commentId);
+    if (target && target.pw === pwInput) { comments = comments.filter(c => c.id !== commentId); let updatedJson = JSON.stringify(comments); place.comments_list = updatedJson; renderPanel(placeId); await supabaseClient.from('places').update({ comments_list: updatedJson }).eq('id', placeId); } else alert("비밀번호가 틀렸습니다.");
+}
+
+function moveToCurrentLocation() {
+    const btn = document.querySelector('.btn-location'); btn.classList.add('btn-loading'); 
+    if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; map.setCenter(new naver.maps.LatLng(userLat, userLng)); map.setZoom(15); fetchWeather(userLat, userLng); updateUserLocationMarker(userLat, userLng); btn.classList.remove('btn-loading'); }, err => { btn.classList.remove('btn-loading'); }, { enableHighAccuracy: false, timeout: 5000 }); } else btn.classList.remove('btn-loading');
+}
+
+async function searchKakaoPlace() {
+    const kw = document.getElementById('kakao-keyword').value.trim(); if(!kw) return;
+    try {
+        const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(kw)}`, { headers: { "Authorization": `KakaoAK ${KAKao_REST_KEY}` } });
+        const data = await res.json(); const listEl = document.getElementById('kakao-result-list'); listEl.innerHTML = '';
+        if(data.documents.length === 0) listEl.innerHTML = '<li style="text-align:center;">결과가 없습니다.</li>';
+        else data.documents.forEach(doc => { const li = document.createElement('li'); li.innerHTML = `<strong>${doc.place_name}</strong><span>${doc.road_address_name || doc.address_name}</span>`; li.onclick = () => { document.getElementById('place-name').value = doc.place_name; document.getElementById('place-address').value = doc.road_address_name || doc.address_name; selectedLat = parseFloat(doc.y); selectedLng = parseFloat(doc.x); map.setCenter(new naver.maps.LatLng(selectedLat, selectedLng)); map.setZoom(16); listEl.style.display = 'none'; }; listEl.appendChild(li); }); listEl.style.display = 'block';
+    } catch(e) {}
+}
+
+async function savePlace() {
+    const catRadio = document.querySelector('input[name="place-category"]:checked'); const cat = catRadio ? catRadio.value : '';
+    var name = document.getElementById('place-name').value.trim(); if (!name || !cat) return alert("장소명과 카테고리는 필수입니다!");
+    let duplicate = placesData.find(p => p.name === name);
+    if (duplicate) { alert("이미 등록된 장소입니다. 수정 창을 엽니다."); document.getElementById('add-modal').style.display='none'; map.setCenter(new naver.maps.LatLng(duplicate.latitude, duplicate.longitude)); map.setZoom(16); renderPanel(duplicate.id); setTimeout(() => openEditModal(duplicate.id), 300); return; }
+    const btnSave = document.getElementById('btn-save-place'); btnSave.innerText = "업로드 중..."; btnSave.disabled = true; let imgUrls = await placeAddMediaManager.uploadAll();
+    const { data, error } = await supabaseClient.from('places').insert([{ category: cat, name: name, address: document.getElementById('place-address').value.trim(), website_url: document.getElementById('place-website').value.trim(), latitude: selectedLat || map.getCenter().y, longitude: selectedLng || map.getCenter().x, business_hours: document.getElementById('place-hours-time').value.trim(), parking_fee: document.getElementById('place-parking-detail').value.trim(), entry_fee: document.getElementById('place-entry-detail').value.trim(), nursing_room: document.getElementById('place-nursing-detail').value.trim(), comment: document.getElementById('place-comment').value, image_url: imgUrls, is_approved: false }]).select();
+    if (!error && data && data.length > 0) { 
+        document.getElementById('add-modal').style.display='none'; document.getElementById('place-name').value = ''; document.getElementById('place-address').value = ''; document.getElementById('kakao-keyword').value = ''; document.getElementById('place-website').value = ''; document.getElementById('place-hours-time').value = ''; document.getElementById('place-parking-detail').value = ''; document.getElementById('place-entry-detail').value = ''; document.getElementById('place-nursing-detail').value = ''; document.getElementById('place-comment').value = ''; placeAddMediaManager.loadUrls(''); alert("장소가 접수되었습니다! 관리자 승인 후 지도에 노출됩니다."); btnSave.innerText = "승인 요청하기"; btnSave.disabled = false;
+    } else { alert("등록 실패. " + error.message); btnSave.innerText = "승인 요청하기"; btnSave.disabled = false; }
+}
