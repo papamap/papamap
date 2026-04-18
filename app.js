@@ -335,7 +335,6 @@ async function fetchWeather(lat, lng) {
         
         let temp = Math.round(weatherData.current_weather.temperature); 
         let code = weatherData.current_weather.weathercode; 
-        
         let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
         
         let pm10 = aqiData.current.pm10 * 0.8; 
@@ -358,32 +357,33 @@ async function fetchWeather(lat, lng) {
                 `오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴볼까요?` : 
                 `날씨가 참 좋네요! <b>야외</b> 나들이를 추천해요!`;
             
-            const blueStarSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:4px; flex-shrink:0;"><path d="M12 0C12 6.62742 17.3726 12 24 12C17.3726 12 12 17.3726 12 24C12 17.3726 6.62742 12 0 12C6.62742 12 12 6.62742 12 0Z" fill="#5c7cfa"/></svg>`;
+            // 파란별 아이콘 사이즈도 슬림해진 배너에 맞춰 살짝 줄였습니다
+            const blueStarSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:4px; flex-shrink:0;"><path d="M12 0C12 6.62742 17.3726 12 24 12C17.3726 12 12 17.3726 12 24C12 17.3726 6.62742 12 0 12C6.62742 12 12 6.62742 12 0Z" fill="#5c7cfa"/></svg>`;
             
             sugEl.innerHTML = `
                 <div style="display:flex; align-items:center; width:100%; overflow:hidden;">
-                    <div id="ai-banner-fixed" style="display:flex; align-items:center; flex-shrink:0; font-size:13px; color:#495057; white-space:nowrap;">
-                        <span style="margin-right:6px; font-size:14px;">${icon}</span>
+                    <div id="ai-banner-fixed" style="display:flex; align-items:center; flex-shrink:0; font-size:12px; color:#495057; white-space:nowrap;">
+                        <span style="margin-right:6px; font-size:13px; line-height:1; display:flex; align-items:center; transform:translateY(-1px);">${icon}</span>
                         <b>${temp}°C</b> <span style="color:#adb5bd; margin:0 4px; font-weight:400;">/</span> <b>${aqiText}</b>
-                        <span style="margin:0 10px; color:#dee2e6;">|</span>
+                        <span style="margin:0 8px; color:#dee2e6;">|</span>
                     </div>
                     <div id="ai-banner-wrap" style="flex:1; overflow:hidden; white-space:nowrap; position:relative;">
-                        <div id="ai-banner-text" style="display:inline-block; font-size:13px; color:#495057;">
+                        <div id="ai-banner-text" style="display:inline-block; font-size:12px; color:#495057;">
                             ${blueStarSvg}<span style="font-weight:500; vertical-align:middle;">${aiText}</span>
                         </div>
                     </div>
                 </div>
             `;
             
-            // 스타일 설정
-            sugEl.style.marginTop = '10px';
+            // 🔥 전체적인 크기(padding 축소)와 투명도(0.85 -> 0.70)를 조절했습니다.
+            sugEl.style.marginTop = '8px';
             sugEl.style.maxWidth = 'calc(100vw - 32px)'; 
-            sugEl.style.padding = '10px 14px';
-            sugEl.style.background = 'rgba(255, 255, 255, 0.85)';
+            sugEl.style.padding = '7px 14px'; 
+            sugEl.style.background = 'rgba(255, 255, 255, 0.7)'; 
             sugEl.style.backdropFilter = 'blur(16px)';
             sugEl.style.border = '1px solid rgba(255,255,255,0.6)';
             sugEl.style.borderRadius = '16px';
-            sugEl.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
+            sugEl.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)';
 
             window.isWeatherSuggestionVisible = true;
             const infoContent = document.getElementById('info-content');
@@ -391,24 +391,21 @@ async function fetchWeather(lat, lng) {
                 sugEl.style.display = 'block';
             }
 
-            // 💡 텍스트가 길 때만 별부터 흐르게 처리 (Marquee)
             setTimeout(() => {
                 const textWrap = document.getElementById('ai-banner-wrap');
                 const textEl = document.getElementById('ai-banner-text');
-                
                 if(textEl && textWrap && textEl.scrollWidth > textWrap.clientWidth) { 
                     const originalHTML = textEl.innerHTML;
                     textEl.innerHTML = originalHTML + "<span style='display:inline-block; width:40px;'></span>" + originalHTML;
-                    
                     textWrap.style.webkitMaskImage = 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)';
                     textWrap.style.maskImage = 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)';
-                    
                     textEl.style.animation = 'marquee 15s linear infinite'; 
                 }
             }, 100);
         }
     } catch(e) {
-        console.log("날씨 정보를 불러오지 못했습니다.", e);
+        const wInfo = document.getElementById('weather-info');
+        if (wInfo) wInfo.innerHTML = `⛅ --°C | 😐 보통`;
     }
 }
 
@@ -584,9 +581,9 @@ function initBottomSheet() {
 }
 
 function renderPanel(id) {
+    // 정보창 열 때 상단 칩과 AI 배너 숨김
     const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
     if(nav) nav.style.display = 'none'; 
-    // 정보창을 열 때 AI 배너 숨김
     const ws = document.getElementById('weather-suggestion');
     if(ws) ws.style.display = 'none';
 
@@ -610,22 +607,25 @@ function renderPanel(id) {
     const panel = document.getElementById('info-content');
     panel.dataset.placeId = place.id;
     
+    // 🔥 [수정] 상단 바를 하나의 컨테이너(drag-handle)로 통합하여 갈라짐 방지
     panel.innerHTML = `
-        <div id="drag-handle" class="drag-handle" style="width:100%; height:20px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center; flex-shrink:0; cursor:grab; touch-action:none; z-index:110; position:relative;">
-            <div style="width:40px; height:5px; background:rgba(0,0,0,0.1); border-radius:3px;"></div>
-        </div>
-        
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; box-sizing:border-box; padding: ${isMobile ? '4px' : '24px'} 20px 10px 26px;">
-            <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start;">
-                <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:2px;">${normalizeCat(place.category)}</div>
-                <div id="title-wrap-${place.id}" style="width:100%; overflow:hidden; white-space:nowrap; position:relative;">
-                    <div class="info-title" id="dyn-title-${place.id}" style="font-size:22px; font-weight:800; color:#212529; display:inline-block;">${place.name}</div>
-                </div>
+        <div id="drag-handle" class="drag-handle" style="width:100%; display:flex; flex-direction:column; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:24px 24px 0 0; padding-bottom:10px; flex-shrink:0; cursor:grab; touch-action:none; z-index:110;">
+            <div style="width:100%; height:20px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center;">
+                <div style="width:40px; height:4px; background:rgba(0,0,0,0.1); border-radius:2px;"></div>
             </div>
-            <div style="display:flex; gap:8px; flex-shrink:0; margin-left:12px; margin-top:4px;">
-                <button class="icon-btn" onclick="openEditModal(${place.id})" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:12px;">✏️</button>
-                <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; display:flex; justify-content:center; align-items:center;">${shareIcon}</button>
-                <button class="icon-btn" onclick="closePanel()" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:14px; font-weight:800;">✕</button>
+
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; box-sizing:border-box; padding: ${isMobile ? '0' : '20px'} 20px 0 26px;">
+                <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start;">
+                    <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:2px;">${normalizeCat(place.category)}</div>
+                    <div id="title-wrap-${place.id}" style="width:100%; overflow:hidden; white-space:nowrap; position:relative;">
+                        <div class="info-title" id="dyn-title-${place.id}" style="font-size:22px; font-weight:800; color:#212529; display:inline-block;">${place.name}</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-shrink:0; margin-left:12px; margin-top:4px;">
+                    <button class="icon-btn" onclick="openEditModal(${place.id})" style="width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.04); border:none; cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:12px;">✏️</button>
+                    <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')" style="width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.04); border:none; cursor:pointer; display:flex; justify-content:center; align-items:center;">${shareIcon}</button>
+                    <button class="icon-btn" onclick="closePanel()" style="width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.04); border:none; cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:14px; font-weight:800;">✕</button>
+                </div>
             </div>
         </div>
 
@@ -649,8 +649,6 @@ function renderPanel(id) {
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     ${place.business_hours ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">시간</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
                     ${place.parking_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                    ${place.entry_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">입장료</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                    ${place.nursing_room ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">수유실</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
                 </div>
 
                 ${place.comment ? `<div style="font-size:13px; color:#495057; line-height:1.5; margin-top:16px; background:rgba(248,249,250,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); word-break:break-all;">${formatDescription(place.comment)}</div>` : ''}
@@ -664,7 +662,6 @@ function renderPanel(id) {
                         <textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1" style="flex:1; min-width:0; padding:10px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; resize:none; line-height:1.4; font-family:inherit;"></textarea>
                         <button onclick="addComment(${place.id})" style="height:100%; background:#495057; color:white; border:none; border-radius:8px; padding:0 16px; font-weight:700; font-size:12px; cursor:pointer; flex-shrink:0; font-family:inherit;">등록</button>
                     </div>
-                    ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:8px;">추가정보 (${commentsArr.length})</div>` : ''}
                     <div style="display:flex; flex-direction:column; gap:8px;">${visibleComments}${moreBtn}</div>
                 </div>
             </div>
