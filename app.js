@@ -428,16 +428,18 @@ function initBottomSheet() {
     const panel = document.getElementById('info-content');
     if(!panel || !isMobile) return; 
     
-    let startY = 0; let startX = 0; 
-    let isDragging = false; let isDetermined = false; 
-    let startTransform = 0;
+    let startY = 0; let isDragging = false; let startTransform = 0;
 
-    function getTransformBase() { return sheetState === 1 ? 55 : (sheetState === 2 ? 15 : 80); }
+    // 1: 최소화(55%), 2: 최대화(0% - 전체화면)
+    function getTransformBase() { return sheetState === 1 ? 55 : 0; }
     
     window.applySheetState = function() {
-        if (!isMobile) { panel.style.transform = 'none'; return; }
-        panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        panel.style.transition = 'transform 0.4s cubic-bezier(0.1, 0.7, 0.3, 1), border-radius 0.3s';
         panel.style.transform = `translateY(${getTransformBase()}%)`;
+        
+        // 전체화면일 때 상단 라운드 해제
+        panel.style.borderRadius = sheetState === 2 ? '0' : '24px 24px 0 0';
+
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         if(scrollArea) {
             if (sheetState === 2) { 
@@ -452,89 +454,44 @@ function initBottomSheet() {
     };
 
     const startDrag = (e) => {
-        if (!isMobile) return; 
-        
-        // 1. 터치 시작 위치 무조건 기록 (스크롤 방향 판단용)
-        startY = e.touches[0].clientY; 
-        startX = e.touches[0].clientX; 
-
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        if (e.target.closest('.image-slider')) return; // 가로 사진 슬라이더 터치 시 무시
-        
-        // [핵심] 창이 완전히 열린 상태(2)이고, 스크롤 영역을 터치했다면?
-        // -> 바텀시트 제어를 시작하지 않고, 일단 네이티브 스크롤이 되도록 놔둡니다.
-        if (sheetState === 2 && scrollArea && scrollArea.contains(e.target)) {
-            return; 
-        }
+        // 가로 슬라이더나 이미 최대화 상태에서 내용을 내리는 중이면 드래그 무시
+        if (e.target.closest('.image-slider')) return;
+        if (sheetState === 2 && scrollArea && scrollArea.scrollTop > 0) return;
 
-        isDragging = true; 
-        isDetermined = false; 
-        startTransform = getTransformBase(); 
+        isDragging = true;
+        startY = e.touches[0].clientY;
+        startTransform = getTransformBase();
         panel.style.transition = 'none';
     };
 
     const moveDrag = (e) => {
-        if (!isMobile) return;
-        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        const clientY = e.touches[0].clientY; 
-        const clientX = e.touches[0].clientX; 
-        let deltaY = clientY - startY; 
-        let deltaX = clientX - startX;
-
-        // [핵심] 스크롤 영역 안에서 네이티브 스크롤 중일 때(isDragging = false)
-        // -> 스크롤이 맨 위 꼭대기(0)에 닿아있는데, 손가락을 '아래로(deltaY > 0)' 당기면 창 닫기로 전환!
-        if (!isDragging && sheetState === 2 && scrollArea && scrollArea.contains(e.target)) {
-            if (scrollArea.scrollTop <= 0 && deltaY > 5 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                isDragging = true;
-                isDetermined = true;
-                startY = clientY; // 기준점 현재 위치로 리셋
-                startTransform = getTransformBase();
-                panel.style.transition = 'none';
-                if(e.cancelable) e.preventDefault(); // 기본 스크롤 동작 차단
-            }
-            return; // 조건에 안 맞으면(위로 스와이프 등) 계속 네이티브 스크롤 허용
-        }
-
         if (!isDragging) return;
+        const clientY = e.touches[0].clientY;
+        let deltaY = clientY - startY;
 
-        // 가로 스와이프 시 바텀시트 제어 취소
-        if (!isDetermined) {
-            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
-                isDragging = false; 
-                panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
-                panel.style.transform = `translateY(${startTransform}%)`;
-                return;
-            } else if (Math.abs(deltaY) > 5) {
-                isDetermined = true; 
-            } else {
-                return;
-            }
-        }
+        // 아래로 스크롤 중인데 창이 최대화 상태면 무시 (endDrag에서 판단)
+        if (sheetState === 2 && deltaY < 0) return;
 
         if(e.cancelable) e.preventDefault(); 
         let newY = startTransform + (deltaY / window.innerHeight * 100);
-        if (newY < 15) newY = 15; 
+        if (newY < 0) newY = 0;
         panel.style.transform = `translateY(${newY}%)`;
     };
 
     const endDrag = (e) => {
-        if (!isDragging || !isMobile) return;
-        isDragging = false; 
-        const clientY = e.changedTouches[0].clientY; 
+        if (!isDragging) return;
+        isDragging = false;
+        const clientY = e.changedTouches[0].clientY;
         let deltaY = clientY - startY;
 
-        // 손가락을 뗐을 때 위치 및 이동량에 따라 상태(1, 2, 3) 변경
-        if (sheetState === 1 && Math.abs(deltaY) > 10) { 
-            if (deltaY < 0) sheetState = 2; // 위로 올리면 열림
-            else sheetState = 3; // 아래로 내리면 작아짐
-        } 
-        else if (deltaY < -30) { 
-            if(sheetState === 1 || sheetState === 3) sheetState = 2; 
-        } 
-        else if (deltaY > 30) { 
-            if(sheetState === 2) sheetState = 1; 
-            else if(sheetState === 1) sheetState = 3; 
-            else if(sheetState === 3) { closePanel(); return; } 
+        if (sheetState === 1) {
+            if (deltaY < -30) sheetState = 2; // 조금이라도 위로 올리면 전체화면
+            else sheetState = 1;
+        } else if (sheetState === 2) {
+            // 스크롤이 맨 위일 때 아래로 툭 치면 최소화
+            if (deltaY > 50) sheetState = 1;
+            else sheetState = 2;
         }
         window.applySheetState();
     };
@@ -633,77 +590,75 @@ function renderPanel(id) {
     if(ws) ws.style.display = 'none';
 
     let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
-    let commentsHtmlArr = commentsArr.map((c, idx) => {
+    let visibleComments = commentsArr.map((c, idx) => {
         let dateStr = timeAgo(c.date || c.id); 
         return `<div class="comment-item cmt-item-${place.id}" style="display: ${idx < 3 ? 'flex' : 'none'}; flex-direction:column;"><div class="comment-header"><div class="c-author">${escapeHtml(c.author)} <span style="font-weight:400; color:#868e96; margin-left:4px; font-size:10px;">${dateStr}</span></div><div style="display:flex; align-items:center; gap:8px;"><button class="comment-delete" onclick="editComment(${place.id}, ${c.id})">수정</button><button class="comment-delete" onclick="deleteComment(${place.id}, ${c.id})">삭제</button></div></div><div>${formatDescription(c.text)}</div></div>`
-    });
-    let visibleComments = commentsHtmlArr.join(''); let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" class="btn-more-cmts">추가정보 더보기 ▼</button>` : '';
-    let urls = place.image_url ? place.image_url.split(',') : []; let isHasImage = urls.length > 0; let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
+    }).join('');
+    
+    let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" class="btn-more-cmts">추가정보 더보기 ▼</button>` : '';
+    let urls = place.image_url ? place.image_url.split(',') : []; 
+    let isHasImage = urls.length > 0;
+    let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
+
+    // 날씨/미세먼지 분리
+    const weatherParts = currentWeatherHtml.split('|');
+    const weatherText = weatherParts[0] ? weatherParts[0].trim() : '--°C';
+    const dustText = weatherParts[1] ? weatherParts[1].trim() : '보통';
 
     const panel = document.getElementById('info-content');
     panel.dataset.placeId = place.id;
     
     panel.innerHTML = `
         <div id="drag-handle" class="drag-handle"></div>
-        <div class="panel-top-bar" id="top-bar-${place.id}">
-            <div class="panel-weather" onclick="window.open('https://weather.naver.com/', '_blank')">${currentWeatherHtml}</div>
-            <div class="icon-actions">
-                <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button>
-                <button class="icon-btn btn-panel-close" onclick="closePanel()">✕</button>
-            </div>
+        
+        <button class="icon-btn btn-back-arrow btn-top-left" onclick="closePanel()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="icon-actions">
+            <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button>
+            <button class="icon-btn btn-panel-close" onclick="closePanel()">✕</button>
         </div>
+
         <div class="info-scroll-area" id="scroll-area-${place.id}">
-            <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
-                <div style="position:relative; width:100%;">
-                    <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
-                        ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" draggable="false">`).join('') : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" draggable="false" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`}
-                    </div>
-                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
-                </div>
-            </div>
             <div class="info-body-wrap">
-                <div class="info-category" style="color: ${catColor}">${normalizeCat(place.category)}</div>
-                <div class="title-row">
-                    <div class="info-title-wrap"><div class="info-title" id="dyn-title-${place.id}" style="padding-right:0;">${place.name}</div></div>
-                    <button class="btn-edit-tiny" onclick="openEditModal(${place.id})">✏️</button>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 20px 0 20px;">
+                    <div style="flex: 1; min-width: 0;">
+                        <div class="info-category" style="color: ${catColor}; margin-top: 0;">${normalizeCat(place.category)}</div>
+                        <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; width: 100%;">${place.name}</div>
+                        ${place.address ? `<div class="info-address" style="margin-top: 4px;">${place.address}</div>` : ''}
+                    </div>
+                    <div class="body-weather-box">
+                        <div class="weather-item-row">${weatherText}</div>
+                        <div class="weather-item-row">${dustText}</div>
+                    </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                    ${place.address ? `<div class="info-address" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; display:flex; align-items:center; gap:4px; margin-bottom:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${place.address}</div>` : ''}
-                    ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="padding: 4px 8px; font-size: 10px; margin: 0; background: rgba(255,255,255,0.9); box-shadow: 0 2px 6px rgba(0,0,0,0.15); color: #495057; text-decoration: none;">🌐 공식홈</a>` : ''}
+
+                <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}" style="padding: 0 20px;">
+                    <div style="position:relative; width:100%; border-radius: 12px; overflow: hidden;">
+                        <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)">
+                            ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" draggable="false" style="border-radius: 12px; height: 200px;">`).join('') : ''}
+                        </div>
+                        ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
+                    </div>
                 </div>
-                <div class="info-tag-wrap"><div class="info-tag-group">
+
+                <div style="padding: 0 20px 30px 20px;">
+                    <div class="info-tag-wrap"><div class="info-tag-group">
                         ${place.business_hours ? `<div class="info-tag"><span class="tag-label">시간</span><span class="tag-value">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
                         ${place.parking_fee ? `<div class="info-tag"><span class="tag-label">주차</span><span class="tag-value">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                        ${place.entry_fee ? `<div class="info-tag"><span class="tag-label">입장료</span><span class="tag-value">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                        ${place.nursing_room ? `<div class="info-tag"><span class="tag-label">수유실</span><span class="tag-value">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
-                </div></div>
-                ${place.comment && place.comment.trim() !== '' ? `<div class="info-desc">${formatDescription(place.comment)}</div>` : ''}
-                <div class="comments-section">
-                    <div class="comment-inputs-top"><input type="text" id="cmt-author-${place.id}" placeholder="닉네임"><input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호"></div>
-                    <div class="comment-input-wrap"><textarea id="cmt-text-${place.id}" placeholder="내용" rows="1"></textarea><button onclick="addComment(${place.id})">등록</button></div>
-                    ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:12px;">추가정보 (${commentsArr.length})</div>` : ''}
-                    <div class="comments-list">${visibleComments}${moreBtn}</div>
+                    </div></div>
+                    ${place.comment ? `<div class="info-desc">${formatDescription(place.comment)}</div>` : ''}
+                    <div class="comments-section">
+                        <div class="comment-input-wrap"><textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1"></textarea><button onclick="addComment(${place.id})">등록</button></div>
+                        <div class="comments-list">${visibleComments}${moreBtn}</div>
+                    </div>
                 </div>
             </div>
         </div>
     `;
 
     panel.classList.add('show');
-    
-    if (isMobile) {
-        sheetState = 1; window.applySheetState();
-    } else {
-        panel.style.transform = 'translateX(0)';
-        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
-        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
-    }
-
-    setTimeout(() => {
-        const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;
-        const titleWrap = document.querySelector('.info-title-wrap'); const titleEl = document.getElementById(`dyn-title-${place.id}`);
-        if(titleEl.offsetWidth > titleWrap.offsetWidth) { const originalHTML = titleEl.innerHTML; titleEl.innerHTML = originalHTML + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + originalHTML; titleWrap.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleWrap.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleEl.classList.add('marquee'); } else { titleWrap.style.webkitMaskImage = 'none'; titleWrap.style.maskImage = 'none'; }
-    }, 10);
-    if(!isHasImage) { if(place.category !== '문센') { fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`, `slider-${place.id}`, `header-wrap-${place.id}`); } else { document.getElementById(`header-wrap-${place.id}`).classList.add('no-image'); } }
+    sheetState = 1; window.applySheetState();
 }
 
 function openAddModal() { const modal = document.getElementById('add-modal'); modal.style.display = 'flex'; const content = modal.querySelector('.modal-content'); if (content) content.scrollTop = 0; setTimeout(() => { const searchInput = document.getElementById('kakao-keyword'); if (searchInput) searchInput.focus(); }, 100); }
