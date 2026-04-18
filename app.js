@@ -176,7 +176,6 @@ async function submitInquiry() {
 }
 
 async function loadNotices() {
-    // is_popup 컬럼이 없으면 에러가 날 수 있으므로 별도 체크
     const { data, error } = await supabaseClient.from('notices').select('*');
     if (!error && data) { 
         noticesData = data; renderNotices(); 
@@ -192,10 +191,30 @@ function checkAndShowPopup() {
     if (validPopups.length > 0) {
         let urls = []; validPopups.forEach(n => urls = urls.concat(n.image_url.split(',')));
         if (urls.length === 0) return;
+        
         const sliderInner = document.getElementById('popup-slider-inner');
-        sliderInner.innerHTML = urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:auto; object-fit:contain; border-radius:12px;">`).join('');
+        sliderInner.innerHTML = urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:start;">`).join('');
+        
+        if(urls.length > 1) {
+            document.getElementById('popup-slider-dots').innerHTML = urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('');
+            document.querySelectorAll('.popup-nav-btn').forEach(b => b.style.display = 'flex');
+        } else {
+            document.getElementById('popup-slider-dots').innerHTML = '';
+            document.querySelectorAll('.popup-nav-btn').forEach(b => b.style.display = 'none');
+        }
+        
         document.getElementById('popup-modal').style.display = 'flex';
     }
+}
+function updatePopupDots() {
+    const el = document.getElementById('popup-slider-inner');
+    const index = Math.round(el.scrollLeft / el.offsetWidth);
+    const dots = document.querySelectorAll('#popup-slider-dots .slider-dot');
+    dots.forEach((dot, i) => dot.className = 'slider-dot' + (i === index ? ' active' : ''));
+}
+function scrollPopup(dir) {
+    const el = document.getElementById('popup-slider-inner');
+    el.scrollBy({ left: dir * el.offsetWidth, behavior: 'smooth' });
 }
 function closePopup(hideToday) {
     if(hideToday) localStorage.setItem('hidePopup', new Date().toISOString().split('T')[0]);
@@ -206,7 +225,7 @@ function renderNotices() {
     const container = document.getElementById('notice-list-container');
     if(noticesData.length === 0) { container.innerHTML = '<div style="text-align:center; padding:40px; color:#adb5bd;">등록된 글이 없습니다.</div>'; return; }
     
-    // 공지 우선, 그리고 최신글(날짜 내림차순) 정렬
+    // 공지 우선, 최신글 정렬
     noticesData.sort((a, b) => { 
         if (a.is_notice !== b.is_notice) return a.is_notice ? -1 : 1;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); 
@@ -315,7 +334,6 @@ async function fetchWeather(lat, lng) {
         }
         
         window.isWeatherSuggestionVisible = true;
-        // 정보창이 열려있지 않다면 알림창 표시
         if (!document.getElementById('info-content').classList.contains('show')) {
             sugEl.style.display = 'block';
         }
@@ -368,11 +386,10 @@ function applyFilters(overrideCat) { activeCategory = overrideCat || activeCateg
 
 let sheetState = 0; // 0: hidden, 1: mid, 2: max, 3: min
 function closePanel() { 
-    document.getElementById('info-content').classList.remove('show'); sheetState = 0;
-    document.getElementById('info-content').style.transform = ''; 
+    const panel = document.getElementById('info-content');
+    panel.classList.remove('show'); sheetState = 0;
+    panel.style.transform = ''; 
     updateVisibleMarkers(); 
-    
-    // 정보창 닫힐 때 날씨창 다시 띄우기
     if (window.isWeatherSuggestionVisible) {
         const ws = document.getElementById('weather-suggestion');
         if(ws) ws.style.display = 'block';
@@ -382,64 +399,87 @@ function closePanel() {
 function initBottomSheet() {
     const panel = document.getElementById('info-content');
     if(!panel) return;
+    
     let startY = 0;
+    let isDragging = false;
+    let startTransform = 0;
+
+    function getTransformBase() { return sheetState === 1 ? 55 : (sheetState === 2 ? 15 : 80); }
     
-    // 드래그 핸들에 직접 이벤트를 걸거나 패널 내부에서 target 필터링
-    panel.addEventListener('touchstart', e => { 
-        const handle = e.target.closest('#drag-handle');
-        if(handle) {
-            startY = e.touches[0].clientY; 
-            panel.dataset.dragging = 'true';
-            panel.style.transition = 'none'; 
-        }
-    }, {passive:true});
-    
-    panel.addEventListener('touchmove', e => { 
-        // 핸들을 드래그 중일 때만 작동하도록 하여 스크롤 영역과 완벽 분리
-        if(panel.dataset.dragging === 'true' && window.innerWidth <= 768) {
-            e.preventDefault(); 
-            let currentY = e.touches[0].clientY;
-            let deltaY = currentY - startY;
-            let transformBase = sheetState === 1 ? 55 : (sheetState === 2 ? 10 : 80);
-            panel.style.transform = `translateY(calc(${transformBase}% + ${deltaY}px))`;
-        }
-    }, {passive:false});
-    
-    panel.addEventListener('touchend', e => {
-        if(panel.dataset.dragging === 'true' && window.innerWidth <= 768) {
-            panel.dataset.dragging = 'false';
-            panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
-            let deltaY = e.changedTouches[0].clientY - startY;
-            
-            if (deltaY < -40) { // swipe up
-                if(sheetState === 1 || sheetState === 3) { panel.style.transform = 'translateY(10%)'; sheetState = 2; }
-                else panel.style.transform = 'translateY(10%)';
-            } else if (deltaY > 40) { // swipe down
-                if(sheetState === 2) { panel.style.transform = 'translateY(55%)'; sheetState = 1; }
-                else if(sheetState === 1) { panel.style.transform = 'translateY(80%)'; sheetState = 3; }
-                else if(sheetState === 3) { closePanel(); }
-            } else {
-                // 원위치 스냅
-                let transformBase = sheetState === 1 ? 55 : (sheetState === 2 ? 10 : 80);
-                panel.style.transform = `translateY(${transformBase}%)`;
+    window.applySheetState = function() {
+        panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        panel.style.transform = `translateY(${getTransformBase()}%)`;
+        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
+        if(scrollArea) {
+            if (sheetState === 2) { 
+                scrollArea.style.overflowY = 'auto'; 
+                scrollArea.style.touchAction = 'auto'; 
+            } else { 
+                scrollArea.style.overflowY = 'hidden'; 
+                scrollArea.style.touchAction = 'none'; 
+                scrollArea.scrollTop = 0; 
             }
         }
-    });
-}
+    };
 
-async function loadPlaces() {
-    const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
-    if (!error && data) {
-        placesData.forEach(p => { if(p.marker) p.marker.setMap(null); });
-        placesData = data.map(p => { if(p.name) p.name = p.name.split('\\n')[0].split('\n')[0].trim(); return p; });
-        let isZoomedOut = map.getZoom() < 13;
-        placesData.forEach(place => {
-            let jitterLat = place.latitude + (Math.random() - 0.5) * 0.0002; let jitterLng = place.longitude + (Math.random() - 0.5) * 0.0002;
-            place.marker = new naver.maps.Marker({ position: new naver.maps.LatLng(jitterLat, jitterLng), icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }, zIndex: (place.views || place.likes) || 0 });
-            place.marker.addListener('click', function() { map.panTo(place.marker.getPosition()); renderPanel(place.id); if(window.innerWidth <= 768) closeSearchPanel(); });
-        });
-        applyFilters('전체');
-    }
+    const startDrag = (e) => {
+        if (window.innerWidth > 768) return;
+        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
+        if (e.target.closest('.image-slider')) return; // Ignore horizontal slider
+        
+        // If expanded and scrolling content, allow native scroll
+        if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
+
+        isDragging = true;
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+        startTransform = getTransformBase();
+        panel.style.transition = 'none';
+    };
+
+    const moveDrag = (e) => {
+        if (!isDragging || window.innerWidth > 768) return;
+        if(e.cancelable) e.preventDefault(); 
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        let deltaY = clientY - startY;
+        let newY = startTransform + (deltaY / window.innerHeight * 100);
+        if (newY < 15) newY = 15;
+        panel.style.transform = `translateY(${newY}%)`;
+    };
+
+    const endDrag = (e) => {
+        if (!isDragging || window.innerWidth > 768) return;
+        isDragging = false;
+        const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        let deltaY = clientY - startY;
+
+        if (deltaY < -30) { 
+            if(sheetState === 1 || sheetState === 3) sheetState = 2;
+        } else if (deltaY > 30) {
+            if(sheetState === 2) sheetState = 1;
+            else if(sheetState === 1) sheetState = 3;
+            else if(sheetState === 3) { closePanel(); return; }
+        }
+        window.applySheetState();
+    };
+
+    panel.addEventListener('touchstart', startDrag, {passive: true});
+    window.addEventListener('touchmove', moveDrag, {passive: false});
+    window.addEventListener('touchend', endDrag);
+
+    panel.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', moveDrag);
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('mouseleave', endDrag);
+
+    panel.addEventListener('wheel', e => {
+        if (window.innerWidth > 768) return;
+        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
+        if (sheetState === 1 && e.deltaY > 0) { 
+            sheetState = 2; window.applySheetState();
+        } else if (sheetState === 2 && e.deltaY < 0 && scrollArea && scrollArea.scrollTop <= 0) {
+            sheetState = 1; window.applySheetState();
+        }
+    }, {passive: true});
 }
 
 function openSearchPanel() { closePanel(); document.getElementById('search-panel').classList.add('show'); document.getElementById('search-input').focus(); }
@@ -486,7 +526,7 @@ function renderPanel(id) {
     const place = placesData.find(p => p.id === id); if (!place) return;
     incrementViewCount(id); 
 
-    // 정보창이 열리면 날씨창 숨기기
+    // 정보창 켜지면 날씨창 숨김
     const ws = document.getElementById('weather-suggestion');
     if(ws) ws.style.display = 'none';
 
@@ -498,7 +538,9 @@ function renderPanel(id) {
     let visibleComments = commentsHtmlArr.join(''); let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" class="btn-more-cmts">추가정보 더보기 ▼</button>` : '';
     let urls = place.image_url ? place.image_url.split(',') : []; let isHasImage = urls.length > 0; let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
 
-    document.getElementById('info-content').innerHTML = `
+    const panel = document.getElementById('info-content');
+    panel.dataset.placeId = place.id;
+    panel.innerHTML = `
         <div id="drag-handle" class="drag-handle"></div>
         <div class="panel-top-bar" id="top-bar-${place.id}">
             <div class="panel-weather" onclick="window.open('https://weather.naver.com/', '_blank')">${currentWeatherHtml}</div>
@@ -539,9 +581,14 @@ function renderPanel(id) {
             </div>
         </div>`;
     
-    const panel = document.getElementById('info-content'); panel.classList.add('show');
-    if (window.innerWidth <= 768) { panel.style.transform = 'translateY(55%)'; sheetState = 1; panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)'; }
-    else { panel.style.transform = 'translateX(0)'; }
+    panel.classList.add('show');
+    if (window.innerWidth <= 768) {
+        sheetState = 1; window.applySheetState();
+    } else {
+        panel.style.transform = 'translateX(0)';
+        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
+        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
+    }
 
     setTimeout(() => {
         const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;
