@@ -77,6 +77,7 @@ function switchTab(tab) {
     if (tab === 'inquiries') loadInquiries();
     if (tab === 'comments') loadAllComments();
     if (tab === 'board') loadAdminBoard();
+    if (tab === 'events') document.getElementById('events-tbody').innerHTML = '...';
 }
 
 async function loadAdminPlaces() {
@@ -379,4 +380,53 @@ async function approveEdit(reqId, origId) {
 
     alert("수정 내용이 원본에 성공적으로 반영되었습니다!");
     loadAdminPlaces();
+}
+
+async function loadLiveEvents() {
+    const tbody = document.getElementById('events-tbody');
+    const updateTime = document.getElementById('event-update-time');
+    
+    // 현재 등록된 장소들 중 '연동 구역'이 설정된 중복 없는 목록 추출
+    const linkedAreas = [...new Set(adminPlaces.map(p => p.seoul_api_area).filter(a => a))];
+    
+    if(linkedAreas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">API가 연동된 장소가 없습니다.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-weight:bold;">데이터를 수집하는 중입니다... 잠시만 기다려주세요.</td></tr>`;
+    
+    let htmlResult = "";
+    
+    for(const area of linkedAreas) {
+        try {
+            const res = await fetch(`http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(area)}`);
+            const data = await res.json();
+            
+            if(data.CITYDATA) {
+                const cd = data.CITYDATA;
+                
+                // 축제 파싱
+                const evt = cd.EVENT_STTS;
+                let evtText = (evt && evt.length > 0 && evt[0].EVENT_NM) ? 
+                    evt.map(e => `<b style="color:#37B24D;">[${e.EVENT_NM}]</b> ${e.EVENT_PERIOD}`).join('<br><br>') : "<span style='color:#adb5bd;'>행사 없음</span>";
+
+                // 사고/집회 파싱
+                const acdnt = cd.ACDNT_CNTRL_STTS;
+                let acdntText = (acdnt && acdnt.length > 0 && acdnt[0].ACDNT_TYPE) ? 
+                    acdnt.map(a => `<b style="color:#FF6B6B;">[${a.ACDNT_TYPE}]</b> ${a.MSG}`).join('<br><br>') : "<span style='color:#adb5bd;'>집회/통제 없음</span>";
+                
+                htmlResult += `<tr>
+                    <td style="font-weight:800;">${area}</td>
+                    <td style="font-size:12px; line-height:1.5;">${evtText}</td>
+                    <td style="font-size:12px; line-height:1.5;">${acdntText}</td>
+                </tr>`;
+            }
+        } catch(e) {
+            htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:red;">API 호출 오류</td></tr>`;
+        }
+    }
+    
+    tbody.innerHTML = htmlResult;
+    updateTime.innerText = "마지막 업데이트: " + new Date().toLocaleTimeString('ko-KR');
 }
