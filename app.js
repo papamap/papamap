@@ -752,21 +752,33 @@ async function fetchKakaoImage(query, imgElementId, topBarId, sliderId, headerWr
         if(data.documents && data.documents.length > 0) { 
             const imgEl = document.getElementById(imgElementId); 
             if(imgEl) { 
-                imgEl.src = data.documents[0].image_url; 
-                imgEl.style.display = 'block'; 
-            } 
-            if(topBarEl) { 
-                topBarEl.classList.remove('no-image'); 
-                topBarEl.classList.add('has-image'); 
-            } 
-            if(sliderEl) { 
-                sliderEl.style.display = 'flex'; 
-            } 
-            if(headerWrapEl) { 
-                headerWrapEl.classList.remove('no-image'); 
-                headerWrapEl.classList.add('has-image'); 
+                // 혼합 콘텐츠(Mixed Content) 에러 방지를 위해 http를 https로 강제 변환
+                const secureUrl = data.documents[0].image_url.replace('http://', 'https://');
                 
-                headerWrapEl.style.display = 'block'; 
+                // 가상 이미지 객체로 백그라운드에서 먼저 로딩을 시도합니다.
+                const tempImg = new Image();
+                
+                tempImg.onload = function() {
+                    // 🔥 사진이 '완벽하게' 로딩 성공했을 때만 회색 박스와 사진을 화면에 노출합니다!
+                    imgEl.src = secureUrl; 
+                    imgEl.style.display = 'block'; 
+                    
+                    if(topBarEl) { topBarEl.classList.remove('no-image'); topBarEl.classList.add('has-image'); } 
+                    if(sliderEl) { sliderEl.style.display = 'flex'; } 
+                    if(headerWrapEl) { 
+                        headerWrapEl.classList.remove('no-image'); 
+                        headerWrapEl.classList.add('has-image'); 
+                        headerWrapEl.style.display = 'block'; // 이때 박스가 나타남
+                    } 
+                };
+                
+                tempImg.onerror = function() {
+                    // 🔥 로딩 실패 시 (엑박 등) 회색 박스 자체를 숨겨서 깔끔하게 유지합니다.
+                    if(headerWrapEl) headerWrapEl.style.display = 'none';
+                };
+                
+                // 로딩 테스트 시작
+                tempImg.src = secureUrl; 
             } 
         } else { 
             if(headerWrapEl) headerWrapEl.style.display = 'none'; 
