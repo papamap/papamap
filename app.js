@@ -576,7 +576,7 @@ function renderPanel(id) {
                         <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:6px;">${normalizeCat(place.category)}</div>
                         
                         <div style="display: flex; align-items: center; max-width: 100%; margin-bottom: 4px;">
-                            <div id="title-wrap-${place.id}" style="flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative; margin-left: 20px">
+                            <div id="title-wrap-${place.id}" style="flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative;">
                                 <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; font-weight: 800; color: #212529; display: inline-block;">${place.name}</div>
                             </div>
                             <button onclick="openEditModal(${place.id})" style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); font-size:12px; cursor:pointer; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; color:#495057; flex-shrink:0; padding:0; margin-left:6px;">✏️</button>
