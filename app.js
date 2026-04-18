@@ -75,31 +75,24 @@ function renderPanel(id) {
 
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     ${place.seoul_api_area ? `
-                    <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057;">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center;">
-                                <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0;">혼잡도</span>
-                                <span id="live-congest-cur-${place.id}" style="font-weight:800; color:#5c7cfa;">실시간 확인중... 🚀</span>
-                            </div>
-                            <button id="btn-congest-toggle-${place.id}" onclick="toggleLiveDetail('congest-detail-${place.id}', this)" style="display:none; background:rgba(241,243,245,0.8); border:1px solid rgba(0,0,0,0.05); border-radius:6px; font-size:10px; color:#495057; font-weight:700; cursor:pointer; padding:4px 8px; transition:0.2s;">예측 보기 ▼</button>
-                        </div>
-                        <div id="congest-detail-${place.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.08); font-size:11px;">
-                            </div>
+                    <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; align-items:center; font-size:12px; color:#495057;">
+                        <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0;">혼잡도</span>
+                        <span id="live-congest-cur-${place.id}" style="flex:1; font-weight:800; color:#5c7cfa;">실시간 데이터 로딩중... 🚀</span>
+                        <button id="btn-congest-toggle-${place.id}" style="display:none; background:rgba(92,124,250,0.1); border:1px solid rgba(92,124,250,0.3); color:#5c7cfa; border-radius:6px; font-size:10px; font-weight:800; cursor:pointer; padding:4px 8px; margin-left:8px; flex-shrink:0;">예측 보기</button>
                     </div>` : ''}
                     
                     ${place.business_hours ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">시간</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
                     
                     ${place.parking_fee || place.seoul_api_area ? `
                     <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057;">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                            <div style="display:flex; flex:1;">
-                                <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span>
-                                <span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee || '요금 정보 없음').replace(/\n/g, '<br>')}</span>
-                            </div>
-                            ${place.seoul_api_area ? `<button id="btn-park-toggle-${place.id}" onclick="toggleLiveDetail('live-park-${place.id}', this)" style="display:none; background:rgba(55,178,77,0.1); border:1px solid #37B24D; color:#37B24D; border-radius:6px; font-size:10px; font-weight:800; cursor:pointer; padding:4px 8px; margin-left:8px; flex-shrink:0; transition:0.2s;">실시간 현황 ▼</button>` : ''}
+                        <div style="display:flex;">
+                            <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span>
+                            <span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee || '요금 정보 없음').replace(/\n/g, '<br>')}</span>
                         </div>
-                        <div id="live-park-${place.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.08); flex-direction:column; gap:6px;">
-                            </div>
+                        ${place.seoul_api_area ? `
+                        <div id="live-park-${place.id}" style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(0,0,0,0.1); display:flex; flex-direction:column; gap:6px;">
+                            <span style="color:#adb5bd; font-size:11px; font-weight:700;">실시간 주차 확인중... 🚀</span>
+                        </div>` : ''}
                     </div>` : ''}
                     
                     ${place.entry_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">입장료</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
@@ -149,14 +142,11 @@ function renderPanel(id) {
     }
 }
 
-// 🔥 API 통신 함수
+// 🔥 API 통신 함수 (고정형 리스트 + 팝업창 연동)
 async function fetchSeoulApiData(areaName, placeId) {
     const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
-    const congestDetail = document.getElementById(`congest-detail-${placeId}`);
     const congestBtn = document.getElementById(`btn-congest-toggle-${placeId}`);
-    
     const parkBox = document.getElementById(`live-park-${placeId}`);
-    const parkBtn = document.getElementById(`btn-park-toggle-${placeId}`);
     
     try {
         const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(areaName)}`;
@@ -174,73 +164,46 @@ async function fetchSeoulApiData(areaName, placeId) {
                 let cur = pop.AREA_CONGEST_LVL;
                 if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(cur)};">${cur}</span>`;
                 
+                // 예측 버튼 클릭 시 팝업(창) 띄우기
                 let fcst = pop.FCST_PPLTN || [];
-                if(fcst.length > 3 && congestDetail && congestBtn) {
+                if(fcst.length > 3 && congestBtn) {
                     let f2 = fcst[1]; 
                     let f4 = fcst[3];
                     let t2 = f2.FCST_TIME.split(' ')[1]; 
                     let t4 = f4.FCST_TIME.split(' ')[1];
                     
-                    congestDetail.innerHTML = `
-                        <div style="display:flex; gap:16px;">
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="color:#adb5bd;">${t2}</span>
-                                <strong style="color:${getCongestColor(f2.FCST_CONGEST_LVL)}">${f2.FCST_CONGEST_LVL}</strong>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="color:#adb5bd;">${t4}</span>
-                                <strong style="color:${getCongestColor(f4.FCST_CONGEST_LVL)}">${f4.FCST_CONGEST_LVL}</strong>
-                            </div>
-                        </div>
-                    `;
                     congestBtn.style.display = 'block';
+                    congestBtn.onclick = () => {
+                        alert(`📡 [${areaName}] 혼잡도 예측\n\n• 2시간 뒤 (${t2}) : ${f2.FCST_CONGEST_LVL}\n• 4시간 뒤 (${t4}) : ${f4.FCST_CONGEST_LVL}`);
+                    };
                 }
             } else {
                 if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">정보 없음</span>`;
             }
 
-            // 2. 주차장 적용
+            // 2. 주차장 적용 (고정형 리스트)
             const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
             if(validPrk.length > 0) {
-                let totalRemain = 0;
                 let prkHtml = validPrk.map(p => {
                     let remain = Math.max((parseInt(p.CPCTY) || 0) - (parseInt(p.CUR_PRK_CNT) || 0), 0);
-                    totalRemain += remain;
                     return `<div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="color:#495057; font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.PRK_NM}</span>
                         <span style="color:#37B24D; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">${remain}대 여유 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>
                     </div>`;
                 }).join('');
                 
-                if(parkBox && parkBtn) { 
-                    parkBox.innerHTML = prkHtml; 
-                    parkBtn.style.display = 'block'; 
-                    parkBtn.innerHTML = `🚗 총 ${totalRemain}대 여유 ▼`; 
-                }
+                if(parkBox) parkBox.innerHTML = prkHtml; 
+            } else {
+                if(parkBox) parkBox.innerHTML = `<span style="color:#868e96; font-size:11px;">실시간 연동된 주차장이 없습니다.</span>`;
             }
         } else if (data.RESULT) {
              if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">오류: ${data.RESULT.MESSAGE}</span>`;
+             if(parkBox) parkBox.innerHTML = `<span style="color:#FF6B6B;">오류: ${data.RESULT.MESSAGE}</span>`;
         }
     } catch(e) { 
         console.error(e); 
         if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 요망)</span>`;
-    }
-}
-
-// 🔥 토글 애니메이션 함수
-function toggleLiveDetail(targetId, btnEl) {
-    const el = document.getElementById(targetId);
-    if(!el) return;
-    
-    if(el.style.display === 'none' || el.style.display === '') {
-        el.style.display = 'flex';
-        btnEl.innerHTML = btnEl.innerHTML.replace('▼', '▲');
-        btnEl.style.color = '#495057';
-    } else {
-        el.style.display = 'none';
-        btnEl.innerHTML = btnEl.innerHTML.replace('▲', '▼');
-        if(btnEl.innerText.includes('예측')) btnEl.style.color = '#adb5bd';
-        else btnEl.style.color = '#37B24D';
+        if(parkBox) parkBox.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 요망)</span>`;
     }
 }
 
