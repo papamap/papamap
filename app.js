@@ -3,6 +3,10 @@ const SUPABASE_KEY = "sb_publishable_tpw_7GUMBP3iYiZ-EPLaNw_3u-gjX_B";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const KAKao_REST_KEY = "f971a5a1cc6ae49cf691f170f5e03dfd"; 
 
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+if (isMobile) document.documentElement.classList.add('is-mobile');
+else document.documentElement.classList.add('is-pc');
+
 var map;
 var placesData = []; 
 var noticesData = [];
@@ -92,6 +96,34 @@ class MediaManager {
             if(targetItem && this.dragStartIndex !== null) { const dragEndIndex = parseInt(targetItem.dataset.idx); if(this.dragStartIndex !== dragEndIndex) this.reorder(this.dragStartIndex, dragEndIndex); }
             this.dragStartIndex = null;
         });
+
+        let dragSrcEl = null, startIdx = null;
+        container.addEventListener('touchstart', e => {
+            if(e.target.tagName === 'BUTTON') return;
+            const item = e.target.closest('.media-preview-item');
+            if(item) { dragSrcEl = item; startIdx = parseInt(item.dataset.idx); item.style.opacity = '0.5'; }
+        }, {passive: true});
+        container.addEventListener('touchmove', e => {
+            if(!dragSrcEl) return; e.preventDefault();
+            const touch = e.touches[0]; const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetItem = target ? target.closest('.media-preview-item') : null;
+            container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
+            if(targetItem && targetItem !== dragSrcEl) {
+                const rect = targetItem.getBoundingClientRect(); const isLeft = (touch.clientX - rect.left) < (rect.width/2);
+                targetItem.classList.add(isLeft ? 'drag-over-left' : 'drag-over-right');
+                this.dragTargetIndex = parseInt(targetItem.dataset.idx) + (isLeft ? 0 : 1);
+            } else this.dragTargetIndex = null;
+        }, {passive: false});
+        container.addEventListener('touchend', e => {
+            if(!dragSrcEl) return;
+            dragSrcEl.style.opacity = '1'; container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
+            if(this.dragTargetIndex !== null) {
+                let endIdx = this.dragTargetIndex;
+                if(startIdx < endIdx) endIdx--;
+                if(startIdx !== endIdx) this.reorder(startIdx, endIdx);
+            }
+            dragSrcEl = null; startIdx = null; this.dragTargetIndex = null;
+        });
     }
     render() {
         const container = document.getElementById(this.containerId); container.innerHTML = '';
@@ -143,10 +175,7 @@ async function loadNotices() {
         console.error("Notices DB Error:", err);
         const container = document.getElementById('notice-list-container');
         if(container) {
-            container.innerHTML = `<div style="text-align:center; padding:40px; color:#FF6B6B; font-size:13px; line-height:1.5;">
-                게시글을 불러오지 못했습니다.<br>(${err.message})<br><br>
-                Supabase 대시보드 ➔ Project Settings ➔ API 에서<br>
-                <b>[Reload schema cache]</b>를 클릭해주세요.</div>`;
+            container.innerHTML = `<div style="text-align:center; padding:40px; color:#FF6B6B; font-size:13px; line-height:1.5;">게시글을 불러오지 못했습니다.</div>`;
         }
     }
 }
@@ -306,12 +335,10 @@ async function fetchWeather(lat, lng) {
         let temp = Math.round(weatherData.current_weather.temperature); let code = weatherData.current_weather.weathercode; 
         let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
         
-        // 보정: Open-Meteo가 실측치보다 높게 잡히는 경향이 있어 한국 기준에 맞게 0.8을 곱하여 보정 적용
         let pm10 = aqiData.current.pm10 * 0.8; 
         let pm25 = aqiData.current.pm2_5 * 0.8;
         let aqiIcon = '😊'; let aqiText = '좋음'; let isBadAir = false; 
         
-        // 국내 기준 적용: PM10 (81~ 나쁨, 151~ 매우나쁨) / PM2.5 (36~ 나쁨, 76~ 매우나쁨)
         if (pm10 > 150 || pm25 > 75) { aqiIcon = '👿'; aqiText = '매우나쁨'; isBadAir = true; } 
         else if (pm10 > 80 || pm25 > 35) { aqiIcon = '😷'; aqiText = '나쁨'; isBadAir = true; } 
         else if (pm10 > 30 || pm25 > 15) { aqiIcon = '😐'; aqiText = '보통'; }
@@ -388,8 +415,7 @@ function closePanel() {
     const panel = document.getElementById('info-content');
     panel.classList.remove('show'); sheetState = 0;
     
-    // PC와 모바일에 따라 닫히는 위치(방향) 지정
-    panel.style.transform = window.innerWidth <= 768 ? 'translateY(100%)' : 'translateX(-20px)'; 
+    panel.style.transform = isMobile ? 'translateY(100%)' : 'translateX(-20px)'; 
     
     updateVisibleMarkers(); 
     if (window.isWeatherSuggestionVisible) {
@@ -400,77 +426,48 @@ function closePanel() {
 
 function initBottomSheet() {
     const panel = document.getElementById('info-content');
-    if(!panel) return;
+    if(!panel || !isMobile) return; 
     
-    let startY = 0;
-    let isDragging = false;
-    let startTransform = 0;
+    let startY = 0; let isDragging = false; let startTransform = 0;
 
     function getTransformBase() { return sheetState === 1 ? 55 : (sheetState === 2 ? 15 : 80); }
     
     window.applySheetState = function() {
-        if (window.innerWidth > 768) {
-            panel.style.transform = 'none'; // PC에서는 강제 위치 조정 해제
-            return;
-        }
-
+        if (!isMobile) { panel.style.transform = 'none'; return; }
         panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
         panel.style.transform = `translateY(${getTransformBase()}%)`;
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         if(scrollArea) {
-            if (sheetState === 2) { 
-                scrollArea.style.overflowY = 'auto'; 
-                scrollArea.style.touchAction = 'auto'; 
-            } else { 
-                scrollArea.style.overflowY = 'hidden'; 
-                scrollArea.style.touchAction = 'none'; 
-                scrollArea.scrollTop = 0; 
-            }
+            if (sheetState === 2) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; } 
+            else { scrollArea.style.overflowY = 'hidden'; scrollArea.style.touchAction = 'none'; scrollArea.scrollTop = 0; }
         }
     };
 
     const startDrag = (e) => {
-        if (window.innerWidth > 768) return; // PC 환경 무시
+        if (!isMobile) return; 
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         if (e.target.closest('.image-slider')) return; 
-        
         if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
 
-        isDragging = true;
-        startY = e.touches[0].clientY;
-        startTransform = getTransformBase();
-        panel.style.transition = 'none';
+        isDragging = true; startY = e.touches[0].clientY; startTransform = getTransformBase(); panel.style.transition = 'none';
     };
 
     const moveDrag = (e) => {
-        if (!isDragging || window.innerWidth > 768) return;
+        if (!isDragging || !isMobile) return;
         if(e.cancelable) e.preventDefault(); 
-        const clientY = e.touches[0].clientY;
-        let deltaY = clientY - startY;
-        let newY = startTransform + (deltaY / window.innerHeight * 100);
-        if (newY < 15) newY = 15;
-        panel.style.transform = `translateY(${newY}%)`;
+        const clientY = e.touches[0].clientY; let deltaY = clientY - startY; let newY = startTransform + (deltaY / window.innerHeight * 100);
+        if (newY < 15) newY = 15; panel.style.transform = `translateY(${newY}%)`;
     };
 
     const endDrag = (e) => {
-        if (!isDragging || window.innerWidth > 768) return;
-        isDragging = false;
-        const clientY = e.changedTouches[0].clientY;
-        let deltaY = clientY - startY;
-
-        if (sheetState === 1 && Math.abs(deltaY) > 10) {
-            sheetState = 2;
-        } else if (deltaY < -30) { 
-            if(sheetState === 1 || sheetState === 3) sheetState = 2;
-        } else if (deltaY > 30) {
-            if(sheetState === 2) sheetState = 1;
-            else if(sheetState === 1) sheetState = 3;
-            else if(sheetState === 3) { closePanel(); return; }
-        }
+        if (!isDragging || !isMobile) return;
+        isDragging = false; const clientY = e.changedTouches[0].clientY; let deltaY = clientY - startY;
+        if (sheetState === 1 && Math.abs(deltaY) > 10) { sheetState = 2; } 
+        else if (deltaY < -30) { if(sheetState === 1 || sheetState === 3) sheetState = 2; } 
+        else if (deltaY > 30) { if(sheetState === 2) sheetState = 1; else if(sheetState === 1) sheetState = 3; else if(sheetState === 3) { closePanel(); return; } }
         window.applySheetState();
     };
 
-    // 모바일 전용 터치 이벤트
     panel.addEventListener('touchstart', startDrag, {passive: true});
     window.addEventListener('touchmove', moveDrag, {passive: false});
     window.addEventListener('touchend', endDrag);
@@ -480,7 +477,6 @@ async function loadPlaces() {
     try {
         const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
         if (error) throw error;
-        
         if (data) {
             placesData.forEach(p => { if(p.marker) p.marker.setMap(null); });
             placesData = data.map(p => { if(p.name) p.name = p.name.split('\\n')[0].split('\n')[0].trim(); return p; });
@@ -488,14 +484,14 @@ async function loadPlaces() {
             placesData.forEach(place => {
                 let jitterLat = place.latitude + (Math.random() - 0.5) * 0.0002; let jitterLng = place.longitude + (Math.random() - 0.5) * 0.0002;
                 place.marker = new naver.maps.Marker({ position: new naver.maps.LatLng(jitterLat, jitterLng), icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }, zIndex: (place.views || place.likes) || 0 });
-                place.marker.addListener('click', function() { map.panTo(place.marker.getPosition()); renderPanel(place.id); if(window.innerWidth <= 768) closeSearchPanel(); });
+                place.marker.addListener('click', function() { map.panTo(place.marker.getPosition()); renderPanel(place.id); if(isMobile) closeSearchPanel(); });
+                // 마우스 오버 시 무조건 맨 앞으로
+                place.marker.addListener('mouseover', function() { place.marker.setZIndex(99999); });
+                place.marker.addListener('mouseout', function() { place.marker.setZIndex((place.views || place.likes) || 0); });
             });
             applyFilters('전체');
         }
-    } catch (err) {
-        console.error("Places Load Error:", err);
-        alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message + "\n\nSupabase DB 스키마 캐시를 새로고침 해주세요.");
-    }
+    } catch (err) { alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message); }
 }
 
 function openSearchPanel() { closePanel(); document.getElementById('search-panel').classList.add('show'); document.getElementById('search-input').focus(); }
@@ -520,7 +516,7 @@ function executeSearch() {
 }
 
 function openAppMap(type, name, lat, lng) {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent); let scheme = '', fallback = '';
+    let scheme = '', fallback = '';
     if (type === 'kakao') { scheme = 'kakaomap://search?q=' + encodeURIComponent(name); fallback = 'https://map.kakao.com/link/search/' + encodeURIComponent(name); } else if (type === 'naver') { scheme = 'nmap://search?query=' + encodeURIComponent(name) + '&appname=appamap'; fallback = 'https://m.map.naver.com/search2/search.naver?query=' + encodeURIComponent(name); } else if (type === 'tmap') { scheme = 'tmap://search?name=' + encodeURIComponent(name); fallback = 'https://tmap.co.kr/tmap2/mobile/route.jsp?name=' + encodeURIComponent(name) + '&lat=' + lat + '&lon=' + lng; }
     if (isMobile) { const now = new Date().getTime(); setTimeout(() => { if (new Date().getTime() - now < 2000) window.open(fallback, '_blank'); }, 1000); location.href = scheme; } else { window.open(fallback, '_blank'); } document.getElementById('map-link-modal').style.display='none';
 }
@@ -565,7 +561,7 @@ function renderPanel(id) {
             <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
                 <div style="position:relative; width:100%;">
                     <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
-                        ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`}
+                        ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" draggable="false">`).join('') : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" draggable="false" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`}
                     </div>
                     ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
                 </div>
@@ -598,10 +594,10 @@ function renderPanel(id) {
     
     panel.classList.add('show');
     
-    if (window.innerWidth <= 768) {
+    if (isMobile) {
         sheetState = 1; window.applySheetState();
     } else {
-        panel.style.transform = 'none';
+        panel.style.transform = 'translateX(0)';
         const scrollArea = document.getElementById(`scroll-area-${place.id}`);
         if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
     }
