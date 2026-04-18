@@ -20,7 +20,6 @@ var currentWeatherHtml = "⛅ --°C | 😐 보통";
 window.isWeatherSuggestionVisible = false;
 
 const shareIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>`;
-const viewIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; margin-bottom:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
 
 function timeAgo(dateInput) {
     const past = new Date(dateInput); const now = new Date(); const seconds = Math.floor((now - past) / 1000);
@@ -172,11 +171,8 @@ async function loadNotices() {
             checkAndShowPopup(); 
         }
     } catch (err) {
-        console.error("Notices DB Error:", err);
         const container = document.getElementById('notice-list-container');
-        if(container) {
-            container.innerHTML = `<div style="text-align:center; padding:40px; color:#FF6B6B; font-size:13px; line-height:1.5;">게시글을 불러오지 못했습니다.</div>`;
-        }
+        if(container) { container.innerHTML = `<div style="text-align:center; padding:40px; color:#FF6B6B; font-size:13px; line-height:1.5;">게시글을 불러오지 못했습니다.</div>`; }
     }
 }
 
@@ -368,7 +364,7 @@ async function fetchWeather(lat, lng) {
 
 function updateUserLocationMarker(lat, lng) {
     var pos = new naver.maps.LatLng(lat, lng);
-    if (!userLocationMarker) { userLocationMarker = new naver.maps.Marker({ position: pos, map: map, icon: { content: '<div style="width:16px; height:16px; background:#4285F4; border-radius:50%; border:3px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>', anchor: new naver.maps.Point(11, 11) }, zIndex: 9999 }); } 
+    if (!userLocationMarker) { userLocationMarker = new naver.maps.Marker({ position: pos, map: map, icon: { content: '<div style="width:16px; height:16px; background:#4285F4; border-radius:50%; border:3px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3); cursor:pointer;"></div>', anchor: new naver.maps.Point(11, 11) }, zIndex: 9999 }); } 
     else { userLocationMarker.setPosition(pos); }
 }
 
@@ -482,10 +478,156 @@ function initBottomSheet() {
 
         if (!isDetermined) {
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
+                isDragging = false; 
+                panel.style.transform = `translateY(${startTransform}%)`;
+                return;
+            } else if (Math.abs(deltaY) > 5) {
+                isDetermined = true; 
+            } else { return; }
+        }
+
+        if(e.cancelable) e.preventDefault(); 
+        let newY = startTransform + (deltaY / window.innerHeight * 100);
+        if (newY < 0) newY = 0; 
+        panel.style.transform = `translateY(${newY}%)`;
+    };
+
+    const endDrag = (e) => {
+        if (!isDragging || !isMobile) return;
+        isDragging = false; 
+        const clientY = e.changedTouches[0].clientY; 
+        let deltaY = clientY - startY;
+
+        if (sheetState === 1) {
+            if (deltaY < -20) sheetState = 2; 
+            else if (deltaY > 30) { closePanel(); return; } 
+        } else if (sheetState === 2) {
+            if (deltaY > 50) sheetState = 1; 
+            else sheetState = 2;
+        }
+        window.applySheetState();
+    };
+
+    panel.addEventListener('touchstart', startDrag, {passive: true});
+    window.addEventListener('touchmove', moveDrag, {passive: false});
+    window.addEventListener('touchend', endDrag);
+}
+
+function renderPanel(id) {
+    const place = placesData.find(p => p.id === id); if (!place) return;
+    incrementViewCount(id); 
+
+    const ws = document.getElementById('weather-suggestion');
+    if(ws) ws.style.display = 'none';
+
+    let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
+    let visibleComments = commentsArr.map((c, idx) => {
+        let dateStr = timeAgo(c.date || c.id); 
+        return `<div class="comment-item cmt-item-${place.id}" style="margin-bottom:8px; padding:12px; background:rgba(255,255,255,0.6); border-radius:12px; font-size:12px; line-height:1.5; border:1px solid rgba(0,0,0,0.05); display: ${idx < 3 ? 'flex' : 'none'}; flex-direction:column;"><div class="comment-header" style="display:flex; justify-content:space-between; margin-bottom:6px;"><div class="c-author" style="font-weight:800;">${escapeHtml(c.author)} <span style="font-weight:400; color:#868e96; font-size:10px;">${dateStr}</span></div><div style="display:flex; gap:8px;"><button onclick="editComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; font-size:11px; cursor:pointer; padding:0;">수정</button><button onclick="deleteComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; font-size:11px; cursor:pointer; padding:0;">삭제</button></div></div><div>${formatDescription(c.text)}</div></div>`
+    }).join('');
+    
+    let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" style="width:100%; background:none; border:none; color:#adb5bd; font-weight:700; font-size:12px; cursor:pointer; padding:8px 0;">추가정보 더보기 ▼</button>` : '';
+    let urls = place.image_url ? place.image_url.split(',') : []; 
+    let isHasImage = urls.length > 0;
+    let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
+
+    const weatherParts = currentWeatherHtml.split('|');
+    const weatherText = weatherParts[0] ? weatherParts[0].trim() : '--°C';
+    const dustText = weatherParts[1] ? weatherParts[1].trim() : '보통';
+
+    const panel = document.getElementById('info-content');
+    panel.dataset.placeId = place.id;
+    
+    panel.innerHTML = `
+        <div id="drag-handle" class="drag-handle" style="width:100%; height:24px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center; cursor:grab; flex-shrink:0;">
+            <div style="width:40px; height:5px; background:rgba(0,0,0,0.2); border-radius:3px;"></div>
+        </div>
+        
+        <div class="panel-top-bar" id="top-bar-${place.id}" style="position:absolute; left:0; right:0; top: ${isMobile ? '24px' : '20px'}; z-index:110; display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box; padding:0 20px; pointer-events:none;">
+            <button class="icon-btn btn-back-arrow" onclick="closePanel()" style="width:32px; height:32px; display:flex; justify-content:center; align-items:center; border-radius:50%; background:rgba(255,255,255,0.85); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; pointer-events:auto;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <div class="icon-actions" style="display:flex; gap:8px; pointer-events:auto;">
+                <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.85); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); display:flex; justify-content:center; align-items:center; cursor:pointer;">${shareIcon}</button>
+                <button class="icon-btn btn-panel-close" onclick="closePanel()" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.85); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:14px; font-weight:800;">✕</button>
+            </div>
+        </div>
+
+        <div class="info-scroll-area" id="scroll-area-${place.id}" style="flex:1; overflow-y:auto; overflow-x:hidden; padding-top:40px; -webkit-overflow-scrolling:touch;">
+            <div class="info-body-wrap" style="padding-bottom: 30px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 0 20px;">
+                    <div style="flex: 1; min-width: 0;">
+                        <div class="info-category" style="color: ${catColor}; font-size:11px; font-weight:800; margin-bottom:4px;">${normalizeCat(place.category)}</div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; font-weight: 800; color: #212529; padding:0;">${place.name}</div>
+                            <button class="btn-edit-tiny" onclick="openEditModal(${place.id})" style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); font-size:10px; width:20px; height:20px; border-radius:50%; cursor:pointer; flex-shrink:0;">✏️</button>
+                        </div>
+                        ${place.address ? `<div class="info-address" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; font-size:12px; margin-top:8px;">${place.address}</div>` : ''}
+                        ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="display:inline-flex; margin-top:8px; padding: 4px 8px; font-size: 10px; background: rgba(241, 243, 245, 0.8); color: #495057; text-decoration: none; border-radius:8px;">🌐 공식홈</a>` : ''}
+                    </div>
+                    <div class="body-weather-box" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-top: 2px; flex-shrink: 0; margin-left: 12px;">
+                        <div class="weather-item-row" style="font-size: 11px; font-weight: 800; color: #495057; background: rgba(241, 243, 245, 0.8); padding: 4px 8px; border-radius: 8px;">${weatherText}</div>
+                        <div class="weather-item-row" style="font-size: 11px; font-weight: 800; color: #495057; background: rgba(241, 243, 245, 0.8); padding: 4px 8px; border-radius: 8px;">${dustText}</div>
+                    </div>
+                </div>
+
+                <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}" style="padding: 16px 20px;">
+                    <div style="position:relative; width:100%; border-radius: 12px; overflow: hidden; background: #f1f3f5;">
+                        <div class="image-slider" id="slider-${place.id}" style="display:flex; height: ${isHasImage ? '220px' : '0'}; overflow-x:auto; scroll-snap-type:x mandatory;" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
+                            ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:start;" draggable="false">`).join('') : ''}
+                        </div>
+                        ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:12px; left:0; right:0; display:flex; justify-content:center; gap:6px;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5);"></div>`).join('')}</div>` : ''}
+                    </div>
+                </div>
+
+                <div style="padding: 0 20px 30px 20px;">
+                    <div class="info-tag-wrap"><div class="info-tag-group" style="display:flex; flex-direction:column; gap:8px;">
+                        ${place.business_hours ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">시간</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
+                        ${place.parking_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                        ${place.entry_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">입장료</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                        ${place.nursing_room ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">수유실</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
+                    </div></div>
+                    ${place.comment ? `<div class="info-desc" style="margin-top:16px; font-size:13px; color:#495057; line-height:1.5; background:rgba(248,249,250,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05);">${formatDescription(place.comment)}</div>` : ''}
+                    
+                    <div class="comments-section" style="margin-top:20px; border-top:1px solid rgba(0,0,0,0.08); padding-top:16px;">
+                        <div class="comment-inputs-top" style="display:flex; gap:6px; margin-bottom:6px; width:100%;">
+                            <input type="text" id="cmt-author-${place.id}" placeholder="닉네임" style="flex:1; padding:8px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none;">
+                            <input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호" style="flex:1; padding:8px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none;">
+                        </div>
+                        <div class="comment-input-wrap" style="display:flex; gap:6px; width:100%;">
+                            <textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1" style="flex:1; padding:10px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; resize:none;"></textarea>
+                            <button onclick="addComment(${place.id})" style="background:#495057; color:white; border:none; border-radius:8px; padding:0 16px; font-weight:700; font-size:12px; cursor:pointer;">등록</button>
+                        </div>
+                        ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:16px;">추가정보 (${commentsArr.length})</div>` : ''}
+                        <div class="comments-list" style="display:flex; flex-direction:column; gap:8px;">${visibleComments}${moreBtn}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    panel.classList.add('show');
+    if (isMobile) {
+        sheetState = 1; window.applySheetState();
+    } else {
+        panel.style.transform = 'translateX(0)';
+        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
+        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
+    }
+
+    setTimeout(() => {
+        const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;
+        const titleWrap = document.querySelector('.info-title-wrap'); const titleEl = document.getElementById(`dyn-title-${place.id}`);
+        if(titleEl && titleWrap && titleEl.offsetWidth > titleWrap.offsetWidth) { const originalHTML = titleEl.innerHTML; titleEl.innerHTML = originalHTML + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + originalHTML; titleWrap.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleWrap.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleEl.classList.add('marquee'); } else if(titleWrap) { titleWrap.style.webkitMaskImage = 'none'; titleWrap.style.maskImage = 'none'; }
+    }, 10);
+    if(!isHasImage) { if(place.category !== '문센') { fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`, `slider-${place.id}`, `header-wrap-${place.id}`); } else { document.getElementById(`header-wrap-${place.id}`).classList.add('no-image'); } }
+}
+
 async function loadPlaces() {
     try {
         const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
         if (error) throw error;
+        
         if (data) {
             placesData.forEach(p => { if(p.marker) p.marker.setMap(null); });
             placesData = data.map(p => { if(p.name) p.name = p.name.split('\\n')[0].split('\n')[0].trim(); return p; });
@@ -494,9 +636,8 @@ async function loadPlaces() {
                 let jitterLat = place.latitude + (Math.random() - 0.5) * 0.0002; let jitterLng = place.longitude + (Math.random() - 0.5) * 0.0002;
                 place.marker = new naver.maps.Marker({ position: new naver.maps.LatLng(jitterLat, jitterLng), icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }, zIndex: (place.views || place.likes) || 0 });
                 place.marker.addListener('click', function() { map.panTo(place.marker.getPosition()); renderPanel(place.id); if(isMobile) closeSearchPanel(); });
-                // 마우스 오버 시 무조건 맨 앞으로
-                place.marker.addListener('mouseover', function() { place.marker.setZIndex(99999); });
-                place.marker.addListener('mouseout', function() { place.marker.setZIndex((place.views || place.likes) || 0); });
+                place.marker.addListener('mouseover', function() { this.setZIndex(999999); });
+                place.marker.addListener('mouseout', function() { this.setZIndex((place.views || place.likes) || 0); });
             });
             applyFilters('전체');
         }
@@ -508,9 +649,12 @@ function openSearchPanel() {
     setCategory('전체'); 
     document.getElementById('search-panel').classList.add('show'); 
     document.getElementById('search-input').focus(); 
-    document.getElementById('search-scope-toggle').classList.add('show');
-    document.getElementById('search-results-list').innerHTML = '<div class="res-empty">검색어를 입력해 주세요.</div>';
-}function closeSearchPanel() { document.getElementById('search-panel').classList.remove('show'); document.getElementById('search-scope-toggle').classList.remove('show'); applyFilters(); }
+    document.getElementById('search-scope-toggle').classList.add('show'); 
+    document.getElementById('search-results-list').innerHTML = '<div class="res-empty">검색어를 입력해 주세요.</div>'; 
+}
+
+function closeSearchPanel() { document.getElementById('search-panel').classList.remove('show'); document.getElementById('search-scope-toggle').classList.remove('show'); applyFilters(); }
+
 function setSearchScope(scope) {
     currentSearchScope = scope; document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active')); document.getElementById('scope-' + scope).classList.add('active');
     if(scope === 'near' && navigator.geolocation) { const btn = document.querySelector('.search-input-area .scope-btn:last-child'); btn.style.opacity = '0.5'; navigator.geolocation.getCurrentPosition(pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; executeSearch(); btn.style.opacity = '1'; }, () => { btn.style.opacity = '1'; }, { enableHighAccuracy: false, timeout: 5000 }); } else executeSearch();
@@ -536,7 +680,7 @@ function executeSearch() {
         if (currentSearchScope === 'bounds') inScope = bounds.hasLatLng(new naver.maps.LatLng(p.latitude, p.longitude)); 
         else if (currentSearchScope === 'near') inScope = (getDistanceKm(userLat, userLng, p.latitude, p.longitude) <= 5.0);
         
-if ((!query || nameMatch || catMatch) && inScope && isCatActive) {
+        if ((nameMatch || catMatch) && inScope) {
             const distText = currentSearchScope === 'near' ? `<span style="color:#FF6B6B; font-weight:800; font-size:11px;">📍 ${getDistanceKm(userLat, userLng, p.latitude, p.longitude).toFixed(1)}km</span>` : '';
             listEl.innerHTML += `<li class="search-result-item" onclick="switchTab('map'); map.setZoom(15); map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});"><div style="font-weight:800; color:#343a40;">${p.name}</div><div style="font-size:11px; color:#868e96; display:flex; align-items:center;">${pCat} ${distText}</div></li>`; resultCount++;
         }
@@ -562,112 +706,6 @@ function sharePlace(name, address) { if (navigator.share) navigator.share({ titl
 function openMapPopup(name, lat, lng) { document.getElementById('link-naver').onclick = () => openAppMap('naver', name, lat, lng); document.getElementById('link-kakao').onclick = () => openAppMap('kakao', name, lat, lng); document.getElementById('link-tmap').onclick = () => openAppMap('tmap', name, lat, lng); document.getElementById('map-link-modal').style.display = 'flex'; }
 function showMoreComments(id) { const items = document.querySelectorAll(`.cmt-item-${id}`); let shown = 0; let hiddenCount = 0; items.forEach(item => { if (item.style.display === 'none') { if (shown < 3) { item.style.display = 'flex'; shown++; } else hiddenCount++; } }); const btn = document.getElementById(`btn-more-${id}`); if (hiddenCount > 0) btn.innerText = `추가정보 더보기 ▼`; else btn.style.display = 'none'; }
 function updateSliderDots(id, el) { const index = Math.round(el.scrollLeft / el.offsetWidth); const dots = document.querySelectorAll('#slider-dots-' + id + ' .slider-dot'); dots.forEach((dot, i) => { dot.className = 'slider-dot' + (i === index ? ' active' : ''); }); }
-
-function renderPanel(id) {
-    const place = placesData.find(p => p.id === id); if (!place) return;
-    incrementViewCount(id); 
-
-    const ws = document.getElementById('weather-suggestion');
-    if(ws) ws.style.display = 'none';
-
-    let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
-    let visibleComments = commentsArr.map((c, idx) => {
-        let dateStr = timeAgo(c.date || c.id); 
-        return `<div class="comment-item cmt-item-${place.id}" style="display: ${idx < 3 ? 'flex' : 'none'}; flex-direction:column;"><div class="comment-header"><div class="c-author">${escapeHtml(c.author)} <span style="font-weight:400; color:#868e96; margin-left:4px; font-size:10px;">${dateStr}</span></div><div style="display:flex; align-items:center; gap:8px;"><button class="comment-delete" onclick="editComment(${place.id}, ${c.id})">수정</button><button class="comment-delete" onclick="deleteComment(${place.id}, ${c.id})">삭제</button></div></div><div>${formatDescription(c.text)}</div></div>`
-    }).join('');
-    
-    let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" class="btn-more-cmts">추가정보 더보기 ▼</button>` : '';
-    let urls = place.image_url ? place.image_url.split(',') : []; 
-    let isHasImage = urls.length > 0;
-    let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
-
-    const weatherParts = currentWeatherHtml.split('|');
-    const weatherText = weatherParts[0] ? weatherParts[0].trim() : '--°C';
-    const dustText = weatherParts[1] ? weatherParts[1].trim() : '보통';
-
-    const panel = document.getElementById('info-content');
-    panel.dataset.placeId = place.id;
-    
-    // 💡 HTML 구조 원복 & 사진/날씨 위치만 조정
-    panel.innerHTML = `
-        <div id="drag-handle" class="drag-handle"></div>
-        
-        <div class="panel-top-bar" id="top-bar-${place.id}">
-            <button class="icon-btn btn-back-arrow" onclick="closePanel()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <div class="icon-actions">
-                <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button>
-                <button class="icon-btn btn-panel-close" onclick="closePanel()">✕</button>
-            </div>
-        </div>
-
-        <div class="info-scroll-area" id="scroll-area-${place.id}">
-            <div class="info-body-wrap" style="padding-top: 40px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 0 20px;">
-                    <div style="flex: 1; min-width: 0;">
-                        <div class="info-category" style="color: ${catColor}; margin-top:0; margin-bottom: 4px;">${normalizeCat(place.category)}</div>
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; font-weight: 800; color: #212529; padding:0;">${place.name}</div>
-                            <button class="btn-edit-tiny" onclick="openEditModal(${place.id})">✏️</button>
-                        </div>
-                        ${place.address ? `<div class="info-address" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; font-size:12px; margin-top:8px;">${place.address}</div>` : ''}
-                        ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="display:inline-flex; margin-top:8px; padding: 4px 8px; font-size: 10px; background: rgba(241, 243, 245, 0.8); color: #495057; text-decoration: none; border-radius:8px;">🌐 공식홈</a>` : ''}
-                    </div>
-                    <div class="body-weather-box" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-top: 2px; flex-shrink: 0; margin-left: 12px;">
-                        <div class="weather-item-row" style="font-size: 11px; font-weight: 800; color: #495057; background: rgba(241, 243, 245, 0.8); padding: 4px 8px; border-radius: 8px;">${weatherText}</div>
-                        <div class="weather-item-row" style="font-size: 11px; font-weight: 800; color: #495057; background: rgba(241, 243, 245, 0.8); padding: 4px 8px; border-radius: 8px;">${dustText}</div>
-                    </div>
-                </div>
-
-                <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}" style="padding: 16px 20px;">
-                    <div style="position:relative; width:100%; border-radius: 12px; overflow: hidden; background: #f1f3f5;">
-                        <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? 'height: 220px;' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
-                            ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" style="height: 100%; width: 100%; object-fit: cover; border-radius: 12px;" draggable="false">`).join('') : ''}
-                        </div>
-                        ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
-                    </div>
-                </div>
-
-                <div style="padding: 0 20px 30px 20px;">
-                    <div class="info-tag-wrap"><div class="info-tag-group">
-                        ${place.business_hours ? `<div class="info-tag"><span class="tag-label">시간</span><span class="tag-value">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
-                        ${place.parking_fee ? `<div class="info-tag"><span class="tag-label">주차</span><span class="tag-value">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                        ${place.entry_fee ? `<div class="info-tag"><span class="tag-label">입장료</span><span class="tag-value">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                        ${place.nursing_room ? `<div class="info-tag"><span class="tag-label">수유실</span><span class="tag-value">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
-                    </div></div>
-                    ${place.comment ? `<div class="info-desc" style="margin-top:16px;">${formatDescription(place.comment)}</div>` : ''}
-                    
-                    <div class="comments-section" style="margin-top:20px;">
-                        <div class="comment-inputs-top">
-                            <input type="text" id="cmt-author-${place.id}" placeholder="닉네임">
-                            <input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호">
-                        </div>
-                        <div class="comment-input-wrap"><textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1"></textarea><button onclick="addComment(${place.id})">등록</button></div>
-                        ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:12px;">추가정보 (${commentsArr.length})</div>` : ''}
-                        <div class="comments-list">${visibleComments}${moreBtn}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    panel.classList.add('show');
-    if (isMobile) {
-        sheetState = 1; window.applySheetState();
-    } else {
-        panel.style.transform = 'translateX(0)';
-        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
-        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
-    }
-
-    setTimeout(() => {
-        const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;
-        const titleWrap = document.querySelector('.info-title-wrap'); const titleEl = document.getElementById(`dyn-title-${place.id}`);
-        if(titleEl && titleWrap && titleEl.offsetWidth > titleWrap.offsetWidth) { const originalHTML = titleEl.innerHTML; titleEl.innerHTML = originalHTML + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + originalHTML; titleWrap.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleWrap.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; titleEl.classList.add('marquee'); } else if(titleWrap) { titleWrap.style.webkitMaskImage = 'none'; titleWrap.style.maskImage = 'none'; }
-    }, 10);
-    if(!isHasImage) { if(place.category !== '문센') { fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`, `slider-${place.id}`, `header-wrap-${place.id}`); } else { document.getElementById(`header-wrap-${place.id}`).classList.add('no-image'); } }
-}
 
 function openAddModal() { const modal = document.getElementById('add-modal'); modal.style.display = 'flex'; const content = modal.querySelector('.modal-content'); if (content) content.scrollTop = 0; setTimeout(() => { const searchInput = document.getElementById('kakao-keyword'); if (searchInput) searchInput.focus(); }, 100); }
 function openEditModal(id) {
