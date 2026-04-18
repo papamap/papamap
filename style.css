@@ -256,7 +256,7 @@ html.is-pc .search-panel.show { transform: translateX(0); }
 #board-view .board-header { 
     margin-top: 0 !important; 
     padding-top: 0 !important; 
-}.board-title-row { display: flex; justify-content: space-between; align-items: center; margin-top: calc(max(12px, env(safe-area-inset-top)) + 4px); margin-bottom: 20px; }
+}.board-title-row { display: flex; justify-content: space-between; align-items: center; margin-top: calc(max(24px, env(safe-area-inset-top)) + 10px); margin-bottom: 20px; }
 .board-title { font-size: 24px; font-weight: 800; color: #212529; margin: 0; display: flex; align-items: center; gap: 8px; }
 .btn-info-circle { width: 22px; height: 22px; border-radius: 50%; background: #e9ecef; color: #868e96; display: flex; justify-content: center; align-items: center; font-weight: 900; font-family: serif; font-size: 14px; cursor: pointer; border: none; transition: 0.1s; }
 .btn-info-circle:active { transform: scale(0.9); background: #dee2e6; }
@@ -275,10 +275,8 @@ html.is-pc .search-panel.show { transform: translateX(0); }
 
 #notice-detail-view { display: none; flex-direction: column; }
 
-/* -- 게시판 상세 열람 시 위쪽으로 비쳐 보이는 현상 차단 -- */
-.notice-detail-header { position: sticky; top: 0; background: #f8f9fa; z-index: 100; padding: calc(max(24px, env(safe-area-inset-top)) + 10px) 20px 16px 20px; margin: 0 -20px 20px -20px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+.notice-detail-header { position: sticky; top: 0; background: #f8f9fa; z-index: 100; padding: calc(max(16px, env(safe-area-inset-top)) + 7px) 20px 16px 20px; margin: 0 -20px 20px -20px; border-bottom: 1px solid rgba(0,0,0,0.08); }
 .notice-detail-header::before { content: ''; position: absolute; top: -50px; left: 0; right: 0; height: 50px; background: #f8f9fa; }
-/* ----------------------------------------------------- */
 
 .detail-top-row { display: flex; justify-content: space-between; align-items: center; }
 .btn-back { background: none; border: none; font-size: 16px; font-weight: 800; color: #495057; display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 0; }
@@ -365,9 +363,6 @@ html.is-mobile .search-panel.show {
     transform: translateX(-50%) translateY(0) !important; 
 }
 
-/* --- 모바일 정보창 레이아웃 및 버튼 스타일 고도화 --- */
-
-/* 1. 날씨/미세먼지 우측 세로 정렬 */
 .body-weather-box {
     display: flex;
     flex-direction: column;
@@ -387,18 +382,16 @@ html.is-mobile .search-panel.show {
     white-space: nowrap;
 }
 
-/* 1. 상단바 공백 제거 및 지도 확장 */
 .top-bar-container {
     top: 0 !important;
     padding-top: max(16px, env(safe-area-inset-top));
 }
 
-/* 2. 정보창 헤더 버튼 및 여백 교정 */
 .panel-header-buttons {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px 0 20px; /* 좌우 여백을 원복하여 좁게 만듦 */
+    padding: 16px 20px 0 20px; 
     z-index: 110;
 }
 
@@ -425,13 +418,12 @@ html.is-mobile .info-panel {
     background: rgba(255,255,255,0.6);
 }
 
-/* 4. 날씨 세로 정렬 및 위치 조정 */
 .body-weather-box {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 4px;
-    margin-top: 4px; /* 장소명 첫 줄과 맞춤 */
+    margin-top: 4px; 
 }
 .weather-item-row {
     font-size: 11px;
@@ -443,15 +435,11 @@ html.is-mobile .info-panel {
     white-space: nowrap;
 }
 
-/* --- 지도 상단 공백 및 정보창 디자인 완벽 복구 --- */
-
-/* 지도 상단 공백 제거 */
 .top-bar-container {
     top: 0 !important;
     padding-top: max(16px, env(safe-area-inset-top));
 }
 
-/* 정보창 상단 고정 버튼(공유, X, 뒤로가기)의 레이아웃 독립 보장 */
 .panel-top-bar {
     position: absolute;
     top: 0;
@@ -473,7 +461,6 @@ html.is-mobile .panel-top-bar {
     pointer-events: auto;
 }
 
-/* 닉네임/비번 입력란 가로 분할 정렬 */
 .comment-inputs-top {
     display: flex;
     gap: 6px;
