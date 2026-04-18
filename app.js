@@ -428,7 +428,8 @@ function initBottomSheet() {
     const panel = document.getElementById('info-content');
     if(!panel || !isMobile) return; 
     
-    let startY = 0; let isDragging = false; let startTransform = 0;
+    let startY = 0; let startX = 0; let isDragging = false; 
+    let isDetermined = false; let startTransform = 0;
 
     function getTransformBase() { return sheetState === 1 ? 55 : (sheetState === 2 ? 15 : 80); }
     
@@ -446,22 +447,51 @@ function initBottomSheet() {
     const startDrag = (e) => {
         if (!isMobile) return; 
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        if (e.target.closest('.image-slider')) return; 
+        
+        // 최상단 상태에서 내용을 스크롤 중이면 창 드래그 취소
         if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
 
-        isDragging = true; startY = e.touches[0].clientY; startTransform = getTransformBase(); panel.style.transition = 'none';
+        isDragging = true; 
+        isDetermined = false; // 가로인지 세로인지 아직 모름
+        startY = e.touches[0].clientY; 
+        startX = e.touches[0].clientX; 
+        startTransform = getTransformBase(); 
+        panel.style.transition = 'none';
     };
 
     const moveDrag = (e) => {
         if (!isDragging || !isMobile) return;
+        const clientY = e.touches[0].clientY; 
+        const clientX = e.touches[0].clientX; 
+        let deltaY = clientY - startY; 
+        let deltaX = clientX - startX;
+
+        // 움직임 방향 판단 (가로 스와이프면 창 이동 취소)
+        if (!isDetermined) {
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
+                isDragging = false; 
+                panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                panel.style.transform = `translateY(${startTransform}%)`;
+                return;
+            } else if (Math.abs(deltaY) > 5) {
+                isDetermined = true; // 세로 스와이프 확정
+            } else {
+                return;
+            }
+        }
+
         if(e.cancelable) e.preventDefault(); 
-        const clientY = e.touches[0].clientY; let deltaY = clientY - startY; let newY = startTransform + (deltaY / window.innerHeight * 100);
-        if (newY < 15) newY = 15; panel.style.transform = `translateY(${newY}%)`;
+        let newY = startTransform + (deltaY / window.innerHeight * 100);
+        if (newY < 15) newY = 15; 
+        panel.style.transform = `translateY(${newY}%)`;
     };
 
     const endDrag = (e) => {
         if (!isDragging || !isMobile) return;
-        isDragging = false; const clientY = e.changedTouches[0].clientY; let deltaY = clientY - startY;
+        isDragging = false; 
+        const clientY = e.changedTouches[0].clientY; 
+        let deltaY = clientY - startY;
+
         if (sheetState === 1 && Math.abs(deltaY) > 10) { sheetState = 2; } 
         else if (deltaY < -30) { if(sheetState === 1 || sheetState === 3) sheetState = 2; } 
         else if (deltaY > 30) { if(sheetState === 2) sheetState = 1; else if(sheetState === 1) sheetState = 3; else if(sheetState === 3) { closePanel(); return; } }
@@ -555,8 +585,11 @@ function renderPanel(id) {
         <div id="drag-handle" class="drag-handle"></div>
         <div class="panel-top-bar" id="top-bar-${place.id}">
             <div class="panel-weather" onclick="window.open('https://weather.naver.com/', '_blank')">${currentWeatherHtml}</div>
-            <div class="icon-actions"><button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button><button class="icon-btn" onclick="closePanel()">✕</button></div>
-        </div>
+            <div class="icon-actions">
+                <div class="view-badge">${viewIcon} ${(place.views || place.likes) || 0}</div>
+                <button class="icon-btn" onclick="sharePlace('${place.name}', '${place.address || ''}')">${shareIcon}</button>
+                <button class="icon-btn btn-panel-close" onclick="closePanel()">✕</button>
+            </div>
         <div class="info-scroll-area" id="scroll-area-${place.id}">
             <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
                 <div style="position:relative; width:100%;">
