@@ -431,7 +431,6 @@ function initBottomSheet() {
     let startY = 0; let startX = 0; 
     let isDragging = false; let isDetermined = false; let startTransform = 0;
 
-    // 1: 절반 노출(55%), 2: 전체 노출(0%)
     function getTransformBase() { return sheetState === 1 ? 55 : 0; }
     
     window.applySheetState = function() {
@@ -443,32 +442,22 @@ function initBottomSheet() {
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         if(scrollArea) {
             if (sheetState === 2) { 
-                scrollArea.style.overflowY = 'auto'; 
-                scrollArea.style.touchAction = 'auto'; 
+                scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; 
             } else { 
-                scrollArea.style.overflowY = 'hidden'; 
-                scrollArea.style.touchAction = 'none'; 
-                scrollArea.scrollTop = 0; 
+                scrollArea.style.overflowY = 'hidden'; scrollArea.style.touchAction = 'none'; scrollArea.scrollTop = 0; 
             }
         }
     };
 
     const startDrag = (e) => {
         if (!isMobile) return; 
-        
-        startY = e.touches[0].clientY; 
-        startX = e.touches[0].clientX; 
-        
+        startY = e.touches[0].clientY; startX = e.touches[0].clientX; 
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        if (e.target.closest('.image-slider')) return; // 가로 스크롤 방해 금지
+        if (e.target.closest('.image-slider')) return; 
         
-        // 창이 최대화 상태이고, 내용을 스크롤 중이라면 (스크롤이 맨 위가 아니라면)
-        if (sheetState === 2 && scrollArea && scrollArea.contains(e.target)) {
-            if (scrollArea.scrollTop > 0) return; // 네이티브 스크롤 진행
-        }
+        if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
 
-        isDragging = true; 
-        isDetermined = false; 
+        isDragging = true; isDetermined = false; 
         startTransform = getTransformBase(); 
         panel.style.transition = 'none';
     };
@@ -476,20 +465,15 @@ function initBottomSheet() {
     const moveDrag = (e) => {
         if (!isMobile) return;
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        const clientY = e.touches[0].clientY; 
-        const clientX = e.touches[0].clientX; 
-        let deltaY = clientY - startY; 
-        let deltaX = clientX - startX;
+        const clientY = e.touches[0].clientY; const clientX = e.touches[0].clientX; 
+        let deltaY = clientY - startY; let deltaX = clientX - startX;
 
-        // 드래그 중이 아닌데 스크롤이 꼭대기에 도달했고, 위에서 아래로 당기는 중이라면 창 축소 이벤트로 전환
         if (!isDragging && sheetState === 2 && scrollArea && scrollArea.contains(e.target)) {
             if (scrollArea.scrollTop <= 0 && deltaY > 5 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                isDragging = true;
-                isDetermined = true;
-                startY = clientY; 
-                startTransform = getTransformBase();
+                isDragging = true; isDetermined = true;
+                startY = clientY; startTransform = getTransformBase();
                 panel.style.transition = 'none';
-                if(e.cancelable) e.preventDefault();
+                if(e.cancelable) e.preventDefault(); 
             }
             return;
         }
@@ -498,42 +482,6 @@ function initBottomSheet() {
 
         if (!isDetermined) {
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
-                isDragging = false; 
-                panel.style.transition = 'transform 0.4s cubic-bezier(0.1, 0.7, 0.3, 1)';
-                panel.style.transform = `translateY(${startTransform}%)`;
-                return;
-            } else if (Math.abs(deltaY) > 5) {
-                isDetermined = true; 
-            } else { return; }
-        }
-
-        if(e.cancelable) e.preventDefault(); 
-        let newY = startTransform + (deltaY / window.innerHeight * 100);
-        if (newY < 0) newY = 0; 
-        panel.style.transform = `translateY(${newY}%)`;
-    };
-
-    const endDrag = (e) => {
-        if (!isDragging || !isMobile) return;
-        isDragging = false; 
-        const clientY = e.changedTouches[0].clientY; 
-        let deltaY = clientY - startY;
-
-        if (sheetState === 1) {
-            if (deltaY < -20) sheetState = 2; // 조금 올리면 전체화면
-            else if (deltaY > 30) { closePanel(); return; } // 내리면 닫힘
-            else sheetState = 1;
-        } else if (sheetState === 2) {
-            if (deltaY > 50) sheetState = 1; // 확 내리면 절반화면
-            else sheetState = 2;
-        }
-        window.applySheetState();
-    };
-
-    panel.addEventListener('touchstart', startDrag, {passive: true});
-    window.addEventListener('touchmove', moveDrag, {passive: false});
-    window.addEventListener('touchend', endDrag);
-}
 async function loadPlaces() {
     try {
         const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
