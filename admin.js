@@ -278,3 +278,8 @@ async function deleteAdminBoard(id) {
     const { error } = await supabaseClient.from('notices').delete().eq('id', id);
     if (!error) { adminBoardData = adminBoardData.filter(x => x.id !== id); renderAdminBoard(); }
 }
+
+function toggleAdminFilter(btn) {
+    btn.classList.toggle('active');
+    renderAdminTable();
+}
