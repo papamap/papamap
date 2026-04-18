@@ -70,78 +70,33 @@ function compressImage(file, maxWidth, maxHeight, quality) {
     });
 }
 
+let isImgDragging = false; let imgStartX, imgScrollLeft;
+function startImgDrag(e, el) { isImgDragging = true; imgStartX = e.pageX - el.offsetLeft; imgScrollLeft = el.scrollLeft; el.style.scrollSnapType = 'none'; }
+function stopImgDrag(e, el) { if(!isImgDragging) return; isImgDragging = false; el.style.scrollSnapType = 'x mandatory'; updateSliderDots(el.id.replace('slider-', ''), el); }
+function doImgDrag(e, el) { if (!isImgDragging) return; e.preventDefault(); const x = e.pageX - el.offsetLeft; const walk = (x - imgStartX) * 1.5; el.scrollLeft = imgScrollLeft - walk; }
+
 class MediaManager {
-    constructor(containerId, instanceName, maxFiles, shouldCompress) { this.containerId = containerId; this.instanceName = instanceName; this.maxFiles = maxFiles; this.shouldCompress = shouldCompress; this.media = []; this.dragTargetIndex = null; setTimeout(() => this.initDragAndDrop(), 100); }
+    constructor(containerId, instanceName, maxFiles, shouldCompress) { this.containerId = containerId; this.instanceName = instanceName; this.maxFiles = maxFiles; this.shouldCompress = shouldCompress; this.media = []; this.dragStartIndex = null; setTimeout(() => this.initDragAndDrop(), 100); }
     loadUrls(urlStr) { this.media = []; if(urlStr) { urlStr.split(',').forEach(u => { if(u.trim()) this.media.push({ type: 'url', data: u.trim() }); }); } this.render(); }
     addFiles(input) { Array.from(input.files).forEach(file => { if (this.media.length < this.maxFiles) this.media.push({ type: 'file', data: file }); }); input.value = ''; this.render(); }
     remove(idx) { this.media.splice(idx, 1); this.render(); }
     reorder(from, to) { const item = this.media.splice(from, 1)[0]; this.media.splice(to, 0, item); this.render(); }
     initDragAndDrop() {
         const container = document.getElementById(this.containerId); if(!container) return;
-
-        // PC Drag
-        container.addEventListener('dragstart', e => {
-            const item = e.target.closest('.media-preview-item');
-            if(item) { this.dragTargetIndex = null; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData('text/plain', item.dataset.idx); }
-        });
-        container.addEventListener('dragover', e => {
-            e.preventDefault(); e.dataTransfer.dropEffect = "move";
-            const targetItem = e.target.closest('.media-preview-item');
-            container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
-            if(targetItem) {
-                const rect = targetItem.getBoundingClientRect(); const isLeft = (e.clientX - rect.left) < (rect.width/2);
-                targetItem.classList.add(isLeft ? 'drag-over-left' : 'drag-over-right');
-            }
-        });
-        container.addEventListener('dragleave', e => {
-            const targetItem = e.target.closest('.media-preview-item');
-            if(targetItem) targetItem.classList.remove('drag-over-left', 'drag-over-right');
-        });
+        container.addEventListener('dragstart', e => { const item = e.target.closest('.media-preview-item'); if(item) { this.dragStartIndex = parseInt(item.dataset.idx); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData('text/plain', this.dragStartIndex); } });
+        container.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; const wrap = document.getElementById(`wrap-${this.containerId.replace('-preview','')}`); if(wrap) wrap.classList.add('dragover'); });
+        container.addEventListener('dragleave', e => { const wrap = document.getElementById(`wrap-${this.containerId.replace('-preview','')}`); if(wrap) wrap.classList.remove('dragover'); });
         container.addEventListener('drop', e => {
-            e.preventDefault(); const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+            e.preventDefault(); const wrap = document.getElementById(`wrap-${this.containerId.replace('-preview','')}`); if(wrap) wrap.classList.remove('dragover');
             const targetItem = e.target.closest('.media-preview-item');
-            container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
-            if(targetItem && !isNaN(fromIdx)) {
-                const rect = targetItem.getBoundingClientRect(); const isLeft = (e.clientX - rect.left) < (rect.width/2);
-                let toIdx = parseInt(targetItem.dataset.idx) + (isLeft ? 0 : 1);
-                if(fromIdx < toIdx) toIdx--;
-                if(fromIdx !== toIdx) this.reorder(fromIdx, toIdx);
-            }
-        });
-
-        // Mobile Touch Drag
-        let dragSrcEl = null, startIdx = null;
-        container.addEventListener('touchstart', e => {
-            if(e.target.tagName === 'BUTTON') return;
-            const item = e.target.closest('.media-preview-item');
-            if(item) { dragSrcEl = item; startIdx = parseInt(item.dataset.idx); item.style.opacity = '0.5'; }
-        }, {passive: true});
-        container.addEventListener('touchmove', e => {
-            if(!dragSrcEl) return; e.preventDefault();
-            const touch = e.touches[0]; const target = document.elementFromPoint(touch.clientX, touch.clientY);
-            const targetItem = target ? target.closest('.media-preview-item') : null;
-            container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
-            if(targetItem && targetItem !== dragSrcEl) {
-                const rect = targetItem.getBoundingClientRect(); const isLeft = (touch.clientX - rect.left) < (rect.width/2);
-                targetItem.classList.add(isLeft ? 'drag-over-left' : 'drag-over-right');
-                this.dragTargetIndex = parseInt(targetItem.dataset.idx) + (isLeft ? 0 : 1);
-            } else this.dragTargetIndex = null;
-        }, {passive: false});
-        container.addEventListener('touchend', e => {
-            if(!dragSrcEl) return;
-            dragSrcEl.style.opacity = '1'; container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
-            if(this.dragTargetIndex !== null) {
-                let endIdx = this.dragTargetIndex;
-                if(startIdx < endIdx) endIdx--;
-                if(startIdx !== endIdx) this.reorder(startIdx, endIdx);
-            }
-            dragSrcEl = null; startIdx = null; this.dragTargetIndex = null;
+            if(targetItem && this.dragStartIndex !== null) { const dragEndIndex = parseInt(targetItem.dataset.idx); if(this.dragStartIndex !== dragEndIndex) this.reorder(this.dragStartIndex, dragEndIndex); }
+            this.dragStartIndex = null;
         });
     }
     render() {
         const container = document.getElementById(this.containerId); container.innerHTML = '';
         this.media.forEach((m, idx) => {
-            const div = document.createElement('div'); div.className = 'media-preview-item'; div.dataset.idx = idx; div.setAttribute('draggable', 'true');
+            const div = document.createElement('div'); div.className = 'media-preview-item'; div.setAttribute('draggable', 'true'); div.dataset.idx = idx;
             if (m.type === 'url') { div.innerHTML = `<img src="${m.data}" class="media-preview-img"><button type="button" class="media-preview-del" onclick="${this.instanceName}.remove(${idx})">✖</button>`; container.appendChild(div); } 
             else { const reader = new FileReader(); reader.onload = (e) => { div.innerHTML = `<img src="${e.target.result}" class="media-preview-img"><button type="button" class="media-preview-del" onclick="${this.instanceName}.remove(${idx})">✖</button>`; container.appendChild(div); }; reader.readAsDataURL(m.data); }
         });
@@ -172,6 +127,7 @@ async function submitInquiry() {
     const btn = document.querySelector('#inquiry-modal .btn-save'); btn.innerText = "전송 중..."; btn.disabled = true;
     const {error} = await supabaseClient.from('inquiries').insert([{ content: content, contact_info: contact }]);
     if(!error) { alert('접수 완료! 감사합니다.'); document.getElementById('inquiry-modal').style.display='none'; document.getElementById('inquiry-content').value = ''; document.getElementById('inquiry-contact').value = ''; } 
+    else { alert('접수 실패. 관리자에게 문의하세요.'); }
     btn.innerText = "보내기"; btn.disabled = false;
 }
 
@@ -199,7 +155,6 @@ function checkAndShowPopup() {
     const today = new Date().toISOString().split('T')[0];
     if (localStorage.getItem('hidePopup') === today) return;
     
-    // validPopups 필터링 시 n.is_popup이 없으면 undefined로 처리되어 무시됨
     const validPopups = noticesData.filter(n => n.is_popup && n.image_url && n.popup_end_date && new Date(n.popup_end_date) >= new Date(today));
     if (validPopups.length > 0) {
         let urls = []; validPopups.forEach(n => urls = urls.concat(n.image_url.split(',')));
@@ -235,24 +190,15 @@ function scrollPopup(dir) {
 
 function initPopupDrag() {
     const el = document.getElementById('popup-slider-inner');
-    let isDown = false;
-    let startX;
-    let scrollLeft;
+    let isDown = false; let startX; let scrollLeft;
 
     el.addEventListener('mousedown', (e) => {
-        isDown = true;
-        startX = e.pageX - el.offsetLeft;
-        scrollLeft = el.scrollLeft;
-        el.style.scrollSnapType = 'none'; 
+        isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft; el.style.scrollSnapType = 'none'; 
     });
     el.addEventListener('mouseleave', () => { isDown = false; el.style.scrollSnapType = 'x mandatory'; });
     el.addEventListener('mouseup', () => { isDown = false; el.style.scrollSnapType = 'x mandatory'; });
     el.addEventListener('mousemove', (e) => {
-        if (!isDown) return;
-        e.preventDefault();
-        const x = e.pageX - el.offsetLeft;
-        const walk = (x - startX) * 2; 
-        el.scrollLeft = scrollLeft - walk;
+        if (!isDown) return; e.preventDefault(); const x = e.pageX - el.offsetLeft; const walk = (x - startX) * 2; el.scrollLeft = scrollLeft - walk;
     });
 }
 
@@ -360,18 +306,23 @@ async function fetchWeather(lat, lng) {
         let temp = Math.round(weatherData.current_weather.temperature); let code = weatherData.current_weather.weathercode; 
         let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
         
-        let pm10 = aqiData.current.pm10; let aqiIcon = '😊'; let aqiText = '좋음'; let isBadAir = false; let isRaining = (code >= 51 && code <= 77);
+        // 보정: Open-Meteo가 실측치보다 높게 잡히는 경향이 있어 한국 기준에 맞게 0.8을 곱하여 보정 적용
+        let pm10 = aqiData.current.pm10 * 0.8; 
+        let pm25 = aqiData.current.pm2_5 * 0.8;
+        let aqiIcon = '😊'; let aqiText = '좋음'; let isBadAir = false; 
         
-        // Open-Meteo와 네이버의 기준 차이를 줄이기 위해 한국 환경부 PM10 기준(µg/m³)을 엄격히 적용합니다.
-        // 한국 대기질 기준: 0~30 좋음, 31~80 보통, 81~150 나쁨, 151 이상 매우나쁨
-        if (pm10 > 150) { aqiIcon = '👿'; aqiText = '매우나쁨'; isBadAir = true; } 
-        else if (pm10 > 80) { aqiIcon = '😷'; aqiText = '나쁨'; isBadAir = true; } 
-        else if (pm10 > 30) { aqiIcon = '😐'; aqiText = '보통'; }
+        // 국내 기준 적용: PM10 (81~ 나쁨, 151~ 매우나쁨) / PM2.5 (36~ 나쁨, 76~ 매우나쁨)
+        if (pm10 > 150 || pm25 > 75) { aqiIcon = '👿'; aqiText = '매우나쁨'; isBadAir = true; } 
+        else if (pm10 > 80 || pm25 > 35) { aqiIcon = '😷'; aqiText = '나쁨'; isBadAir = true; } 
+        else if (pm10 > 30 || pm25 > 15) { aqiIcon = '😐'; aqiText = '보통'; }
         
+        let isRaining = (code >= 51 && code <= 77);
         if (isRaining) aqiIcon = '☔';
         currentWeatherHtml = `${icon} ${temp}°C | ${aqiIcon} ${aqiText}`;
         lastWeatherLat = lat; lastWeatherLng = lng;
         
+        document.getElementById('weather-info').innerHTML = currentWeatherHtml;
+
         const sugEl = document.getElementById('weather-suggestion');
         if (isBadAir || isRaining) { 
             sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; 
@@ -383,7 +334,9 @@ async function fetchWeather(lat, lng) {
         if (!document.getElementById('info-content').classList.contains('show')) {
             sugEl.style.display = 'block';
         }
-    } catch(e) {}
+    } catch(e) {
+        document.getElementById('weather-info').innerHTML = `⛅ --°C | 😐 보통`;
+    }
 }
 
 function updateUserLocationMarker(lat, lng) {
@@ -434,7 +387,10 @@ let sheetState = 0; // 0: hidden, 1: mid, 2: max, 3: min
 function closePanel() { 
     const panel = document.getElementById('info-content');
     panel.classList.remove('show'); sheetState = 0;
-    panel.style.transform = ''; 
+    
+    // PC와 모바일에 따라 닫히는 위치(방향) 지정
+    panel.style.transform = window.innerWidth <= 768 ? 'translateY(100%)' : 'translateX(-20px)'; 
+    
     updateVisibleMarkers(); 
     if (window.isWeatherSuggestionVisible) {
         const ws = document.getElementById('weather-suggestion');
@@ -453,6 +409,11 @@ function initBottomSheet() {
     function getTransformBase() { return sheetState === 1 ? 55 : (sheetState === 2 ? 15 : 80); }
     
     window.applySheetState = function() {
+        if (window.innerWidth > 768) {
+            panel.style.transform = 'none'; // PC에서는 강제 위치 조정 해제
+            return;
+        }
+
         panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
         panel.style.transform = `translateY(${getTransformBase()}%)`;
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
@@ -469,22 +430,22 @@ function initBottomSheet() {
     };
 
     const startDrag = (e) => {
+        if (window.innerWidth > 768) return; // PC 환경 무시
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        if (e.target.closest('.image-slider')) return; // 가로 스크롤 영역에서 세로 드래그 무시
+        if (e.target.closest('.image-slider')) return; 
         
-        // 창이 최대 크기(sheetState 2)이고 스크롤 영역 내용이 최상단이 아니면 네이티브 스크롤을 허용합니다.
         if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
 
         isDragging = true;
-        startY = e.touches ? e.touches[0].clientY : e.clientY;
+        startY = e.touches[0].clientY;
         startTransform = getTransformBase();
         panel.style.transition = 'none';
     };
 
     const moveDrag = (e) => {
-        if (!isDragging) return;
+        if (!isDragging || window.innerWidth > 768) return;
         if(e.cancelable) e.preventDefault(); 
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const clientY = e.touches[0].clientY;
         let deltaY = clientY - startY;
         let newY = startTransform + (deltaY / window.innerHeight * 100);
         if (newY < 15) newY = 15;
@@ -492,13 +453,11 @@ function initBottomSheet() {
     };
 
     const endDrag = (e) => {
-        if (!isDragging) return;
+        if (!isDragging || window.innerWidth > 768) return;
         isDragging = false;
-        const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        const clientY = e.changedTouches[0].clientY;
         let deltaY = clientY - startY;
 
-        // 드래그 또는 클릭 종료 시 상태 변경
-        // sheetState가 1(중간)일때 위로 올리든 아래로 올리든(드래그) 무조건 커지게(2) 변경
         if (sheetState === 1 && Math.abs(deltaY) > 10) {
             sheetState = 2;
         } else if (deltaY < -30) { 
@@ -511,27 +470,10 @@ function initBottomSheet() {
         window.applySheetState();
     };
 
-    // 터치 이벤트 (모바일)
+    // 모바일 전용 터치 이벤트
     panel.addEventListener('touchstart', startDrag, {passive: true});
     window.addEventListener('touchmove', moveDrag, {passive: false});
     window.addEventListener('touchend', endDrag);
-
-    // 마우스 이벤트 (PC에서 모바일 뷰 테스트용)
-    panel.addEventListener('mousedown', startDrag);
-    window.addEventListener('mousemove', moveDrag);
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('mouseleave', endDrag);
-
-    // 마우스 휠 지원 (PC 마우스 휠 굴림 시 무조건 2로 확장)
-    panel.addEventListener('wheel', e => {
-        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        if (sheetState === 1) { 
-            // 시트가 1상태일 때 휠을 어느 방향으로 굴리든 창을 최대로 키웁니다.
-            sheetState = 2; window.applySheetState();
-        } else if (sheetState === 2 && e.deltaY < 0 && scrollArea && scrollArea.scrollTop <= 0) {
-            sheetState = 1; window.applySheetState();
-        }
-    }, {passive: true});
 }
 
 async function loadPlaces() {
@@ -622,7 +564,7 @@ function renderPanel(id) {
         <div class="info-scroll-area" id="scroll-area-${place.id}">
             <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
                 <div style="position:relative; width:100%;">
-                    <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)">
+                    <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
                         ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo">`).join('') : `<img id="img-${place.id}" class="place-photo" src="" style="display:none;" onerror="this.style.display='none'; document.getElementById('header-wrap-${place.id}').classList.add('no-image');">`}
                     </div>
                     ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
@@ -655,7 +597,14 @@ function renderPanel(id) {
         </div>`;
     
     panel.classList.add('show');
-    sheetState = 1; window.applySheetState();
+    
+    if (window.innerWidth <= 768) {
+        sheetState = 1; window.applySheetState();
+    } else {
+        panel.style.transform = 'none';
+        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
+        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
+    }
 
     setTimeout(() => {
         const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;
