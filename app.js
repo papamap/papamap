@@ -524,22 +524,42 @@ async function loadPlaces() {
     } catch (err) { alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message); }
 }
 
-function openSearchPanel() { closePanel(); document.getElementById('search-panel').classList.add('show'); document.getElementById('search-input').focus(); }
-function closeSearchPanel() { document.getElementById('search-panel').classList.remove('show'); document.getElementById('search-scope-toggle').classList.remove('show'); applyFilters(); }
+function openSearchPanel() { 
+    closePanel(); 
+    setCategory('전체'); 
+    document.getElementById('search-panel').classList.add('show'); 
+    document.getElementById('search-input').focus(); 
+    document.getElementById('search-scope-toggle').classList.add('show');
+    document.getElementById('search-results-list').innerHTML = '<div class="res-empty">검색어를 입력해 주세요.</div>';
+}function closeSearchPanel() { document.getElementById('search-panel').classList.remove('show'); document.getElementById('search-scope-toggle').classList.remove('show'); applyFilters(); }
 function setSearchScope(scope) {
     currentSearchScope = scope; document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active')); document.getElementById('scope-' + scope).classList.add('active');
     if(scope === 'near' && navigator.geolocation) { const btn = document.querySelector('.search-input-area .scope-btn:last-child'); btn.style.opacity = '0.5'; navigator.geolocation.getCurrentPosition(pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; executeSearch(); btn.style.opacity = '1'; }, () => { btn.style.opacity = '1'; }, { enableHighAccuracy: false, timeout: 5000 }); } else executeSearch();
 }
 
 function executeSearch() {
-    const query = document.getElementById('search-input').value.trim().toLowerCase(); const listEl = document.getElementById('search-results-list'); listEl.innerHTML = '';
+    const query = document.getElementById('search-input').value.trim().toLowerCase(); 
+    const listEl = document.getElementById('search-results-list'); 
+    
+    if (!query) {
+        listEl.innerHTML = '<div class="res-empty">검색어를 입력해 주세요.</div>';
+        return;
+    }
+
+    listEl.innerHTML = '';
     const bounds = map.getBounds(); let resultCount = 0;
     placesData.forEach(p => {
-        const pCat = normalizeCat(p.category); const nameMatch = p.name.toLowerCase().includes(query); const catMatch = pCat.toLowerCase().includes(query); const isCatActive = (activeCategory === '전체' || pCat === activeCategory);
-        let inScope = true; if (currentSearchScope === 'bounds') inScope = bounds.hasLatLng(new naver.maps.LatLng(p.latitude, p.longitude)); else if (currentSearchScope === 'near') inScope = (getDistanceKm(userLat, userLng, p.latitude, p.longitude) <= 5.0);
-        if ((!query || nameMatch || catMatch) && inScope && isCatActive) {
+        const pCat = normalizeCat(p.category); 
+        const nameMatch = p.name.toLowerCase().includes(query); 
+        const catMatch = pCat.toLowerCase().includes(query); 
+        
+        let inScope = true; 
+        if (currentSearchScope === 'bounds') inScope = bounds.hasLatLng(new naver.maps.LatLng(p.latitude, p.longitude)); 
+        else if (currentSearchScope === 'near') inScope = (getDistanceKm(userLat, userLng, p.latitude, p.longitude) <= 5.0);
+        
+        if ((nameMatch || catMatch) && inScope) {
             const distText = currentSearchScope === 'near' ? `<span style="color:#FF6B6B; font-weight:800; font-size:11px;">📍 ${getDistanceKm(userLat, userLng, p.latitude, p.longitude).toFixed(1)}km</span>` : '';
-            listEl.innerHTML += `<li class="search-result-item" onclick="switchTab('map'); map.setZoom(15); map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});"><div style="font-weight:800; color:#343a40;">${p.name}</div><div style="font-size:11px; color:#868e96; display:flex; align-items:center;">${pCat} ${distText}</div></li>`; resultCount++;
+            listEl.innerHTML += `<li class="search-result-item" onclick="switchTab('map'); map.setZoom(15); map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});"><div style="font-weight:800; color:#343a40;">${p.name}</div><div style="font-size:11px; color:#868e96; display:flex; align-items:center;">${pCat} <span style="margin: 0 6px;">|</span> ${viewIcon} ${(p.views || p.likes) || 0} ${distText}</div></li>`; resultCount++;
         }
     });
     if(resultCount === 0) listEl.innerHTML = '<div class="res-empty">조건에 맞는 장소가 없습니다.</div>';
@@ -581,15 +601,18 @@ function renderPanel(id) {
 
     const panel = document.getElementById('info-content');
     panel.dataset.placeId = place.id;
+    
+    // HTML 구조 꼬임 완벽 수정
     panel.innerHTML = `
         <div id="drag-handle" class="drag-handle"></div>
         <div class="panel-top-bar" id="top-bar-${place.id}">
             <div class="panel-weather" onclick="window.open('https://weather.naver.com/', '_blank')">${currentWeatherHtml}</div>
             <div class="icon-actions">
                 <div class="view-badge">${viewIcon} ${(place.views || place.likes) || 0}</div>
-                <button class="icon-btn" onclick="sharePlace('${place.name}', '${place.address || ''}')">${shareIcon}</button>
+                <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button>
                 <button class="icon-btn btn-panel-close" onclick="closePanel()">✕</button>
             </div>
+        </div>
         <div class="info-scroll-area" id="scroll-area-${place.id}">
             <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}">
                 <div style="position:relative; width:100%;">
@@ -623,8 +646,9 @@ function renderPanel(id) {
                     <div class="comments-list">${visibleComments}${moreBtn}</div>
                 </div>
             </div>
-        </div>`;
-    
+        </div>
+    `;
+
     panel.classList.add('show');
     
     if (isMobile) {
