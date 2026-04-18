@@ -257,7 +257,7 @@ async function togglePopup(id, isPopup) {
         if(item) { item.is_popup = isPopup; item.popup_end_date = endDate; } 
         renderAdminBoard(); 
         alert(isPopup ? '팝업이 설정되었습니다.' : '팝업이 해제되었습니다.');
-    } else alert("팝업 설정 실패: " + error.message);
+    } else alert("팝업 설정 실패 (DB에 is_popup, popup_end_date 컬럼을 먼저 생성해주세요): " + error.message);
 }
 
 async function deleteAdminBoard(id) {

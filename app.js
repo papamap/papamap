@@ -13,6 +13,7 @@ var selectedLat = null, selectedLng = null;
 var currentNoticeId = null;
 var userLocationMarker = null;
 var currentWeatherHtml = "⛅ --°C | 😐 보통";
+window.isWeatherSuggestionVisible = false;
 
 const shareIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>`;
 const viewIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; margin-bottom:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
@@ -175,6 +176,7 @@ async function submitInquiry() {
 }
 
 async function loadNotices() {
+    // is_popup 컬럼이 없으면 에러가 날 수 있으므로 별도 체크
     const { data, error } = await supabaseClient.from('notices').select('*');
     if (!error && data) { 
         noticesData = data; renderNotices(); 
@@ -308,10 +310,14 @@ async function fetchWeather(lat, lng) {
         const sugEl = document.getElementById('weather-suggestion');
         if (isBadAir || isRaining) { 
             sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; 
-            sugEl.style.display = 'block'; 
         } else { 
             sugEl.innerHTML = `💡 날씨와 미세먼지가 모두 좋네요! <b>야외</b> 나들이를 떠나볼까요?`; 
-            sugEl.style.display = 'block'; 
+        }
+        
+        window.isWeatherSuggestionVisible = true;
+        // 정보창이 열려있지 않다면 알림창 표시
+        if (!document.getElementById('info-content').classList.contains('show')) {
+            sugEl.style.display = 'block';
         }
     } catch(e) {}
 }
@@ -365,42 +371,58 @@ function closePanel() {
     document.getElementById('info-content').classList.remove('show'); sheetState = 0;
     document.getElementById('info-content').style.transform = ''; 
     updateVisibleMarkers(); 
+    
+    // 정보창 닫힐 때 날씨창 다시 띄우기
+    if (window.isWeatherSuggestionVisible) {
+        const ws = document.getElementById('weather-suggestion');
+        if(ws) ws.style.display = 'block';
+    }
 }
 
 function initBottomSheet() {
-    const panel = document.getElementById('info-content'); const handle = document.getElementById('drag-handle');
-    if(!panel || !handle) return;
+    const panel = document.getElementById('info-content');
+    if(!panel) return;
     let startY = 0;
-    handle.addEventListener('touchstart', e => { 
-        startY = e.touches[0].clientY; 
-        panel.style.transition = 'none'; 
+    
+    // 드래그 핸들에 직접 이벤트를 걸거나 패널 내부에서 target 필터링
+    panel.addEventListener('touchstart', e => { 
+        const handle = e.target.closest('#drag-handle');
+        if(handle) {
+            startY = e.touches[0].clientY; 
+            panel.dataset.dragging = 'true';
+            panel.style.transition = 'none'; 
+        }
     }, {passive:true});
     
-    handle.addEventListener('touchmove', e => { 
-        if(window.innerWidth > 768) return;
-        e.preventDefault(); 
-        let currentY = e.touches[0].clientY;
-        let deltaY = currentY - startY;
-        let transformBase = sheetState === 1 ? 55 : (sheetState === 2 ? 10 : 80);
-        panel.style.transform = `translateY(calc(${transformBase}% + ${deltaY}px))`;
+    panel.addEventListener('touchmove', e => { 
+        // 핸들을 드래그 중일 때만 작동하도록 하여 스크롤 영역과 완벽 분리
+        if(panel.dataset.dragging === 'true' && window.innerWidth <= 768) {
+            e.preventDefault(); 
+            let currentY = e.touches[0].clientY;
+            let deltaY = currentY - startY;
+            let transformBase = sheetState === 1 ? 55 : (sheetState === 2 ? 10 : 80);
+            panel.style.transform = `translateY(calc(${transformBase}% + ${deltaY}px))`;
+        }
     }, {passive:false});
     
-    handle.addEventListener('touchend', e => {
-        if(window.innerWidth > 768) return;
-        panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        let deltaY = e.changedTouches[0].clientY - startY;
-        
-        if (deltaY < -40) { // swipe up
-            if(sheetState === 1 || sheetState === 3) { panel.style.transform = 'translateY(10%)'; sheetState = 2; }
-            else panel.style.transform = 'translateY(10%)';
-        } else if (deltaY > 40) { // swipe down
-            if(sheetState === 2) { panel.style.transform = 'translateY(55%)'; sheetState = 1; }
-            else if(sheetState === 1) { panel.style.transform = 'translateY(80%)'; sheetState = 3; }
-            else if(sheetState === 3) { closePanel(); }
-        } else {
-            // 원위치 스냅
-            let transformBase = sheetState === 1 ? 55 : (sheetState === 2 ? 10 : 80);
-            panel.style.transform = `translateY(${transformBase}%)`;
+    panel.addEventListener('touchend', e => {
+        if(panel.dataset.dragging === 'true' && window.innerWidth <= 768) {
+            panel.dataset.dragging = 'false';
+            panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            let deltaY = e.changedTouches[0].clientY - startY;
+            
+            if (deltaY < -40) { // swipe up
+                if(sheetState === 1 || sheetState === 3) { panel.style.transform = 'translateY(10%)'; sheetState = 2; }
+                else panel.style.transform = 'translateY(10%)';
+            } else if (deltaY > 40) { // swipe down
+                if(sheetState === 2) { panel.style.transform = 'translateY(55%)'; sheetState = 1; }
+                else if(sheetState === 1) { panel.style.transform = 'translateY(80%)'; sheetState = 3; }
+                else if(sheetState === 3) { closePanel(); }
+            } else {
+                // 원위치 스냅
+                let transformBase = sheetState === 1 ? 55 : (sheetState === 2 ? 10 : 80);
+                panel.style.transform = `translateY(${transformBase}%)`;
+            }
         }
     });
 }
@@ -463,6 +485,10 @@ function updateSliderDots(id, el) { const index = Math.round(el.scrollLeft / el.
 function renderPanel(id) {
     const place = placesData.find(p => p.id === id); if (!place) return;
     incrementViewCount(id); 
+
+    // 정보창이 열리면 날씨창 숨기기
+    const ws = document.getElementById('weather-suggestion');
+    if(ws) ws.style.display = 'none';
 
     let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
     let commentsHtmlArr = commentsArr.map((c, idx) => {
