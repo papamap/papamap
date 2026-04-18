@@ -605,9 +605,9 @@ function renderPanel(id) {
     panel.dataset.placeId = place.id;
     
     panel.innerHTML = `
-        <div id="drag-handle" class="drag-handle" style="width:100%; display:flex; flex-direction:column; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:24px 24px 0 0; padding-bottom:4px; flex-shrink:0; cursor:grab; touch-action:none; z-index:110;">
+        <div style="width:100%; display:flex; flex-direction:column; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:24px 24px 0 0; padding-bottom:4px; flex-shrink:0; z-index:110;">
             
-            <div style="width:100%; height:20px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center;">
+            <div id="drag-handle" class="drag-handle" style="width:100%; height:20px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center; cursor:grab; touch-action:none;">
                 <div style="width:40px; height:4px; background:rgba(0,0,0,0.1); border-radius:2px;"></div>
             </div>
 
@@ -648,6 +648,8 @@ function renderPanel(id) {
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     ${place.business_hours ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">시간</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
                     ${place.parking_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                    ${place.entry_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">입장료</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                    ${place.nursing_room ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">수유실</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
                 </div>
 
                 ${place.comment ? `<div style="font-size:13px; color:#495057; line-height:1.5; margin-top:16px; background:rgba(248,249,250,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); word-break:break-all;">${formatDescription(place.comment)}</div>` : ''}
