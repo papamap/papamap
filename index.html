@@ -36,11 +36,17 @@
 </div>
 
 <div id="info-panel" class="info-panel">
+    <div class="drag-handle"></div>
     <div class="panel-top-bar">
         <button class="btn-back-arrow" onclick="closePanel()">←</button>
-        <div id="weather-info" onclick="window.open('https://weather.naver.com/', '_blank')">☀️ 24°C</div>
+        <div id="weather-info" onclick="window.open('https://weather.naver.com/', '_blank')">☀️ 24°C | 미세먼지 좋음</div>
     </div>
-    <div class="info-scroll-area" id="info-content"></div>
+    <div class="info-scroll-area" id="info-content">
+        <div class="photo-upload-container">
+            <p style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">사진 첨부 (최대 10장, 길게 눌러 순서 변경)</p>
+            <div id="photo-grid" class="photo-grid"></div>
+        </div>
+    </div>
 </div>
 
 <div id="top5-overlay" class="top5-overlay">
