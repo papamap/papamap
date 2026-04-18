@@ -176,10 +176,22 @@ async function submitInquiry() {
 }
 
 async function loadNotices() {
-    const { data, error } = await supabaseClient.from('notices').select('*');
-    if (!error && data) { 
-        noticesData = data; renderNotices(); 
-        checkAndShowPopup(); 
+    try {
+        const { data, error } = await supabaseClient.from('notices').select('*');
+        if (error) throw error;
+        if (data) { 
+            noticesData = data; renderNotices(); 
+            checkAndShowPopup(); 
+        }
+    } catch (err) {
+        console.error("Notices DB Error:", err);
+        const container = document.getElementById('notice-list-container');
+        if(container) {
+            container.innerHTML = `<div style="text-align:center; padding:40px; color:#FF6B6B; font-size:13px; line-height:1.5;">
+                게시글을 불러오지 못했습니다.<br>(${err.message})<br><br>
+                Supabase 대시보드 ➔ Project Settings ➔ API 에서<br>
+                <b>[Reload schema cache]</b>를 클릭해주세요.</div>`;
+        }
     }
 }
 
@@ -187,13 +199,14 @@ function checkAndShowPopup() {
     const today = new Date().toISOString().split('T')[0];
     if (localStorage.getItem('hidePopup') === today) return;
     
+    // validPopups 필터링 시 n.is_popup이 없으면 undefined로 처리되어 무시됨
     const validPopups = noticesData.filter(n => n.is_popup && n.image_url && n.popup_end_date && new Date(n.popup_end_date) >= new Date(today));
     if (validPopups.length > 0) {
         let urls = []; validPopups.forEach(n => urls = urls.concat(n.image_url.split(',')));
         if (urls.length === 0) return;
         
         const sliderInner = document.getElementById('popup-slider-inner');
-        sliderInner.innerHTML = urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:start;">`).join('');
+        sliderInner.innerHTML = urls.map(url => `<img src="${url}" draggable="false" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:start; user-select:none;">`).join('');
         
         if(urls.length > 1) {
             document.getElementById('popup-slider-dots').innerHTML = urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('');
@@ -204,18 +217,45 @@ function checkAndShowPopup() {
         }
         
         document.getElementById('popup-modal').style.display = 'flex';
+        initPopupDrag();
     }
 }
+
 function updatePopupDots() {
     const el = document.getElementById('popup-slider-inner');
     const index = Math.round(el.scrollLeft / el.offsetWidth);
     const dots = document.querySelectorAll('#popup-slider-dots .slider-dot');
     dots.forEach((dot, i) => dot.className = 'slider-dot' + (i === index ? ' active' : ''));
 }
+
 function scrollPopup(dir) {
     const el = document.getElementById('popup-slider-inner');
     el.scrollBy({ left: dir * el.offsetWidth, behavior: 'smooth' });
 }
+
+function initPopupDrag() {
+    const el = document.getElementById('popup-slider-inner');
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    el.addEventListener('mousedown', (e) => {
+        isDown = true;
+        startX = e.pageX - el.offsetLeft;
+        scrollLeft = el.scrollLeft;
+        el.style.scrollSnapType = 'none'; // 드래그 중 스냅 비활성화
+    });
+    el.addEventListener('mouseleave', () => { isDown = false; el.style.scrollSnapType = 'x mandatory'; });
+    el.addEventListener('mouseup', () => { isDown = false; el.style.scrollSnapType = 'x mandatory'; });
+    el.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - el.offsetLeft;
+        const walk = (x - startX) * 2; 
+        el.scrollLeft = scrollLeft - walk;
+    });
+}
+
 function closePopup(hideToday) {
     if(hideToday) localStorage.setItem('hidePopup', new Date().toISOString().split('T')[0]);
     document.getElementById('popup-modal').style.display = 'none';
@@ -225,7 +265,6 @@ function renderNotices() {
     const container = document.getElementById('notice-list-container');
     if(noticesData.length === 0) { container.innerHTML = '<div style="text-align:center; padding:40px; color:#adb5bd;">등록된 글이 없습니다.</div>'; return; }
     
-    // 공지 우선, 최신글 정렬
     noticesData.sort((a, b) => { 
         if (a.is_notice !== b.is_notice) return a.is_notice ? -1 : 1;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); 
@@ -423,11 +462,10 @@ function initBottomSheet() {
     };
 
     const startDrag = (e) => {
-        if (window.innerWidth > 768) return;
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        if (e.target.closest('.image-slider')) return; // Ignore horizontal slider
+        if (e.target.closest('.image-slider')) return; // 가로 스크롤 방해 금지
         
-        // If expanded and scrolling content, allow native scroll
+        // 창이 최대로 올라와 있고, 스크롤 영역 안에서 스크롤을 내릴 여유가 있다면 네이티브 스크롤 허용
         if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
 
         isDragging = true;
@@ -437,7 +475,7 @@ function initBottomSheet() {
     };
 
     const moveDrag = (e) => {
-        if (!isDragging || window.innerWidth > 768) return;
+        if (!isDragging) return;
         if(e.cancelable) e.preventDefault(); 
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         let deltaY = clientY - startY;
@@ -447,7 +485,7 @@ function initBottomSheet() {
     };
 
     const endDrag = (e) => {
-        if (!isDragging || window.innerWidth > 768) return;
+        if (!isDragging) return;
         isDragging = false;
         const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
         let deltaY = clientY - startY;
@@ -462,17 +500,19 @@ function initBottomSheet() {
         window.applySheetState();
     };
 
+    // 터치 이벤트 (모바일)
     panel.addEventListener('touchstart', startDrag, {passive: true});
     window.addEventListener('touchmove', moveDrag, {passive: false});
     window.addEventListener('touchend', endDrag);
 
+    // 마우스 이벤트 (PC에서 모바일 뷰 테스트용)
     panel.addEventListener('mousedown', startDrag);
     window.addEventListener('mousemove', moveDrag);
     window.addEventListener('mouseup', endDrag);
     window.addEventListener('mouseleave', endDrag);
 
+    // 마우스 휠 지원
     panel.addEventListener('wheel', e => {
-        if (window.innerWidth > 768) return;
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         if (sheetState === 1 && e.deltaY > 0) { 
             sheetState = 2; window.applySheetState();
@@ -480,6 +520,28 @@ function initBottomSheet() {
             sheetState = 1; window.applySheetState();
         }
     }, {passive: true});
+}
+
+async function loadPlaces() {
+    try {
+        const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
+        if (error) throw error;
+        
+        if (data) {
+            placesData.forEach(p => { if(p.marker) p.marker.setMap(null); });
+            placesData = data.map(p => { if(p.name) p.name = p.name.split('\\n')[0].split('\n')[0].trim(); return p; });
+            let isZoomedOut = map.getZoom() < 13;
+            placesData.forEach(place => {
+                let jitterLat = place.latitude + (Math.random() - 0.5) * 0.0002; let jitterLng = place.longitude + (Math.random() - 0.5) * 0.0002;
+                place.marker = new naver.maps.Marker({ position: new naver.maps.LatLng(jitterLat, jitterLng), icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }, zIndex: (place.views || place.likes) || 0 });
+                place.marker.addListener('click', function() { map.panTo(place.marker.getPosition()); renderPanel(place.id); if(window.innerWidth <= 768) closeSearchPanel(); });
+            });
+            applyFilters('전체');
+        }
+    } catch (err) {
+        console.error("Places Load Error:", err);
+        alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message + "\n\nSupabase DB 스키마 캐시를 새로고침 해주세요.");
+    }
 }
 
 function openSearchPanel() { closePanel(); document.getElementById('search-panel').classList.add('show'); document.getElementById('search-input').focus(); }
@@ -526,7 +588,6 @@ function renderPanel(id) {
     const place = placesData.find(p => p.id === id); if (!place) return;
     incrementViewCount(id); 
 
-    // 정보창 켜지면 날씨창 숨김
     const ws = document.getElementById('weather-suggestion');
     if(ws) ws.style.display = 'none';
 
@@ -582,13 +643,8 @@ function renderPanel(id) {
         </div>`;
     
     panel.classList.add('show');
-    if (window.innerWidth <= 768) {
-        sheetState = 1; window.applySheetState();
-    } else {
-        panel.style.transform = 'translateX(0)';
-        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
-        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
-    }
+    // 모바일, PC 관계없이 스와이프 제어 로직을 통합하여 작동시킵니다.
+    sheetState = 1; window.applySheetState();
 
     setTimeout(() => {
         const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;

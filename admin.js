@@ -70,7 +70,11 @@ function switchTab(tab) {
 
 async function loadAdminPlaces() {
     const { data, error } = await supabaseClient.from('places').select('*').order('id', { ascending: false });
-    if (!error && data) { adminPlaces = data; renderAdminTable(); }
+    if (error) {
+        alert("장소 데이터를 불러오는 중 DB 에러가 발생했습니다: " + error.message);
+        return;
+    }
+    if (data) { adminPlaces = data; renderAdminTable(); }
 }
 
 function renderAdminTable() {
@@ -215,7 +219,11 @@ function escapeHtml(text) { return !text ? '' : text.replace(/[&<>"']/g, m => ({
 async function loadAdminBoard() {
     const tbody = document.getElementById('board-tbody');
     const { data, error } = await supabaseClient.from('notices').select('*').order('created_at', { ascending: false });
-    if (!error && data) { adminBoardData = data; renderAdminBoard(); }
+    if (error) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#FF6B6B;">DB 통신 에러가 발생했습니다: ${error.message}</td></tr>`;
+        return;
+    }
+    if (data) { adminBoardData = data; renderAdminBoard(); }
 }
 
 function renderAdminBoard() {
@@ -257,7 +265,7 @@ async function togglePopup(id, isPopup) {
         if(item) { item.is_popup = isPopup; item.popup_end_date = endDate; } 
         renderAdminBoard(); 
         alert(isPopup ? '팝업이 설정되었습니다.' : '팝업이 해제되었습니다.');
-    } else alert("팝업 설정 실패 (DB에 is_popup, popup_end_date 컬럼을 먼저 생성해주세요): " + error.message);
+    } else alert("팝업 설정 실패 (DB에 is_popup, popup_end_date 컬럼을 먼저 생성하거나 캐시를 초기화해주세요): " + error.message);
 }
 
 async function deleteAdminBoard(id) {
