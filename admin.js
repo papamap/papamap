@@ -141,6 +141,16 @@ function renderAdminTable() {
             </td>
             <td>${nameBadge}<input type="text" id="name-${p.id}" value="${escapeQuote(p.name)}" placeholder="장소명"></td>
             <td><input type="text" id="park-${p.id}" value="${escapeQuote(p.parking_fee || '')}" placeholder="무료 등"></td>
+            <td>
+    <select class="api-area-select" onchange="updateApiArea(${place.id}, this.value)">
+        <option value="" ${place.seoul_api_area === null || place.seoul_api_area === '' ? 'selected' : ''}>연동 안 함</option>
+        
+        <option value="여의도한강공원" ${place.seoul_api_area === '여의도한강공원' ? 'selected' : ''}>여의도한강공원</option>
+        <option value="광화문·덕수궁" ${place.seoul_api_area === '광화문·덕수궁' ? 'selected' : ''}>광화문·덕수궁</option>
+        <option value="더현대서울" ${place.seoul_api_area === '더현대서울' ? 'selected' : ''}>더현대서울</option>
+        <option value="잠실종합운동장" ${place.seoul_api_area === '잠실종합운동장' ? 'selected' : ''}>잠실종합운동장</option>
+        </select>
+</td>
             <td><input type="text" id="entry-${p.id}" value="${escapeQuote(p.entry_fee || '')}" placeholder="없음 등"></td>
             <td><input type="text" id="nurse-${p.id}" value="${escapeQuote(p.nursing_room || '')}" placeholder="수유실 정보"></td>
             <td><input type="text" id="desc-${p.id}" value="${escapeQuote(displayComment)}" placeholder="상세 설명"></td>
