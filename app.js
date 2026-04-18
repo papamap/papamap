@@ -767,18 +767,44 @@ function openEditModal(id) {
 async function submitEditInfo() {
     const id = document.getElementById('edit-place-id').value;
     const place = placesData.find(p => p.id == id);
-    const catRadio = document.querySelector('input[name="edit-place-category"]:checked'); const cat = catRadio ? catRadio.value : '';
+    const catRadio = document.querySelector('input[name="edit-place-category"]:checked'); 
+    const cat = catRadio ? catRadio.value : '';
+    
     if(!cat) return alert("카테고리를 선택하세요.");
-    const btnSave = document.querySelector('#edit-modal .btn-save'); btnSave.innerText = "업로드 중..."; btnSave.disabled = true;
+    const btnSave = document.querySelector('#edit-modal .btn-save'); 
+    btnSave.innerText = "업로드 중..."; btnSave.disabled = true;
+    
     let newImgUrls = await placeEditMediaManager.uploadAll();
     
-    let updatePayload = { category: cat, website_url: document.getElementById('edit-website').value.trim(), business_hours: document.getElementById('edit-hours').value.trim(), parking_fee: document.getElementById('edit-parking').value.trim(), entry_fee: document.getElementById('edit-entry').value.trim(), nursing_room: document.getElementById('edit-nursing').value.trim(), comment: document.getElementById('edit-comment').value.trim() };
-    if(newImgUrls !== null) updatePayload.image_url = newImgUrls;
+    const tag = `[수정요청_ID:${id}]\n`;
+    const newDesc = document.getElementById('edit-comment').value.trim();
 
-    const contentStr = "[장소수정요청] " + (place ? place.name : id) + "\n" + JSON.stringify(updatePayload);
-    const { error } = await supabaseClient.from('inquiries').insert([{ content: contentStr, contact_info: String(id) }]);
-    if(!error) { alert("수정 요청이 접수되었습니다. 기존 정보는 유지되며 관리자 확인 후 반영됩니다."); document.getElementById('edit-modal').style.display = 'none'; closePanel(); } 
-    else alert("업데이트 실패: " + error.message);
+    let updatePayload = { 
+        name: place.name,
+        address: place.address, 
+        latitude: place.latitude,
+        longitude: place.longitude,
+        category: cat, 
+        website_url: document.getElementById('edit-website').value.trim(), 
+        business_hours: document.getElementById('edit-hours').value.trim(), 
+        parking_fee: document.getElementById('edit-parking').value.trim(), 
+        entry_fee: document.getElementById('edit-entry').value.trim(), 
+        nursing_room: document.getElementById('edit-nursing').value.trim(), 
+        comment: tag + newDesc,
+        is_approved: false 
+    };
+    if(newImgUrls !== null) updatePayload.image_url = newImgUrls;
+    else updatePayload.image_url = place.image_url;
+
+    const { error } = await supabaseClient.from('places').insert([updatePayload]);
+    
+    if(!error) { 
+        alert("수정 요청이 접수되었습니다. 관리자 승인 후 원본에 반영됩니다."); 
+        document.getElementById('edit-modal').style.display = 'none'; 
+        closePanel(); 
+    } else {
+        alert("업데이트 실패: " + error.message);
+    }
     btnSave.innerText = "재승인 요청"; btnSave.disabled = false;
 }
 
