@@ -1062,7 +1062,7 @@ async function fetchSeoulApiData(areaName, placeId) {
 function getCongestColor(lvl) {
     if(lvl === '여유') return '#37B24D';
     if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 붐빔') return '#FF6B6B';
-    if(lvl === '붐빔') return '#e03131';
+    if(lvl === '약간 혼잡') return '#FF6B6B';
+    if(lvl === '혼잡') return '#e03131';
     return '#495057';
 }
