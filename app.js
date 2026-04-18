@@ -336,6 +336,8 @@ async function fetchWeather(lat, lng) {
         let temp = Math.round(weatherData.current_weather.temperature); 
         let code = weatherData.current_weather.weathercode; 
         
+        let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
+        
         let pm10 = aqiData.current.pm10 * 0.8; 
         let pm25 = aqiData.current.pm2_5 * 0.8;
         let aqiText = '좋음'; let isBadAir = false; 
@@ -356,26 +358,26 @@ async function fetchWeather(lat, lng) {
                 `오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴볼까요?` : 
                 `날씨가 참 좋네요! <b>야외</b> 나들이를 추천해요!`;
             
-            // 💡 1. 이모지 대신 깔끔하고 세련된 '파란색 AI 4각별' SVG 아이콘 적용
-            const blueStarSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0; margin-right:6px;"><path d="M12 0C12 6.62742 17.3726 12 24 12C17.3726 12 12 17.3726 12 24C12 17.3726 6.62742 12 0 12C6.62742 12 12 6.62742 12 0Z" fill="#5c7cfa"/></svg>`;
+            const blueStarSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:4px; flex-shrink:0;"><path d="M12 0C12 6.62742 17.3726 12 24 12C17.3726 12 12 17.3726 12 24C12 17.3726 6.62742 12 0 12C6.62742 12 12 6.62742 12 0Z" fill="#5c7cfa"/></svg>`;
             
-            // 💡 2. 가운데 점 대신 슬래시(/)와 여백으로 깔끔하게 구분
-            const conditionStr = `<b>${temp}°C</b> <span style="color:#adb5bd; margin:0 4px; font-weight:400;">/</span> <b>${aqiText}</b>`;
-            
-            // 💡 3. Flexbox를 활용해 별 아이콘과 텍스트의 수직 중앙 정렬 완벽하게 맞춤
             sugEl.innerHTML = `
-                <div id="ai-banner-wrap" style="display:flex; align-items:center; max-width:100%; overflow:hidden;">
-                    ${blueStarSvg}
-                    <div id="ai-banner-text" style="display:flex; align-items:center; white-space:nowrap; font-size:13px; color:#495057;">
-                        ${conditionStr} <span style="margin:0 8px; color:#dee2e6;">|</span> <span style="font-weight:500;">${aiText}</span>
+                <div style="display:flex; align-items:center; width:100%; overflow:hidden;">
+                    <div id="ai-banner-fixed" style="display:flex; align-items:center; flex-shrink:0; font-size:13px; color:#495057; white-space:nowrap;">
+                        <span style="margin-right:6px; font-size:14px;">${icon}</span>
+                        <b>${temp}°C</b> <span style="color:#adb5bd; margin:0 4px; font-weight:400;">/</span> <b>${aqiText}</b>
+                        <span style="margin:0 10px; color:#dee2e6;">|</span>
+                    </div>
+                    <div id="ai-banner-wrap" style="flex:1; overflow:hidden; white-space:nowrap; position:relative;">
+                        <div id="ai-banner-text" style="display:inline-block; font-size:13px; color:#495057;">
+                            ${blueStarSvg}<span style="font-weight:500; vertical-align:middle;">${aiText}</span>
+                        </div>
                     </div>
                 </div>
             `;
             
-            // 💡 4. 모바일 화면을 넘지 않도록 최대 너비 제한 (max-width 적용)
+            // 스타일 설정
             sugEl.style.marginTop = '10px';
             sugEl.style.maxWidth = 'calc(100vw - 32px)'; 
-            sugEl.style.overflow = 'hidden';
             sugEl.style.padding = '10px 14px';
             sugEl.style.background = 'rgba(255, 255, 255, 0.85)';
             sugEl.style.backdropFilter = 'blur(16px)';
@@ -389,21 +391,18 @@ async function fetchWeather(lat, lng) {
                 sugEl.style.display = 'block';
             }
 
-            // 💡 5. 텍스트가 박스보다 길면, 별은 놔두고 '텍스트만' 느리게 스크롤(Marquee)시킴
+            // 💡 텍스트가 길 때만 별부터 흐르게 처리 (Marquee)
             setTimeout(() => {
                 const textWrap = document.getElementById('ai-banner-wrap');
                 const textEl = document.getElementById('ai-banner-text');
                 
-                if(textEl && textWrap && textEl.scrollWidth > textWrap.clientWidth - 20) { 
+                if(textEl && textWrap && textEl.scrollWidth > textWrap.clientWidth) { 
                     const originalHTML = textEl.innerHTML;
-                    // 간격을 30px 주고 텍스트를 복제해서 무한 스크롤 준비
-                    textEl.innerHTML = originalHTML + "<span style='display:inline-block; width:30px;'></span>" + originalHTML;
+                    textEl.innerHTML = originalHTML + "<span style='display:inline-block; width:40px;'></span>" + originalHTML;
                     
-                    // 스크롤될 때 텍스트 끝부분이 자연스럽게 흐려지도록 마스크(그라데이션) 적용
-                    textWrap.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)';
-                    textWrap.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)';
+                    textWrap.style.webkitMaskImage = 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)';
+                    textWrap.style.maskImage = 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)';
                     
-                    // 기존 속도(8s)보다 느리고 눈이 편안한 15s 속도로 애니메이션 강제 주입
                     textEl.style.animation = 'marquee 15s linear infinite'; 
                 }
             }, 100);
