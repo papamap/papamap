@@ -275,7 +275,7 @@ html.is-pc .search-panel.show { transform: translateX(0); }
 
 #notice-detail-view { display: none; flex-direction: column; }
 
-.notice-detail-header { position: sticky; top: 0; background: #f8f9fa; z-index: 100; padding: calc(max(16px, env(safe-area-inset-top)) + 7px) 20px 16px 20px; margin: 0 -20px 20px -20px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+.notice-detail-header { position: sticky; top: 0; background: #f8f9fa; z-index: 100; padding: calc(max(14px, env(safe-area-inset-top)) + 5px) 20px 16px 20px; margin: 0 -20px 20px -20px; border-bottom: 1px solid rgba(0,0,0,0.08); }
 .notice-detail-header::before { content: ''; position: absolute; top: -50px; left: 0; right: 0; height: 50px; background: #f8f9fa; }
 
 .detail-top-row { display: flex; justify-content: space-between; align-items: center; }
