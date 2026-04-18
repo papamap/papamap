@@ -386,7 +386,6 @@ async function loadLiveEvents() {
     const tbody = document.getElementById('events-tbody');
     const updateTime = document.getElementById('event-update-time');
     
-    // 현재 등록된 장소들 중 '연동 구역'이 설정된 중복 없는 목록 추출
     const linkedAreas = [...new Set(adminPlaces.map(p => p.seoul_api_area).filter(a => a))];
     
     if(linkedAreas.length === 0) {
@@ -400,7 +399,11 @@ async function loadLiveEvents() {
     
     for(const area of linkedAreas) {
         try {
-            const res = await fetch(`http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(area)}`);
+            // 🔥 여기도 동일하게 프록시 주소로 교체했습니다.
+            const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(area)}`;
+            const fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+            
+            const res = await fetch(fetchUrl);
             const data = await res.json();
             
             if(data.CITYDATA) {
@@ -421,9 +424,13 @@ async function loadLiveEvents() {
                     <td style="font-size:12px; line-height:1.5;">${evtText}</td>
                     <td style="font-size:12px; line-height:1.5;">${acdntText}</td>
                 </tr>`;
+            } else if (data.RESULT) {
+                htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">API 응답: ${data.RESULT.MESSAGE}</td></tr>`;
+            } else {
+                htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">데이터 파싱 오류</td></tr>`;
             }
         } catch(e) {
-            htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:red;">API 호출 오류</td></tr>`;
+            htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">통신 지연 (HTTPS 차단 우회 오류)</td></tr>`;
         }
     }
     
