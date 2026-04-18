@@ -7,19 +7,13 @@
 <style>
 body{font-family:'Pretendard',sans-serif;background:#f1f3f5;padding:24px}
 .tabs{display:flex;gap:10px;margin-bottom:20px}
-.tab-btn{padding:10px 20px;border-radius:12px;border:none;cursor:pointer;background:#fff;font-weight:bold;}
+.tab-btn{padding:10px 20px;border-radius:12px;border:none;cursor:pointer;background:#fff}
 .tab-btn.active{background:#343a40;color:#fff}
-.section{display:none;background:#fff;padding:20px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.05);}
+.section{display:none;background:#fff;padding:20px;border-radius:16px}
 .section.active{display:block}
 table{width:100%;border-collapse:collapse}
 th,td{padding:12px;border-bottom:1px solid #dee2e6;text-align:left}
 .stat-box{padding:20px;background:#e9ecef;border-radius:12px;margin-bottom:10px;font-weight:bold}
-
-/* 업로드 UI 용 CSS */
-.upload-btn {background:#339af0; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;}
-.photo-grid { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-.photo-item { width: calc(25% - 6px); height:100px; border-radius:8px; background:#ced4da; display:flex; justify-content:center; align-items:center; cursor:grab; overflow:hidden;}
-.photo-item img { width:100%; height:100%; object-fit:cover; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -30,33 +24,17 @@ th,td{padding:12px;border-bottom:1px solid #dee2e6;text-align:left}
     <button class="tab-btn" onclick="switchTab('inquiries')">수정/문의 사항</button>
     <button class="tab-btn" onclick="switchTab('stats')">통계 현황</button>
 </div>
-
-<div id="section-places" class="section active">
-    <h2>장소 추가 (사진 최대 10장)</h2>
-    <input type="file" id="photo-upload" multiple accept="image/*" class="upload-btn">
-    <p style="font-size:12px; color:#868e96;">※ 이미지를 길게 누르고 드래그하여 순서를 변경할 수 있습니다.</p>
-    <div class="photo-grid" id="admin-photo-grid"></div>
-</div>
-
 <div id="section-stats" class="section">
     <h2>방문자 및 조회수 통계</h2>
     <div class="stat-box">오늘 전체 방문자: 개발 준비중 (DB 연동 필요)</div>
     <div class="stat-box">가장 많이 조회된 장소: 개발 준비중</div>
     <div class="stat-box">최다 조회 게시글: 개발 준비중</div>
 </div>
-
 <div id="section-board" class="section">
-    <h2>게시판 목록</h2>
     <table>
         <thead><tr><th>ID</th><th>상태</th><th>제목</th><th>팝업기한</th><th>설정</th></tr></thead>
         <tbody id="board-tbody"></tbody>
     </table>
 </div>
-
-<div id="section-inquiries" class="section">
-    <h2>수정/문의 사항</h2>
-</div>
-
-<script src="admin.js"></script>
 </body>
 </html>
