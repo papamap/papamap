@@ -1060,3 +1060,21 @@ function getCongestColor(lvl) {
     if(lvl === '혼잡') return '#e03131';
     return '#495057';
 }
+
+// 펼치기/접기 (아코디언) 기능
+function toggleLiveDetail(targetId, btnEl) {
+    const el = document.getElementById(targetId);
+    if(!el) return;
+    
+    if(el.style.display === 'none' || el.style.display === '') {
+        el.style.display = 'flex';
+        btnEl.innerHTML = btnEl.innerHTML.replace('▼', '▲');
+        btnEl.style.color = '#495057'; // 펼치면 차분한 색으로 변경
+    } else {
+        el.style.display = 'none';
+        btnEl.innerHTML = btnEl.innerHTML.replace('▲', '▼');
+        // 버튼 텍스트에 따라 원래 색상 복귀
+        if(btnEl.innerText.includes('예측')) btnEl.style.color = '#adb5bd';
+        else btnEl.style.color = '#37B24D';
+    }
+}
