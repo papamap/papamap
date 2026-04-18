@@ -2,6 +2,17 @@ const SUPABASE_URL = "https://jmeqvmmabgcdsuvabpgp.supabase.co";
 const SUPABASE_KEY = "sb_publishable_tpw_7GUMBP3iYiZ-EPLaNw_3u-gjX_B";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// 🔥 [추가] 115개 서울시 API 구역 전체 목록 (코드를 깔끔하게 유지하기 위해 배열로 관리)
+const seoulApiAreas = [
+    "강남 MICE 관광특구", "동대문 관광특구", "명동 관광특구", "이태원 관광특구", "잠실 관광특구", "종로·청계 관광특구", "홍대 관광특구",
+    "경복궁", "광화문·덕수궁", "보신각", "서울 암사동 유적", "창덕궁·종묘",
+    "가산디지털단지역", "강남역", "건대입구역", "고속터미널역", "교대역", "구로디지털단지역", "구파발역", "노량진역", "대림역", "동대문역", "뚝섬역", "미아사거리역", "발산역", "북한산우이역", "사당역", "삼각지역", "서울대입구역", "서울역", "선릉역", "성신여대입구역", "수유역", "신논현역", "신도림역", "신림역", "신촌·이대역", "양재역", "역삼역", "연신내역", "오목교역·상수역", "왕십리역", "용산역", "이대역", "잠실역", "천호역", "충무로역", "합정역", "홍대입구역", "회기역",
+    "4·19 카페거리", "가락시장", "가로수길", "광장(전통)시장", "김포공항", "낙산공원·이화마을", "노량진수산시장", "덕수궁길·정동길", "방배역 먹자골목", "북촌한옥마을", "서촌", "수유리 먹자골목", "쌍문동 먹자골목", "압구정로데오거리", "여의도", "연남동", "영등포 타임스퀘어", "외대앞", "용리단길", "이태원 앤틱가구거리", "인사동·익선동", "창동 신경제 중심지", "청담동 명품거리", "청량리 제기동 일대 상권", "해방촌·경리단길",
+    "남산공원", "노들섬", "뚝섬한강공원", "망원한강공원", "반포한강공원", "북서울꿈의숲", "서리풀공원·몽마르뜨공원", "서울대공원", "서울숲공원", "아차산", "양화한강공원", "어린이대공원", "여의도한강공원", "월드컵공원", "응봉산", "이촌한강공원", "잠실종합운동장",
+    "창동·상계·노원", "청와대", "국립중앙박물관·용산가족공원", "남산골한옥마을", "동대문디자인플라자(DDP)", "마곡(서울식물원)", "문화비축기지", "서울시립미술관", "서울역사박물관", "세종문화회관", "전쟁기념관", "DMC(디지털미디어시티)",
+    "강남대로", "을지로", "청계천", "가산·구로디지털단지", "양재", "종로", "마곡", "상암", "성수", "문정", "창동"
+];
+
 function timeAgo(dateInput) {
     const past = new Date(dateInput);
     const now = new Date();
@@ -96,13 +107,12 @@ function renderAdminTable() {
     document.getElementById('cb-all').checked = false;
     updateBulkBar();
 
-    if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 40px;">데이터가 없습니다.</td></tr>`; return; }
+    if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 40px;">데이터가 없습니다.</td></tr>`; return; }
 
     tbody.innerHTML = filtered.map(p => {
         const nCat = (p.category && p.category.includes('야외')) ? '야외' : (p.category && p.category.includes('문센') ? '문센' : '실내');
         const catClass = nCat === '야외' ? 'cat-outdoor' : (nCat === '문센' ? 'cat-moonsen' : 'cat-indoor');
         
-        // 🔥 수정 요청글인지 확인하고 꼬리표 떼어내기
         const match = (p.comment || '').match(/^\[수정요청_ID:(\d+)\]\n/);
         let origId = null;
         let isEditReq = false;
@@ -111,13 +121,12 @@ function renderAdminTable() {
         if (match) {
             isEditReq = true;
             origId = parseInt(match[1]);
-            displayComment = displayComment.replace(match[0], ''); // 화면에 보일 땐 꼬리표 숨김
+            displayComment = displayComment.replace(match[0], ''); 
         }
 
         const nameBadge = isEditReq ? `<div style="color:#f59f00; font-weight:800; font-size:11px; margin-bottom:2px;">[📝수정요청]</div>` : '';
         const approvedBadge = p.is_approved ? `<span style="color:#20c997; font-weight:800;">✅ 표시됨</span>` : `<span style="color:#FF6B6B; font-weight:800;">❗ 미승인</span>`;
 
-        // 🔥 버튼 분기 처리 (수정요청이면 '수정 반영' 버튼 노출)
         let actionBtns = `<button class="btn btn-save" onclick="quickSave(${p.id}, this)">저장</button>`;
         if (!p.is_approved) {
             if (isEditReq) {
@@ -127,6 +136,11 @@ function renderAdminTable() {
             }
         }
         actionBtns += `<button class="btn btn-del" onclick="deletePlace(${p.id})">삭제</button>`;
+
+        // 🔥 [추가] 115개 API 옵션들을 HTML 문자열로 생성 (변수 오류 해결 `p.id` 사용)
+        const apiOptions = seoulApiAreas.map(area => 
+            `<option value="${area}" ${p.seoul_api_area === area ? 'selected' : ''}>${area}</option>`
+        ).join('');
 
         return `
         <tr>
@@ -140,17 +154,15 @@ function renderAdminTable() {
                 </select>
             </td>
             <td>${nameBadge}<input type="text" id="name-${p.id}" value="${escapeQuote(p.name)}" placeholder="장소명"></td>
-            <td><input type="text" id="park-${p.id}" value="${escapeQuote(p.parking_fee || '')}" placeholder="무료 등"></td>
+            
             <td>
-    <select class="api-area-select" onchange="updateApiArea(${place.id}, this.value)">
-        <option value="" ${place.seoul_api_area === null || place.seoul_api_area === '' ? 'selected' : ''}>연동 안 함</option>
-        
-        <option value="여의도한강공원" ${place.seoul_api_area === '여의도한강공원' ? 'selected' : ''}>여의도한강공원</option>
-        <option value="광화문·덕수궁" ${place.seoul_api_area === '광화문·덕수궁' ? 'selected' : ''}>광화문·덕수궁</option>
-        <option value="더현대서울" ${place.seoul_api_area === '더현대서울' ? 'selected' : ''}>더현대서울</option>
-        <option value="잠실종합운동장" ${place.seoul_api_area === '잠실종합운동장' ? 'selected' : ''}>잠실종합운동장</option>
-        </select>
-</td>
+                <select class="api-area-select" onchange="updateApiArea(${p.id}, this.value)">
+                    <option value="" ${!p.seoul_api_area ? 'selected' : ''}>연동 안 함</option>
+                    ${apiOptions}
+                </select>
+            </td>
+
+            <td><input type="text" id="park-${p.id}" value="${escapeQuote(p.parking_fee || '')}" placeholder="무료 등"></td>
             <td><input type="text" id="entry-${p.id}" value="${escapeQuote(p.entry_fee || '')}" placeholder="없음 등"></td>
             <td><input type="text" id="nurse-${p.id}" value="${escapeQuote(p.nursing_room || '')}" placeholder="수유실 정보"></td>
             <td><input type="text" id="desc-${p.id}" value="${escapeQuote(displayComment)}" placeholder="상세 설명"></td>
@@ -160,6 +172,18 @@ function renderAdminTable() {
                 </div>
             </td>
         </tr>`}).join('');
+}
+
+// 🔥 [추가] 드롭다운에서 API 연동 구역을 선택하면 '저장' 버튼을 누르지 않아도 즉시 DB에 반영하는 함수
+async function updateApiArea(id, areaValue) {
+    const val = areaValue === "" ? null : areaValue;
+    const { error } = await supabaseClient.from('places').update({ seoul_api_area: val }).eq('id', id);
+    if (error) {
+        alert("API 연동 구역 저장 실패: " + error.message);
+    } else {
+        const place = adminPlaces.find(x => x.id === id);
+        if (place) place.seoul_api_area = val;
+    }
 }
 
 function toggleAll(source) { document.querySelectorAll('.cb-item').forEach(cb => cb.checked = source.checked); updateBulkBar(); }
@@ -196,7 +220,6 @@ async function quickSave(id, btnElement) {
     
     if(!newName) return alert("장소명 필수");
 
-    // 🔥 꼬리표 유지 로직 (저장할 때 꼬리표가 날아가지 않도록 붙여줌)
     const p = adminPlaces.find(x => x.id === id);
     let finalDesc = newDesc;
     const match = (p.comment || '').match(/^\[수정요청_ID:\d+\]\n/);
@@ -316,7 +339,7 @@ async function togglePopup(id, isPopup) {
         if(item) { item.is_popup = isPopup; item.popup_end_date = endDate; } 
         renderAdminBoard(); 
         alert(isPopup ? '팝업이 설정되었습니다.' : '팝업이 해제되었습니다.');
-    } else alert("팝업 설정 실패 (DB에 is_popup, popup_end_date 컬럼을 먼저 생성하거나 캐시를 초기화해주세요): " + error.message);
+    } else alert("팝업 설정 실패: " + error.message);
 }
 
 async function deleteAdminBoard(id) {
@@ -330,16 +353,12 @@ function toggleAdminFilter(btn) {
     renderAdminTable();
 }
 
-// 🔥 '수정 반영' 버튼 클릭 시 실행되는 함수
 async function approveEdit(reqId, origId) {
     if(!confirm("이 수정 요청을 '원본 장소'에 덮어씌워 반영하시겠습니까?")) return;
 
     const reqPlace = adminPlaces.find(x => x.id === reqId);
-    
-    // DB에 넣기 전 꼬리표 떼어내기
     const cleanComment = (reqPlace.comment || '').replace(/^\[수정요청_ID:\d+\]\n/, '');
 
-    // 1. 원본 데이터 덮어쓰기
     const updateData = {
         category: reqPlace.category,
         name: reqPlace.name,
@@ -355,10 +374,9 @@ async function approveEdit(reqId, origId) {
     const { error: updateErr } = await supabaseClient.from('places').update(updateData).eq('id', origId);
     if (updateErr) return alert("원본 반영 실패: " + updateErr.message);
 
-    // 2. 반영 끝난 임시글(수정요청글) 삭제
     const { error: delErr } = await supabaseClient.from('places').delete().eq('id', reqId);
     if (delErr) return alert("반영은 완료되었으나 임시 요청글 삭제에 실패했습니다.");
 
     alert("수정 내용이 원본에 성공적으로 반영되었습니다!");
-    loadAdminPlaces(); // 데이터 목록 새로고침
+    loadAdminPlaces();
 }
