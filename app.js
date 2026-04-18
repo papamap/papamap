@@ -557,9 +557,9 @@ function executeSearch() {
         if (currentSearchScope === 'bounds') inScope = bounds.hasLatLng(new naver.maps.LatLng(p.latitude, p.longitude)); 
         else if (currentSearchScope === 'near') inScope = (getDistanceKm(userLat, userLng, p.latitude, p.longitude) <= 5.0);
         
-        if ((nameMatch || catMatch) && inScope) {
+if ((!query || nameMatch || catMatch) && inScope && isCatActive) {
             const distText = currentSearchScope === 'near' ? `<span style="color:#FF6B6B; font-weight:800; font-size:11px;">📍 ${getDistanceKm(userLat, userLng, p.latitude, p.longitude).toFixed(1)}km</span>` : '';
-            listEl.innerHTML += `<li class="search-result-item" onclick="switchTab('map'); map.setZoom(15); map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});"><div style="font-weight:800; color:#343a40;">${p.name}</div><div style="font-size:11px; color:#868e96; display:flex; align-items:center;">${pCat} <span style="margin: 0 6px;">|</span> ${viewIcon} ${(p.views || p.likes) || 0} ${distText}</div></li>`; resultCount++;
+            listEl.innerHTML += `<li class="search-result-item" onclick="switchTab('map'); map.setZoom(15); map.panTo(new naver.maps.LatLng(${p.latitude}, ${p.longitude})); renderPanel(${p.id});"><div style="font-weight:800; color:#343a40;">${p.name}</div><div style="font-size:11px; color:#868e96; display:flex; align-items:center;">${pCat} ${distText}</div></li>`; resultCount++;
         }
     });
     if(resultCount === 0) listEl.innerHTML = '<div class="res-empty">조건에 맞는 장소가 없습니다.</div>';
@@ -602,13 +602,11 @@ function renderPanel(id) {
     const panel = document.getElementById('info-content');
     panel.dataset.placeId = place.id;
     
-    // HTML 구조 꼬임 완벽 수정
     panel.innerHTML = `
         <div id="drag-handle" class="drag-handle"></div>
         <div class="panel-top-bar" id="top-bar-${place.id}">
             <div class="panel-weather" onclick="window.open('https://weather.naver.com/', '_blank')">${currentWeatherHtml}</div>
             <div class="icon-actions">
-                <div class="view-badge">${viewIcon} ${(place.views || place.likes) || 0}</div>
                 <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button>
                 <button class="icon-btn btn-panel-close" onclick="closePanel()">✕</button>
             </div>
