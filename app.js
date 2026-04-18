@@ -463,10 +463,8 @@ function closePanel() {
     panel.classList.remove('show'); 
     sheetState = 0;
     
-    // PC와 모바일에 따라 닫히는 위치(방향) 지정
     panel.style.transform = isMobile ? 'translateY(100%)' : 'translateX(-20px)'; 
     
-    // 💡 정보창을 닫을 때 숨겨졌던 카테고리 칩(전체/실내/야외/문센)을 다시 보이게 합니다.
     document.getElementById('category-nav').style.display = 'flex'; 
 
     updateVisibleMarkers(); 
@@ -661,13 +659,37 @@ function renderPanel(id) {
                 </div>
 
                 <div style="display:flex; flex-direction:column; gap:8px;">
+                    ${place.seoul_api_area ? `
+                    <div id="live-congest-wrap-${place.id}" style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:none; flex-direction:column; font-size:12px; color:#495057;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center;">
+                                <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0;">혼잡도</span>
+                                <span id="live-congest-cur-${place.id}" style="font-weight:800;">데이터 로딩중...</span>
+                            </div>
+                            <button onclick="toggleLiveDetail('congest-detail-${place.id}', this)" style="background:none; border:none; font-size:11px; color:#adb5bd; font-weight:700; cursor:pointer; padding:0; transition:0.2s;">예측 보기 ▼</button>
+                        </div>
+                        <div id="congest-detail-${place.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.08); font-size:11px;">
+                            </div>
+                    </div>` : ''}
+                    
                     ${place.business_hours ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">시간</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
-                    ${place.parking_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                    ${place.seoul_api_area ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">실시간</span><span style="flex:1; line-height:1.5; color:#37B24D; font-weight:800;">${escapeHtml(place.seoul_api_area)} 📡</span></div>` : ''}
+                    
+                    ${place.parking_fee || place.seoul_api_area ? `
+                    <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div style="display:flex; flex:1;">
+                                <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span>
+                                <span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee || '요금 정보 없음').replace(/\n/g, '<br>')}</span>
+                            </div>
+                            ${place.seoul_api_area ? `<button id="btn-park-toggle-${place.id}" onclick="toggleLiveDetail('live-park-${place.id}', this)" style="display:none; background:rgba(55,178,77,0.1); border:1px solid #37B24D; color:#37B24D; border-radius:6px; font-size:10px; font-weight:800; cursor:pointer; padding:4px 8px; margin-left:8px; flex-shrink:0; transition:0.2s;">실시간 현황 ▼</button>` : ''}
+                        </div>
+                        <div id="live-park-${place.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.08); flex-direction:column; gap:6px;">
+                            </div>
+                    </div>` : ''}
+                    
                     ${place.entry_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">입장료</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
                     ${place.nursing_room ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">수유실</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
                 </div>
-
                 ${place.comment ? `<div style="font-size:13px; color:#495057; line-height:1.5; margin-top:16px; background:rgba(248,249,250,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); word-break:break-all;">${formatDescription(place.comment)}</div>` : ''}
                 
                 <div style="border-top:1px solid rgba(0,0,0,0.08); padding-top:16px; margin-top:20px; display:flex; flex-direction:column;">
@@ -703,6 +725,10 @@ function renderPanel(id) {
 
     if(!isHasImage && place.category !== '문센') {
         fetchKakaoImage(place.name, `img-${place.id}`, null, `slider-${place.id}`, `header-wrap-${place.id}`); 
+    }
+
+    if(place.seoul_api_area) {
+        fetchSeoulApiData(place.seoul_api_area, place.id);
     }
 }
 
@@ -954,4 +980,77 @@ async function savePlace() {
     if (!error && data && data.length > 0) { 
         document.getElementById('add-modal').style.display='none'; document.getElementById('place-name').value = ''; document.getElementById('place-address').value = ''; document.getElementById('kakao-keyword').value = ''; document.getElementById('place-website').value = ''; document.getElementById('place-hours-time').value = ''; document.getElementById('place-parking-detail').value = ''; document.getElementById('place-entry-detail').value = ''; document.getElementById('place-nursing-detail').value = ''; document.getElementById('place-comment').value = ''; placeAddMediaManager.loadUrls(''); alert("장소가 접수되었습니다! 관리자 승인 후 지도에 노출됩니다."); btnSave.innerText = "승인 요청하기"; btnSave.disabled = false;
     } else { alert("등록 실패. " + error.message); btnSave.innerText = "승인 요청하기"; btnSave.disabled = false; }
+}
+
+async function fetchSeoulApiData(areaName, placeId) {
+    const cBox = document.getElementById(`live-congest-${placeId}`);
+    const pBox = document.getElementById(`live-park-${placeId}`);
+    
+    try {
+        const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(areaName)}`;
+        
+        const fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+
+        const res = await fetch(fetchUrl);
+        const data = await res.json();
+        
+        if(data.CITYDATA) {
+            const cd = data.CITYDATA;
+            
+            // [혼잡도 파싱]
+            if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
+                const pop = cd.LIVE_PPLTN_STTS[0];
+                let cur = pop.AREA_CONGEST_LVL;
+                let fcst = pop.FCST_PPLTN || [];
+                let f2 = fcst.length > 1 ? fcst[1].FCST_CONGEST_LVL : "-";
+                let f4 = fcst.length > 3 ? fcst[3].FCST_CONGEST_LVL : "-";
+                
+                if(cBox) cBox.innerHTML = `현재 <span style="color:${getCongestColor(cur)}">${cur}</span>, 2시간뒤 <span style="color:${getCongestColor(f2)}">${f2}</span>, 4시간뒤 <span style="color:${getCongestColor(f4)}">${f4}</span>`;
+            }
+
+            // [주차장 파싱]
+            const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
+            if(validPrk.length > 0) {
+                let prkHtml = validPrk.map(p => {
+                    let remain = Math.max((parseInt(p.CPCTY) || 0) - (parseInt(p.CUR_PRK_CNT) || 0), 0);
+                    return `<div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center;">
+                        <span style="color:#495057; font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.PRK_NM}</span>
+                        <span style="color:#37B24D; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">${remain}대 여유 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>
+                    </div>`;
+                }).join('');
+                if(pBox) { pBox.style.display = 'block'; pBox.innerHTML = prkHtml; }
+            }
+        } else if (data.RESULT && data.RESULT.MESSAGE) {
+            if(cBox) cBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">API 오류: ${data.RESULT.MESSAGE}</span>`;
+        } else {
+            if(cBox) cBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">데이터 구조 오류</span>`;
+        }
+    } catch(e) { 
+        console.error(e); 
+        if(cBox) cBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">통신 지연 또는 차단됨</span>`;
+    }
+}
+
+function getCongestColor(lvl) {
+    if(lvl === '여유') return '#37B24D';
+    if(lvl === '보통') return '#f59f00';
+    if(lvl === '약간 붐빔') return '#FF6B6B';
+    if(lvl === '붐빔') return '#e03131';
+    return '#495057';
+}
+
+function getCongestColor(lvl) {
+    if(lvl === '여유') return '#37B24D';
+    if(lvl === '보통') return '#f59f00';
+    if(lvl === '약간 붐빔') return '#FF6B6B';
+    if(lvl === '붐빔') return '#e03131';
+    return '#495057';
+}
+
+function getCongestColor(lvl) {
+    if(lvl === '여유') return '#37B24D';
+    if(lvl === '보통') return '#f59f00';
+    if(lvl === '약간 붐빔') return '#FF6B6B';
+    if(lvl === '붐빔') return '#e03131';
+    return '#495057';
 }
