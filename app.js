@@ -579,6 +579,7 @@ function initBottomSheet() {
 }
 
 function renderPanel(id) {
+    // 정보창 열 때 상단 카테고리 칩과 AI 배너 숨김
     const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
     if(nav) nav.style.display = 'none'; 
     const ws = document.getElementById('weather-suggestion');
@@ -604,7 +605,7 @@ function renderPanel(id) {
     const panel = document.getElementById('info-content');
     panel.dataset.placeId = place.id;
     
-    // 💡 [조절 5] background: rgba(255,255,255,0.75) -> 맨 끝 숫자(0.75)를 줄이면 더 투명해집니다.
+    // 🔥 [조절 5] 투명도 조절 (0.75)
     panel.style.background = 'rgba(255, 255, 255, 0.75)';
     panel.style.backdropFilter = 'blur(20px)';
     panel.style.webkitBackdropFilter = 'blur(20px)';
@@ -612,11 +613,13 @@ function renderPanel(id) {
     
     panel.innerHTML = `
         <div style="width:100%; display:flex; flex-direction:column; background:transparent; padding-bottom:4px; flex-shrink:0; z-index:110;">
-            <div id="drag-handle" class="drag-handle" style="width:100%; height:20px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center; cursor:grab; touch-action:none;">
-                <div style="width:40px; height:4px; background:rgba(0,0,0,0.1); border-radius:2px;"></div>
+            
+            <div style="width:100%; height:20px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center; cursor:grab; touch-action:none;">
+                <div style="width:36px; height:4px; background:rgba(0,0,0,0.1); border-radius:2px;"></div>
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; box-sizing:border-box; padding: ${isMobile ? '8px' : '24px'} 20px 0 26px;">
+                
                 <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start;">
                     <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:6px;">${normalizeCat(place.category)}</div>
                     <div id="title-wrap-${place.id}" style="width:100%; overflow:hidden; white-space:nowrap; position:relative;">
@@ -651,7 +654,7 @@ function renderPanel(id) {
                         onmousemove="doImgDrag(event, this)">
                         ${isHasImage ? urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:center; display:block; pointer-events:none;" draggable="false">`).join('') : ''}
                     </div>
-                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:6px; align-items:center;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,${i===0 ? '1' : '0.5'}); transform:${i===0 ? 'scale(1.2)' : 'scale(1)'}; transition:all 0.2s ease;"></div>`).join('')}</div>` : ''}
+                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:6px;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5);"></div>`).join('')}</div>` : ''}
                 </div>
 
                 <div style="display:flex; flex-direction:column; gap:8px;">
