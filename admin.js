@@ -80,14 +80,19 @@ async function loadAdminPlaces() {
 function renderAdminTable() {
     const tbody = document.getElementById('admin-tbody');
     const searchWord = document.getElementById('admin-search').value.trim().toLowerCase();
-    const filterCat = document.getElementById('admin-category').value;
-    const filterApprove = document.getElementById('admin-approval').value;
+    
+    // 🔥 새 토글 방식의 필터값 가져오기 (켜져 있는 버튼들 파악)
+    const activeCats = Array.from(document.querySelectorAll('.cat-toggle.active')).map(b => b.dataset.val);
+    const activeStatuses = Array.from(document.querySelectorAll('.status-toggle.active')).map(b => b.dataset.val);
 
     let filtered = adminPlaces.filter(p => {
         const matchName = p.name.toLowerCase().includes(searchWord);
         const pCat = (p.category && p.category.includes('야외')) ? '야외' : (p.category && p.category.includes('문센') ? '문센' : '실내');
-        const matchCat = (filterCat === "") || (pCat === filterCat);
-        const matchApprove = (filterApprove === "") || (String(p.is_approved) === filterApprove);
+        
+        // 카테고리와 승인상태가 켜져있는 버튼 목록에 포함되어 있는지 확인
+        const matchCat = activeCats.includes(pCat);
+        const matchApprove = activeStatuses.includes(String(p.is_approved));
+        
         return matchName && matchCat && matchApprove;
     });
 
