@@ -581,7 +581,6 @@ function initBottomSheet() {
 }
 
 function renderPanel(id) {
-    // 정보창 열 때 상단 칩과 AI 배너 숨김
     const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
     if(nav) nav.style.display = 'none'; 
     const ws = document.getElementById('weather-suggestion');
@@ -607,21 +606,23 @@ function renderPanel(id) {
     const panel = document.getElementById('info-content');
     panel.dataset.placeId = place.id;
     
-    // 🔥 [수정] 상단 바를 하나의 컨테이너(drag-handle)로 통합하여 갈라짐 방지
     panel.innerHTML = `
-        <div id="drag-handle" class="drag-handle" style="width:100%; display:flex; flex-direction:column; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:24px 24px 0 0; padding-bottom:10px; flex-shrink:0; cursor:grab; touch-action:none; z-index:110;">
+        <div id="drag-handle" class="drag-handle" style="width:100%; display:flex; flex-direction:column; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:24px 24px 0 0; padding-bottom:4px; flex-shrink:0; cursor:grab; touch-action:none; z-index:110;">
+            
             <div style="width:100%; height:20px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center;">
                 <div style="width:40px; height:4px; background:rgba(0,0,0,0.1); border-radius:2px;"></div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; box-sizing:border-box; padding: ${isMobile ? '0' : '20px'} 20px 0 26px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; box-sizing:border-box; padding: ${isMobile ? '8px' : '24px'} 20px 0 26px;">
+                
                 <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start;">
-                    <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:2px;">${normalizeCat(place.category)}</div>
+                    <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:6px;">${normalizeCat(place.category)}</div>
                     <div id="title-wrap-${place.id}" style="width:100%; overflow:hidden; white-space:nowrap; position:relative;">
                         <div class="info-title" id="dyn-title-${place.id}" style="font-size:22px; font-weight:800; color:#212529; display:inline-block;">${place.name}</div>
                     </div>
                 </div>
-                <div style="display:flex; gap:8px; flex-shrink:0; margin-left:12px; margin-top:4px;">
+                
+                <div style="display:flex; gap:8px; flex-shrink:0; margin-left:12px; margin-top:-2px;">
                     <button class="icon-btn" onclick="openEditModal(${place.id})" style="width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.04); border:none; cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:12px;">✏️</button>
                     <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')" style="width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.04); border:none; cursor:pointer; display:flex; justify-content:center; align-items:center;">${shareIcon}</button>
                     <button class="icon-btn" onclick="closePanel()" style="width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.04); border:none; cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:14px; font-weight:800;">✕</button>
