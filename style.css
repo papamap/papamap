@@ -3,7 +3,7 @@ body,html{margin:0;padding:0;height:100%;font-family:'Pretendard',sans-serif;bac
 .top-header{background:rgba(255,255,255,0.8);backdrop-filter:blur(16px);padding:8px 14px;border-radius:20px;display:flex;align-items:center}
 .header-title{font-size:16px;font-weight:800;margin:0}
 #weather-reco{position:absolute;top:max(60px,env(safe-area-inset-top));left:16px;z-index:10;background:rgba(255,107,107,0.9);color:white;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:700}
-#weather-info{font-size:12px;font-weight:700;color:#495057;background:rgba(255,255,255,0.9);padding:6px 10px;border-radius:12px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
+#weather-info{font-size:12px;font-weight:700;color:#495057;background:rgba(255,255,255,0.9);padding:6px 10px;border-radius:12px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1); display:inline-block;}
 .category-nav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .chip{padding:6px 12px;background:rgba(255,255,255,0.8);border:1px solid rgba(0,0,0,0.1);border-radius:16px;font-size:12px;font-weight:700;cursor:pointer}
 .chip.active{background:#343a40;color:white}
@@ -12,14 +12,11 @@ body,html{margin:0;padding:0;height:100%;font-family:'Pretendard',sans-serif;bac
 .marker-pin{width:28px;height:28px;border-radius:50% 50% 50% 0;background:#fff;border:2.5px solid;transform:rotate(-45deg);display:flex;justify-content:center;align-items:center;box-shadow:0 3px 8px rgba(0,0,0,0.15)}
 .marker-icon{transform:rotate(45deg);font-size:13px}
 
-.info-panel{position:absolute;top:16px;left:16px;width:340px;z-index:20;background:rgba(255,255,255,0.95);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,0.15);opacity:0;transform:translateX(-20px);transition:transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;display:none;flex-direction:column;max-height:calc(100vh - 32px)}
+/* Info Panel & Bottom Sheet Base */
+.info-panel{position:absolute;top:16px;left:16px;width:340px;z-index:20;background:rgba(255,255,255,0.95);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,0.15);opacity:0;transform:translateX(-20px);transition:all 0.3s ease;display:none;flex-direction:column;max-height:calc(100vh - 32px)}
 .info-panel.show{opacity:1;transform:translateX(0);display:flex}
-.panel-top-bar{padding:16px;display:flex;align-items:center;justify-content:flex-start}
-.drag-handle{display:none;width:40px;height:5px;background:#ced4da;border-radius:3px;margin:12px auto 0;cursor:grab}
-
-.photo-grid{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 16px}
-.photo-item{width:calc(25% - 6px);aspect-ratio:1;border-radius:8px;overflow:hidden;background:#e9ecef;position:relative;touch-action:none}
-.photo-item img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.panel-top-bar{padding:12px 16px; display:flex; align-items:center; border-bottom:1px solid rgba(0,0,0,0.05);}
+.drag-handle{display:none;} /* 데스크톱에서는 숨김 */
 
 .top5-overlay{position:absolute;top:80px;right:16px;z-index:10;width:200px;background:rgba(255,255,255,0.9);border-radius:12px;padding:12px;box-shadow:0 4px 16px rgba(0,0,0,0.1);transition:opacity 0.2s}
 .top5-header{font-size:13px;font-weight:800;margin-bottom:8px}
@@ -30,8 +27,18 @@ body,html{margin:0;padding:0;height:100%;font-family:'Pretendard',sans-serif;bac
 .popup-slider{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;max-height:60vh;border-radius:12px}
 .popup-slider img{width:100%;scroll-snap-align:center;object-fit:cover}
 
+/* 사진 업로드 그리드 (관리자 & 게시판 용) */
+.photo-upload-container { width:100%; margin-top:10px; }
+.photo-grid { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.photo-item { flex: 0 0 calc(25% - 6px); aspect-ratio: 1; border-radius:12px; background:#e9ecef; object-fit:cover; box-shadow:0 2px 4px rgba(0,0,0,0.05); cursor:grab; }
+.photo-item:active { cursor:grabbing; opacity:0.8; }
+
 @media(max-width:768px){
-  .drag-handle{display:block}
-  .info-panel{top:auto;bottom:0;left:0;width:100vw;max-width:100vw;border-radius:20px 20px 0 0;transform:translateY(100%);height:100vh;max-height:100vh}
-  .info-panel.show{transform:translateY(66vh)} 
+  .drag-handle{display:block; width:40px; height:5px; background:#dee2e6; border-radius:3px; margin:10px auto; cursor:grab;}
+  
+  /* 바텀시트 3단계 뷰 */
+  .info-panel{top:auto; bottom:0; left:0; width:100vw; max-width:100vw; border-radius:24px 24px 0 0; transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); height:85vh; max-height:85vh;}
+  .info-panel.show{transform:translateY(67%);} /* 1단계: 33% 노출 */
+  .info-panel.mid{transform:translateY(20%);}  /* 2단계: 80% 노출 */
+  .info-panel.min{transform:translateY(85%);}  /* 3단계: 15% 노출 */
 }
