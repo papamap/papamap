@@ -248,8 +248,7 @@ html.is-pc .search-panel.show { transform: translateX(0); }
     background: #f8f9fa; 
     z-index: 2000; 
     display: none; 
-    /* 💡 [조절] 첫 번째 숫자 '24px'를 줄이면 상단 여백이 더 좁아집니다. (기존 0에서 변경) */
-    padding: 24px 20px calc(90px + env(safe-area-inset-bottom)); 
+    padding: 0px 20px calc(90px + env(safe-area-inset-bottom)); 
     box-sizing: border-box; 
     overflow-y: auto; 
 }
