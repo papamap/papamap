@@ -604,12 +604,15 @@ function renderPanel(id) {
     const panel = document.getElementById('info-content');
     panel.dataset.placeId = place.id;
     
-    // 🔥 만약 CSS에서 정보창 전체에 흰색 배경이 깔려있다면 투명해지지 않을 수 있어서, JS로 배경을 강제로 투명하게 만듭니다.
-    panel.style.background = 'transparent';
-    panel.style.boxShadow = 'none';
+    // 🔥 [해결] 정보창 '전체(부모 패널)'를 하나의 통유리(Glass)로 만듭니다.
+    // 💡 [조절 5] background: rgba(255,255,255,0.75) -> 맨 끝 숫자(0.75)를 줄이면 전체 창이 더 투명해지고, 1에 가까워지면 불투명해집니다.
+    panel.style.background = 'rgba(255, 255, 255, 0.75)';
+    panel.style.backdropFilter = 'blur(20px)';
+    panel.style.webkitBackdropFilter = 'blur(20px)';
+    panel.style.boxShadow = '0 4px 24px rgba(0,0,0,0.1)';
     
     panel.innerHTML = `
-        <div style="width:100%; display:flex; flex-direction:column; background:rgba(255,255,255,0.75); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-radius:24px 24px 0 0; padding-bottom:4px; flex-shrink:0; z-index:110; box-shadow:0 4px 16px rgba(0,0,0,0.05);">
+        <div style="width:100%; display:flex; flex-direction:column; background:transparent; padding-bottom:4px; flex-shrink:0; z-index:110;">
             
             <div id="drag-handle" class="drag-handle" style="width:100%; height:20px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center; cursor:grab; touch-action:none;">
                 <div style="width:40px; height:4px; background:rgba(0,0,0,0.1); border-radius:2px;"></div>
@@ -632,7 +635,7 @@ function renderPanel(id) {
             </div>
         </div>
 
-        <div class="info-scroll-area" id="scroll-area-${place.id}" style="flex:1; overflow-y:auto; overflow-x:hidden; width:100%; display:flex; flex-direction:column; -webkit-overflow-scrolling:touch; background:white;">
+        <div class="info-scroll-area" id="scroll-area-${place.id}" style="flex:1; overflow-y:auto; overflow-x:hidden; width:100%; display:flex; flex-direction:column; -webkit-overflow-scrolling:touch; background:transparent;">
             <div class="info-body-wrap" style="padding: 0 20px 30px 26px; height:auto; display:flex; flex-direction:column;">
                 
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
