@@ -536,7 +536,7 @@ function renderPanel(id) {
     let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
     let visibleComments = commentsArr.map((c, idx) => {
         let dateStr = timeAgo(c.date || c.id); 
-        return `<div class="comment-item cmt-item-${place.id}" style="display: ${idx < 3 ? 'flex' : 'none'}; flex-direction:column; background:rgba(255,255,255,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); margin-bottom:8px; font-size:12px; line-height:1.5;"><div class="comment-header" style="display:flex; justify-content:space-between; margin-bottom:6px;"><div class="c-author" style="font-weight:800;">${escapeHtml(c.author)} <span style="font-weight:400; color:#868e96; margin-left:4px; font-size:10px;">${dateStr}</span></div><div style="display:flex; align-items:center; gap:8px;"><button class="comment-delete" onclick="editComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; cursor:pointer; font-size:11px; padding:0; font-family:inherit;">수정</button><button class="comment-delete" onclick="deleteComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; cursor:pointer; font-size:11px; padding:0; font-family:inherit;">삭제</button></div></div><div style="word-break:break-all;">${formatDescription(c.text)}</div></div>`
+        return `<div class="comment-item cmt-item-${place.id}" style="display: ${idx < 3 ? 'flex' : 'none'}; flex-direction:column; background:rgba(255,255,255,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); margin-bottom:8px; font-size:12px; line-height:1.5;"><div class="comment-header" style="display:flex; justify-content:space-between; margin-bottom:6px;"><div class="c-author" style="font-weight:800;">${escapeHtml(c.author)} <span style="font-weight:400; color:#868e96; margin-left:4px; font-size:10px;">${dateStr}</span></div><div style="display:flex; align-items:center; gap:8px;"><button class="comment-delete" onclick="editComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; font-size:11px; cursor:pointer; padding:0; font-family:inherit;">수정</button><button class="comment-delete" onclick="deleteComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; font-size:11px; cursor:pointer; padding:0; font-family:inherit;">삭제</button></div></div><div style="word-break:break-all;">${formatDescription(c.text)}</div></div>`
     }).join('');
     
     let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" style="background:none; border:none; color:#adb5bd; font-size:12px; font-weight:700; cursor:pointer; padding:8px 0; width:100%; text-align:center; font-family:inherit;">추가정보 더보기 ▼</button>` : '';
@@ -569,33 +569,33 @@ function renderPanel(id) {
         <div class="info-scroll-area" id="scroll-area-${place.id}" style="flex:1; overflow-y:auto; overflow-x:hidden; width:100%; display:flex; flex-direction:column; -webkit-overflow-scrolling:touch;">
             <div style="padding-top: ${isMobile ? '60px' : '70px'}; flex-shrink:0;"></div>
             
-            <div class="info-body-wrap" style="padding: 0 20px 30px 20px; height:auto; display:flex; flex-direction:column;">
+            <div class="info-body-wrap" style="padding: 0 20px 30px 26px; height:auto; display:flex; flex-direction:column;">
                 
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
                     <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start;">
                         <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:6px;">${normalizeCat(place.category)}</div>
                         
-                        <div style="display: flex; align-items: center; max-width: 100%; margin-bottom: 4px;">
+                        <div style="display: flex; align-items: center; max-width: 100%;">
                             <div id="title-wrap-${place.id}" style="flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative;">
                                 <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; font-weight: 800; color: #212529; display: inline-block;">${place.name}</div>
                             </div>
                             <button onclick="openEditModal(${place.id})" style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); font-size:12px; cursor:pointer; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; color:#495057; flex-shrink:0; padding:0; margin-left:6px;">✏️</button>
                         </div>
                         
-                        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+                        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px;">
                             ${place.address ? `<div onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; font-size:12px; display:flex; align-items:center; gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${place.address}</div>` : ''}
                             ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="display:inline-flex; align-items:center; padding: 4px 8px; background: rgba(241, 243, 245, 0.8); border-radius:8px; font-size:10px; font-weight:700; color:#495057; text-decoration:none;">🌐 공식홈</a>` : ''}
                         </div>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; margin-left:12px; margin-top:18px;">
-                        <div style="font-size:11px; font-weight:800; color:#495057; background:rgba(241,243,245,0.8); padding:4px 8px; border-radius:8px;">${weatherText}</div>
-                        <div style="font-size:11px; font-weight:800; color:#495057; background:rgba(241,243,245,0.8); padding:4px 8px; border-radius:8px;">${dustText}</div>
+                        <div style="font-size:11px; font-weight:800; color:#495057; background:rgba(241, 243, 245, 0.8); padding:4px 8px; border-radius:8px;">${weatherText}</div>
+                        <div style="font-size:11px; font-weight:800; color:#495057; background:rgba(241, 243, 245, 0.8); padding:4px 8px; border-radius:8px;">${dustText}</div>
                     </div>
                 </div>
 
                 <div id="header-wrap-${place.id}" style="position:relative; width:100%; border-radius:12px; overflow:hidden; background:#f1f3f5; margin-bottom:16px; ${isHasImage ? '' : 'display:none;'}">
                     <div class="image-slider" id="slider-${place.id}" style="display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; cursor:grab; height:200px;" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
-                        ${isHasImage ? urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:center; display:block; pointer-events:none;" draggable="false">`).join('') : `<img id="img-${place.id}" src="" style="display:none;" onerror="this.parentElement.parentElement.style.display='none';">`}
+                        ${isHasImage ? urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:center; display:block; pointer-events:none;" draggable="false">`).join('') : ''}
                     </div>
                     ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:6px; z-index:20; pointer-events:none;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5); box-shadow:0 1px 2px rgba(0,0,0,0.2);"></div>`).join('')}</div>` : ''}
                 </div>
@@ -635,7 +635,7 @@ function renderPanel(id) {
         if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
     }
 
-    // 💡 텍스트가 컨테이너보다 길 때 무한 스크롤 마퀴(Marquee) 애니메이션
+    // 끊김 없는 무한 마퀴(Marquee) 애니메이션 적용
     setTimeout(() => {
         const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;
         const titleWrap = document.getElementById(`title-wrap-${place.id}`); 
@@ -643,14 +643,11 @@ function renderPanel(id) {
         
         if(titleEl && titleWrap && titleEl.scrollWidth > titleWrap.clientWidth) { 
             const originalHTML = titleEl.innerHTML; 
-            // 흐르는 텍스트 사이 빈 간격 조절 (40px)
+            // 텍스트 복제 및 간격(40px) 추가
             titleEl.innerHTML = originalHTML + "<span style='display:inline-block; width:40px;'></span>" + originalHTML; 
             titleWrap.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; 
             titleWrap.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; 
             titleEl.classList.add('marquee'); 
-        } else if(titleWrap) { 
-            titleWrap.style.webkitMaskImage = 'none'; 
-            titleWrap.style.maskImage = 'none'; 
         }
     }, 50);
 
