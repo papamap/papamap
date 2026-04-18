@@ -345,6 +345,7 @@ async function fetchWeather(lat, lng) {
         lastWeatherLat = lat; lastWeatherLng = lng;
         
         document.getElementById('weather-info').innerHTML = currentWeatherHtml;
+        document.getElementById('weather-info').style.cssText = "margin-top: 4px; border-radius: 8px; font-size: 11px; padding: 2px 8px;";
 
         const sugEl = document.getElementById('weather-suggestion');
         if (isBadAir || isRaining) { 
@@ -531,7 +532,11 @@ function initBottomSheet() {
 }
 
 function renderPanel(id) {
-    document.getElementById('category-nav').style.display = 'none'; 
+    const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
+    if(nav) nav.style.display = 'none'; 
+    const weather = document.getElementById('weather-info');
+    if(weather) weather.style.display = 'none';
+
     const place = placesData.find(p => p.id === id); if (!place) return;
     incrementViewCount(id); 
 
@@ -541,7 +546,7 @@ function renderPanel(id) {
     let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
     let visibleComments = commentsArr.map((c, idx) => {
         let dateStr = timeAgo(c.date || c.id); 
-        return `<div class="comment-item cmt-item-${place.id}" style="display: ${idx < 3 ? 'flex' : 'none'}; flex-direction:column; background:rgba(255,255,255,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); margin-bottom:8px; font-size:12px; line-height:1.5;"><div class="comment-header" style="display:flex; justify-content:space-between; margin-bottom:6px;"><div class="c-author" style="font-weight:800;">${escapeHtml(c.author)} <span style="font-weight:400; color:#868e96; margin-left:4px; font-size:10px;">${dateStr}</span></div><div style="display:flex; align-items:center; gap:8px;"><button class="comment-delete" onclick="editComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; font-size:11px; cursor:pointer; padding:0; font-family:inherit;">수정</button><button class="comment-delete" onclick="deleteComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; font-size:11px; cursor:pointer; padding:0; font-family:inherit;">삭제</button></div></div><div style="word-break:break-all;">${formatDescription(c.text)}</div></div>`
+        return `<div class="comment-item cmt-item-${place.id}" style="display: ${idx < 3 ? 'flex' : 'none'}; flex-direction:column; background:rgba(255,255,255,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); margin-bottom:8px; font-size:12px; line-height:1.5;"><div class="comment-header" style="display:flex; justify-content:space-between; margin-bottom:6px;"><div class="c-author" style="font-weight:800;">${escapeHtml(c.author)} <span style="font-weight:400; color:#868e96; margin-left:4px; font-size:10px;">${dateStr}</span></div><div style="display:flex; align-items:center; gap:8px;"><button class="comment-delete" onclick="editComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; cursor:pointer; font-size:11px; padding:0; font-family:inherit;">수정</button><button class="comment-delete" onclick="deleteComment(${place.id}, ${c.id})" style="background:none; border:none; color:#adb5bd; cursor:pointer; font-size:11px; padding:0; font-family:inherit;">삭제</button></div></div><div style="word-break:break-all;">${formatDescription(c.text)}</div></div>`
     }).join('');
     
     let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" style="background:none; border:none; color:#adb5bd; font-size:12px; font-weight:700; cursor:pointer; padding:8px 0; width:100%; text-align:center; font-family:inherit;">추가정보 더보기 ▼</button>` : '';
@@ -549,67 +554,52 @@ function renderPanel(id) {
     let isHasImage = urls.length > 0;
     let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
 
-    const weatherParts = currentWeatherHtml.split('|');
-    const weatherText = weatherParts[0] ? weatherParts[0].trim() : '--°C';
-    const dustText = weatherParts[1] ? weatherParts[1].trim() : '보통';
+    // 💡 현위치로부터의 거리 계산 (1km 미만 m, 이상 km)
+    let dist = getDistanceKm(userLat, userLng, place.latitude, place.longitude);
+    let distStr = dist < 1 ? Math.round(dist * 1000) + 'm' : dist.toFixed(1) + 'km';
 
     const panel = document.getElementById('info-content');
     panel.dataset.placeId = place.id;
     
     panel.innerHTML = `
-        <div id="drag-handle" class="drag-handle" style="width:100%; height:24px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center; flex-shrink:0; cursor:grab; touch-action:none;">
-            <div style="width:40px; height:5px; background:rgba(0,0,0,0.2); border-radius:3px;"></div>
+        <div id="drag-handle" class="drag-handle" style="width:100%; height:20px; display:${isMobile ? 'flex' : 'none'}; justify-content:center; align-items:center; flex-shrink:0; cursor:grab; touch-action:none; z-index:110; position:relative;">
+            <div style="width:40px; height:5px; background:rgba(0,0,0,0.1); border-radius:3px;"></div>
         </div>
         
-        <div style="position:absolute; top:${isMobile ? '24px' : '20px'}; left:0; right:0; z-index:100; display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box; padding:0 20px; pointer-events:none;">
-            <button onclick="closePanel()" style="pointer-events:auto; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); backdrop-filter:blur(4px); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); color:#495057; display:flex; justify-content:center; align-items:center; cursor:pointer; padding:0;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <div style="display:flex; gap:8px; pointer-events:auto;">
-                <button onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); backdrop-filter:blur(4px); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); color:#495057; display:flex; justify-content:center; align-items:center; cursor:pointer; padding:0;">${shareIcon}</button>
-                <button onclick="closePanel()" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); backdrop-filter:blur(4px); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); color:#495057; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:14px; font-weight:800; padding:0; font-family:inherit;">✕</button>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; box-sizing:border-box; padding: 4px 20px 10px 26px;">
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start;">
+                <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:2px;">${normalizeCat(place.category)}</div>
+                <div id="title-wrap-${place.id}" style="width:100%; overflow:hidden; white-space:nowrap; position:relative;">
+                    <div class="info-title" id="dyn-title-${place.id}" style="font-size:22px; font-weight:800; color:#212529; display:inline-block;">${place.name}</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-shrink:0; margin-left:12px; margin-top:4px;">
+                <button class="icon-btn" onclick="openEditModal(${place.id})" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:12px;">✏️</button>
+                <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; display:flex; justify-content:center; align-items:center;">${shareIcon}</button>
+                <button class="icon-btn" onclick="closePanel()" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.9); border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:14px; font-weight:800;">✕</button>
             </div>
         </div>
 
         <div class="info-scroll-area" id="scroll-area-${place.id}" style="flex:1; overflow-y:auto; overflow-x:hidden; width:100%; display:flex; flex-direction:column; -webkit-overflow-scrolling:touch;">
-            <div style="padding-top: ${isMobile ? '60px' : '70px'}; flex-shrink:0;"></div>
-            
-            <div class="info-body-wrap" style="padding: 0 20px 30px 20px; height:auto; display:flex; flex-direction:column;">
+            <div class="info-body-wrap" style="padding: 0 20px 30px 26px; height:auto; display:flex; flex-direction:column;">
                 
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start;">
-                        <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:6px;">${normalizeCat(place.category)}</div>
-                        
-                        <div style="display: flex; align-items: center; max-width: 100%;">
-                            <div id="title-wrap-${place.id}" style="flex: 0 1 auto; overflow: hidden; white-space: nowrap; position: relative;">
-                                <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; font-weight: 800; color: #212529; display: inline-block;">${place.name}</div>
-                            </div>
-                            <button onclick="openEditModal(${place.id})" style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); font-size:12px; cursor:pointer; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; color:#495057; flex-shrink:0; padding:0; margin-left:6px;">✏️</button>
-                        </div>
-                        
-                        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px;">
-                            ${place.address ? `<div onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; font-size:12px; display:flex; align-items:center; gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${place.address}</div>` : ''}
-                            ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="display:inline-flex; align-items:center; padding: 4px 8px; background: rgba(241, 243, 245, 0.8); border-radius:8px; font-size:10px; font-weight:700; color:#495057; text-decoration:none;">🌐 공식홈</a>` : ''}
-                        </div>
-                    </div>
-                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; margin-left:12px; margin-top:18px;">
-                        <div style="font-size:11px; font-weight:800; color:#495057; background:rgba(241, 243, 245, 0.8); padding:4px 8px; border-radius:8px;">${weatherText}</div>
-                        <div style="font-size:11px; font-weight:800; color:#495057; background:rgba(241, 243, 245, 0.8); padding:4px 8px; border-radius:8px;">${dustText}</div>
-                    </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+                    <div style="font-size:12px; color:#495057; font-weight:700;">${distStr}</div>
+                    <div style="width:1px; height:10px; background:#dee2e6;"></div>
+                    <div style="font-size:12px; color:#868e96; cursor:pointer;" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})">${place.address}</div>
+                    ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="display:inline-flex; align-items:center; padding: 4px 8px; background: rgba(241, 243, 245, 0.8); border-radius:8px; font-size:10px; font-weight:700; color:#495057; text-decoration:none; margin-left:4px;">🌐 공식홈</a>` : ''}
                 </div>
 
                 <div id="header-wrap-${place.id}" style="position:relative; width:100%; border-radius:12px; overflow:hidden; background:#f1f3f5; margin-bottom:16px; ${isHasImage ? '' : 'display:none;'}">
-                    <div class="image-slider" id="slider-${place.id}" style="display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; cursor:grab; height:200px;" onscroll="updateSliderDots(${place.id}, this)" onmousedown="startImgDrag(event, this)" onmouseleave="stopImgDrag(event, this)" onmouseup="stopImgDrag(event, this)" onmousemove="doImgDrag(event, this)">
+                    <div class="image-slider" id="slider-${place.id}" style="display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; cursor:grab; height:200px;" onscroll="updateSliderDots(${place.id}, this)">
                         ${isHasImage ? urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:center; display:block; pointer-events:none;" draggable="false">`).join('') : ''}
                     </div>
-                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:6px; z-index:20; pointer-events:none;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5); box-shadow:0 1px 2px rgba(0,0,0,0.2);"></div>`).join('')}</div>` : ''}
+                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:6px;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5);"></div>`).join('')}</div>` : ''}
                 </div>
 
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     ${place.business_hours ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">시간</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
                     ${place.parking_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                    ${place.entry_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">입장료</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                    ${place.nursing_room ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">수유실</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
                 </div>
 
                 ${place.comment ? `<div style="font-size:13px; color:#495057; line-height:1.5; margin-top:16px; background:rgba(248,249,250,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); word-break:break-all;">${formatDescription(place.comment)}</div>` : ''}
@@ -623,7 +613,6 @@ function renderPanel(id) {
                         <textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1" style="flex:1; min-width:0; padding:10px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; resize:none; line-height:1.4; font-family:inherit;"></textarea>
                         <button onclick="addComment(${place.id})" style="height:100%; background:#495057; color:white; border:none; border-radius:8px; padding:0 16px; font-weight:700; font-size:12px; cursor:pointer; flex-shrink:0; font-family:inherit;">등록</button>
                     </div>
-                    ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:8px;">추가정보 (${commentsArr.length})</div>` : ''}
                     <div style="display:flex; flex-direction:column; gap:8px;">${visibleComments}${moreBtn}</div>
                 </div>
             </div>
@@ -631,24 +620,14 @@ function renderPanel(id) {
     `;
 
     panel.classList.add('show');
-    
-    if (isMobile) {
-        sheetState = 1; window.applySheetState();
-    } else {
-        panel.style.transform = 'translateX(0)';
-        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
-        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
-    }
+    if (isMobile) { sheetState = 1; window.applySheetState(); } 
+    else { panel.style.transform = 'translateX(0)'; }
 
-    // 끊김 없는 무한 마퀴(Marquee) 애니메이션 적용
     setTimeout(() => {
-        const scrollArea = document.getElementById(`scroll-area-${place.id}`); if (scrollArea) scrollArea.scrollTop = 0;
         const titleWrap = document.getElementById(`title-wrap-${place.id}`); 
         const titleEl = document.getElementById(`dyn-title-${place.id}`);
-        
         if(titleEl && titleWrap && titleEl.scrollWidth > titleWrap.clientWidth) { 
             const originalHTML = titleEl.innerHTML; 
-            // 텍스트 복제 및 간격(40px) 추가
             titleEl.innerHTML = originalHTML + "<span style='display:inline-block; width:40px;'></span>" + originalHTML; 
             titleWrap.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; 
             titleWrap.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)'; 
@@ -657,7 +636,7 @@ function renderPanel(id) {
     }, 50);
 
     if(!isHasImage && place.category !== '문센') {
-        fetchKakaoImage(place.name, `img-${place.id}`, `top-bar-${place.id}`, `slider-${place.id}`, `header-wrap-${place.id}`); 
+        fetchKakaoImage(place.name, `img-${place.id}`, null, `slider-${place.id}`, `header-wrap-${place.id}`); 
     }
 }
 
@@ -690,13 +669,21 @@ async function loadPlaces() {
     } catch (err) { alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message); }
 }
 
-function openSearchPanel() { 
-    closePanel(); 
-    setCategory('전체'); 
-    document.getElementById('search-panel').classList.add('show'); 
-    document.getElementById('search-input').focus(); 
-    document.getElementById('search-scope-toggle').classList.add('show'); 
-    document.getElementById('search-results-list').innerHTML = '<div class="res-empty">검색어를 입력해 주세요.</div>'; 
+function closePanel() { 
+    const panel = document.getElementById('info-content');
+    panel.classList.remove('show'); sheetState = 0;
+    panel.style.transform = isMobile ? 'translateY(100%)' : 'translateX(-20px)'; 
+    
+    const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
+    if(nav) nav.style.display = 'flex'; 
+    const weather = document.getElementById('weather-info');
+    if(weather) weather.style.display = 'flex'; 
+
+    updateVisibleMarkers(); 
+    if (window.isWeatherSuggestionVisible) {
+        const ws = document.getElementById('weather-suggestion');
+        if(ws) ws.style.display = 'block';
+    }
 }
 
 function closeSearchPanel() { document.getElementById('search-panel').classList.remove('show'); document.getElementById('search-scope-toggle').classList.remove('show'); applyFilters(); }
