@@ -243,7 +243,7 @@ function initPopupDrag() {
         isDown = true;
         startX = e.pageX - el.offsetLeft;
         scrollLeft = el.scrollLeft;
-        el.style.scrollSnapType = 'none'; // 드래그 중 스냅 비활성화
+        el.style.scrollSnapType = 'none'; 
     });
     el.addEventListener('mouseleave', () => { isDown = false; el.style.scrollSnapType = 'x mandatory'; });
     el.addEventListener('mouseup', () => { isDown = false; el.style.scrollSnapType = 'x mandatory'; });
@@ -359,8 +359,15 @@ async function fetchWeather(lat, lng) {
         const weatherData = await weatherRes.json(); const aqiData = await aqiRes.json();
         let temp = Math.round(weatherData.current_weather.temperature); let code = weatherData.current_weather.weathercode; 
         let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
+        
         let pm10 = aqiData.current.pm10; let aqiIcon = '😊'; let aqiText = '좋음'; let isBadAir = false; let isRaining = (code >= 51 && code <= 77);
-        if (pm10 > 150) { aqiIcon = '👿'; aqiText = '매우나쁨'; isBadAir = true; } else if (pm10 > 80) { aqiIcon = '😷'; aqiText = '나쁨'; isBadAir = true; } else if (pm10 > 30) { aqiIcon = '😐'; aqiText = '보통'; }
+        
+        // Open-Meteo와 네이버의 기준 차이를 줄이기 위해 한국 환경부 PM10 기준(µg/m³)을 엄격히 적용합니다.
+        // 한국 대기질 기준: 0~30 좋음, 31~80 보통, 81~150 나쁨, 151 이상 매우나쁨
+        if (pm10 > 150) { aqiIcon = '👿'; aqiText = '매우나쁨'; isBadAir = true; } 
+        else if (pm10 > 80) { aqiIcon = '😷'; aqiText = '나쁨'; isBadAir = true; } 
+        else if (pm10 > 30) { aqiIcon = '😐'; aqiText = '보통'; }
+        
         if (isRaining) aqiIcon = '☔';
         currentWeatherHtml = `${icon} ${temp}°C | ${aqiIcon} ${aqiText}`;
         lastWeatherLat = lat; lastWeatherLng = lng;
@@ -463,9 +470,9 @@ function initBottomSheet() {
 
     const startDrag = (e) => {
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        if (e.target.closest('.image-slider')) return; // 가로 스크롤 방해 금지
+        if (e.target.closest('.image-slider')) return; // 가로 스크롤 영역에서 세로 드래그 무시
         
-        // 창이 최대로 올라와 있고, 스크롤 영역 안에서 스크롤을 내릴 여유가 있다면 네이티브 스크롤 허용
+        // 창이 최대 크기(sheetState 2)이고 스크롤 영역 내용이 최상단이 아니면 네이티브 스크롤을 허용합니다.
         if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
 
         isDragging = true;
@@ -490,7 +497,11 @@ function initBottomSheet() {
         const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
         let deltaY = clientY - startY;
 
-        if (deltaY < -30) { 
+        // 드래그 또는 클릭 종료 시 상태 변경
+        // sheetState가 1(중간)일때 위로 올리든 아래로 올리든(드래그) 무조건 커지게(2) 변경
+        if (sheetState === 1 && Math.abs(deltaY) > 10) {
+            sheetState = 2;
+        } else if (deltaY < -30) { 
             if(sheetState === 1 || sheetState === 3) sheetState = 2;
         } else if (deltaY > 30) {
             if(sheetState === 2) sheetState = 1;
@@ -511,10 +522,11 @@ function initBottomSheet() {
     window.addEventListener('mouseup', endDrag);
     window.addEventListener('mouseleave', endDrag);
 
-    // 마우스 휠 지원
+    // 마우스 휠 지원 (PC 마우스 휠 굴림 시 무조건 2로 확장)
     panel.addEventListener('wheel', e => {
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
-        if (sheetState === 1 && e.deltaY > 0) { 
+        if (sheetState === 1) { 
+            // 시트가 1상태일 때 휠을 어느 방향으로 굴리든 창을 최대로 키웁니다.
             sheetState = 2; window.applySheetState();
         } else if (sheetState === 2 && e.deltaY < 0 && scrollArea && scrollArea.scrollTop <= 0) {
             sheetState = 1; window.applySheetState();
@@ -643,7 +655,6 @@ function renderPanel(id) {
         </div>`;
     
     panel.classList.add('show');
-    // 모바일, PC 관계없이 스와이프 제어 로직을 통합하여 작동시킵니다.
     sheetState = 1; window.applySheetState();
 
     setTimeout(() => {
