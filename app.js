@@ -983,12 +983,15 @@ async function savePlace() {
 }
 
 async function fetchSeoulApiData(areaName, placeId) {
-    const cBox = document.getElementById(`live-congest-${placeId}`);
-    const pBox = document.getElementById(`live-park-${placeId}`);
+    const congestWrap = document.getElementById(`live-congest-wrap-${placeId}`);
+    const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
+    const congestDetail = document.getElementById(`congest-detail-${placeId}`);
+    
+    const parkBox = document.getElementById(`live-park-${placeId}`);
+    const parkBtn = document.getElementById(`btn-park-toggle-${placeId}`);
     
     try {
         const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(areaName)}`;
-        
         const fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
         const res = await fetch(fetchUrl);
@@ -997,60 +1000,63 @@ async function fetchSeoulApiData(areaName, placeId) {
         if(data.CITYDATA) {
             const cd = data.CITYDATA;
             
-            // [혼잡도 파싱]
+            // 1. 혼잡도 적용 (현재값만 노출, 예측은 숨김)
             if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
+                if(congestWrap) congestWrap.style.display = 'flex';
+                
                 const pop = cd.LIVE_PPLTN_STTS[0];
                 let cur = pop.AREA_CONGEST_LVL;
-                let fcst = pop.FCST_PPLTN || [];
-                let f2 = fcst.length > 1 ? fcst[1].FCST_CONGEST_LVL : "-";
-                let f4 = fcst.length > 3 ? fcst[3].FCST_CONGEST_LVL : "-";
+                if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(cur)};">${cur}</span>`;
                 
-                if(cBox) cBox.innerHTML = `현재 <span style="color:${getCongestColor(cur)}">${cur}</span>, 2시간뒤 <span style="color:${getCongestColor(f2)}">${f2}</span>, 4시간뒤 <span style="color:${getCongestColor(f4)}">${f4}</span>`;
+                let fcst = pop.FCST_PPLTN || [];
+                if(fcst.length > 3 && congestDetail) {
+                    let f2 = fcst[1]; 
+                    let f4 = fcst[3];
+                    let t2 = f2.FCST_TIME.split(' ')[1]; // "14:00" 형식 추출
+                    let t4 = f4.FCST_TIME.split(' ')[1];
+                    
+                    congestDetail.innerHTML = `
+                        <div style="display:flex; gap:16px;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="color:#adb5bd;">${t2} 예측</span>
+                                <strong style="color:${getCongestColor(f2.FCST_CONGEST_LVL)}">${f2.FCST_CONGEST_LVL}</strong>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="color:#adb5bd;">${t4} 예측</span>
+                                <strong style="color:${getCongestColor(f4.FCST_CONGEST_LVL)}">${f4.FCST_CONGEST_LVL}</strong>
+                            </div>
+                        </div>
+                    `;
+                }
             }
 
-            // [주차장 파싱]
+            // 2. 주차장 적용 (버튼 활성화 및 숨김 영역에 리스트 삽입)
             const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
             if(validPrk.length > 0) {
+                let totalRemain = 0;
                 let prkHtml = validPrk.map(p => {
                     let remain = Math.max((parseInt(p.CPCTY) || 0) - (parseInt(p.CUR_PRK_CNT) || 0), 0);
-                    return `<div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center;">
+                    totalRemain += remain;
+                    return `<div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="color:#495057; font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.PRK_NM}</span>
                         <span style="color:#37B24D; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">${remain}대 여유 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>
                     </div>`;
                 }).join('');
-                if(pBox) { pBox.style.display = 'block'; pBox.innerHTML = prkHtml; }
+                
+                if(parkBox && parkBtn) { 
+                    parkBox.innerHTML = prkHtml; 
+                    parkBtn.style.display = 'block'; 
+                    parkBtn.innerHTML = `🚗 총 ${totalRemain}대 여유 ▼`; // 버튼에 총 여유 대수 표시
+                }
             }
-        } else if (data.RESULT && data.RESULT.MESSAGE) {
-            if(cBox) cBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">API 오류: ${data.RESULT.MESSAGE}</span>`;
-        } else {
-            if(cBox) cBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">데이터 구조 오류</span>`;
         }
-    } catch(e) { 
-        console.error(e); 
-        if(cBox) cBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">통신 지연 또는 차단됨</span>`;
-    }
+    } catch(e) { console.error(e); }
 }
 
 function getCongestColor(lvl) {
     if(lvl === '여유') return '#37B24D';
     if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 붐빔') return '#FF6B6B';
-    if(lvl === '붐빔') return '#e03131';
-    return '#495057';
-}
-
-function getCongestColor(lvl) {
-    if(lvl === '여유') return '#37B24D';
-    if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 붐빔') return '#FF6B6B';
-    if(lvl === '붐빔') return '#e03131';
-    return '#495057';
-}
-
-function getCongestColor(lvl) {
-    if(lvl === '여유') return '#37B24D';
-    if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 붐빔') return '#FF6B6B';
-    if(lvl === '붐빔') return '#e03131';
+    if(lvl === '약간 혼잡') return '#FF6B6B';
+    if(lvl === '혼잡') return '#e03131';
     return '#495057';
 }
