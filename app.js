@@ -75,13 +75,13 @@ function renderPanel(id) {
 
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     ${place.seoul_api_area ? `
-                    <div id="live-congest-wrap-${place.id}" style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057;">
+                    <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div style="display:flex; align-items:center;">
                                 <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0;">혼잡도</span>
-                                <span id="live-congest-cur-${place.id}" style="font-weight:800; color:#adb5bd;">데이터 로딩중... ⏳</span>
+                                <span id="live-congest-cur-${place.id}" style="font-weight:800; color:#5c7cfa;">실시간 확인중... 🚀</span>
                             </div>
-                            <button id="btn-congest-toggle-${place.id}" onclick="toggleLiveDetail('congest-detail-${place.id}', this)" style="display:none; background:none; border:none; font-size:11px; color:#adb5bd; font-weight:700; cursor:pointer; padding:0; transition:0.2s;">예측 보기 ▼</button>
+                            <button id="btn-congest-toggle-${place.id}" onclick="toggleLiveDetail('congest-detail-${place.id}', this)" style="display:none; background:rgba(241,243,245,0.8); border:1px solid rgba(0,0,0,0.05); border-radius:6px; font-size:10px; color:#495057; font-weight:700; cursor:pointer; padding:4px 8px; transition:0.2s;">예측 보기 ▼</button>
                         </div>
                         <div id="congest-detail-${place.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.08); font-size:11px;">
                             </div>
@@ -143,13 +143,13 @@ function renderPanel(id) {
         fetchKakaoImage(place.name, `img-${place.id}`, null, `slider-${place.id}`, `header-wrap-${place.id}`); 
     }
 
-    // 🔥 API 데이터 호출!
+    // API 데이터 호출
     if(place.seoul_api_area) {
         fetchSeoulApiData(place.seoul_api_area, place.id);
     }
 }
 
-// 🔥 API 통신 함수 (HTTPS 깨짐 우회)
+// 🔥 API 통신 함수
 async function fetchSeoulApiData(areaName, placeId) {
     const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
     const congestDetail = document.getElementById(`congest-detail-${placeId}`);
@@ -184,11 +184,11 @@ async function fetchSeoulApiData(areaName, placeId) {
                     congestDetail.innerHTML = `
                         <div style="display:flex; gap:16px;">
                             <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="color:#adb5bd;">${t2} 예측</span>
+                                <span style="color:#adb5bd;">${t2}</span>
                                 <strong style="color:${getCongestColor(f2.FCST_CONGEST_LVL)}">${f2.FCST_CONGEST_LVL}</strong>
                             </div>
                             <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="color:#adb5bd;">${t4} 예측</span>
+                                <span style="color:#adb5bd;">${t4}</span>
                                 <strong style="color:${getCongestColor(f4.FCST_CONGEST_LVL)}">${f4.FCST_CONGEST_LVL}</strong>
                             </div>
                         </div>
@@ -247,7 +247,7 @@ function toggleLiveDetail(targetId, btnEl) {
 function getCongestColor(lvl) {
     if(lvl === '여유') return '#37B24D';
     if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 혼잡') return '#FF6B6B';
-    if(lvl === '혼잡') return '#e03131';
+    if(lvl === '약간 붐빔') return '#FF6B6B';
+    if(lvl === '붐빔') return '#e03131';
     return '#495057';
 }
