@@ -428,8 +428,9 @@ function initBottomSheet() {
     const panel = document.getElementById('info-content');
     if(!panel || !isMobile) return; 
     
-    let startY = 0; let startX = 0; let isDragging = false; 
-    let isDetermined = false; let startTransform = 0;
+    let startY = 0; let startX = 0; 
+    let isDragging = false; let isDetermined = false; 
+    let startTransform = 0;
 
     function getTransformBase() { return sheetState === 1 ? 55 : (sheetState === 2 ? 15 : 80); }
     
@@ -439,34 +440,64 @@ function initBottomSheet() {
         panel.style.transform = `translateY(${getTransformBase()}%)`;
         const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         if(scrollArea) {
-            if (sheetState === 2) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; } 
-            else { scrollArea.style.overflowY = 'hidden'; scrollArea.style.touchAction = 'none'; scrollArea.scrollTop = 0; }
+            if (sheetState === 2) { 
+                scrollArea.style.overflowY = 'auto'; 
+                scrollArea.style.touchAction = 'auto'; 
+            } else { 
+                scrollArea.style.overflowY = 'hidden'; 
+                scrollArea.style.touchAction = 'none'; 
+                scrollArea.scrollTop = 0; 
+            }
         }
     };
 
     const startDrag = (e) => {
         if (!isMobile) return; 
-        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         
-        // 최상단 상태에서 내용을 스크롤 중이면 창 드래그 취소
-        if (sheetState === 2 && scrollArea && scrollArea.contains(e.target) && scrollArea.scrollTop > 0) return; 
-
-        isDragging = true; 
-        isDetermined = false; // 가로인지 세로인지 아직 모름
+        // 1. 터치 시작 위치 무조건 기록 (스크롤 방향 판단용)
         startY = e.touches[0].clientY; 
         startX = e.touches[0].clientX; 
+
+        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
+        if (e.target.closest('.image-slider')) return; // 가로 사진 슬라이더 터치 시 무시
+        
+        // [핵심] 창이 완전히 열린 상태(2)이고, 스크롤 영역을 터치했다면?
+        // -> 바텀시트 제어를 시작하지 않고, 일단 네이티브 스크롤이 되도록 놔둡니다.
+        if (sheetState === 2 && scrollArea && scrollArea.contains(e.target)) {
+            return; 
+        }
+
+        isDragging = true; 
+        isDetermined = false; 
         startTransform = getTransformBase(); 
         panel.style.transition = 'none';
     };
 
     const moveDrag = (e) => {
-        if (!isDragging || !isMobile) return;
+        if (!isMobile) return;
+        const scrollArea = document.getElementById(`scroll-area-${panel.dataset.placeId}`);
         const clientY = e.touches[0].clientY; 
         const clientX = e.touches[0].clientX; 
         let deltaY = clientY - startY; 
         let deltaX = clientX - startX;
 
-        // 움직임 방향 판단 (가로 스와이프면 창 이동 취소)
+        // [핵심] 스크롤 영역 안에서 네이티브 스크롤 중일 때(isDragging = false)
+        // -> 스크롤이 맨 위 꼭대기(0)에 닿아있는데, 손가락을 '아래로(deltaY > 0)' 당기면 창 닫기로 전환!
+        if (!isDragging && sheetState === 2 && scrollArea && scrollArea.contains(e.target)) {
+            if (scrollArea.scrollTop <= 0 && deltaY > 5 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                isDragging = true;
+                isDetermined = true;
+                startY = clientY; // 기준점 현재 위치로 리셋
+                startTransform = getTransformBase();
+                panel.style.transition = 'none';
+                if(e.cancelable) e.preventDefault(); // 기본 스크롤 동작 차단
+            }
+            return; // 조건에 안 맞으면(위로 스와이프 등) 계속 네이티브 스크롤 허용
+        }
+
+        if (!isDragging) return;
+
+        // 가로 스와이프 시 바텀시트 제어 취소
         if (!isDetermined) {
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
                 isDragging = false; 
@@ -474,7 +505,7 @@ function initBottomSheet() {
                 panel.style.transform = `translateY(${startTransform}%)`;
                 return;
             } else if (Math.abs(deltaY) > 5) {
-                isDetermined = true; // 세로 스와이프 확정
+                isDetermined = true; 
             } else {
                 return;
             }
@@ -492,9 +523,19 @@ function initBottomSheet() {
         const clientY = e.changedTouches[0].clientY; 
         let deltaY = clientY - startY;
 
-        if (sheetState === 1 && Math.abs(deltaY) > 10) { sheetState = 2; } 
-        else if (deltaY < -30) { if(sheetState === 1 || sheetState === 3) sheetState = 2; } 
-        else if (deltaY > 30) { if(sheetState === 2) sheetState = 1; else if(sheetState === 1) sheetState = 3; else if(sheetState === 3) { closePanel(); return; } }
+        // 손가락을 뗐을 때 위치 및 이동량에 따라 상태(1, 2, 3) 변경
+        if (sheetState === 1 && Math.abs(deltaY) > 10) { 
+            if (deltaY < 0) sheetState = 2; // 위로 올리면 열림
+            else sheetState = 3; // 아래로 내리면 작아짐
+        } 
+        else if (deltaY < -30) { 
+            if(sheetState === 1 || sheetState === 3) sheetState = 2; 
+        } 
+        else if (deltaY > 30) { 
+            if(sheetState === 2) sheetState = 1; 
+            else if(sheetState === 1) sheetState = 3; 
+            else if(sheetState === 3) { closePanel(); return; } 
+        }
         window.applySheetState();
     };
 
