@@ -63,7 +63,25 @@
             <button class="tab-btn" id="btn-tab-board" onclick="switchTab('board')">게시판/팝업 관리</button>  
             <button class="tab-btn" id="btn-tab-comments" onclick="switchTab('comments')">댓글 관리</button>
             <button class="tab-btn" id="btn-tab-inquiries" onclick="switchTab('inquiries')">문의 확인</button>
+        <button class="tab-btn" id="btn-tab-events" onclick="switchTab('events')">행사/집회 모아보기</button>
+    </div> <div id="section-events" class="section">
+        <div class="control-bar">
+            <button class="btn btn-save" onclick="loadLiveEvents()">🔄 최신 데이터 불러오기</button>
+            <div class="stat-badge" id="event-update-time">API를 호출해 주세요.</div>
         </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">연동 구역명</th>
+                    <th style="width: 40%;">문화/행사 현황</th>
+                    <th style="width: 45%;">집회/사고 현황</th>
+                </tr>
+            </thead>
+            <tbody id="events-tbody">
+                <tr><td colspan="3" style="text-align:center; padding:40px;">상단 버튼을 눌러 연동된 장소들의 데이터를 수집합니다. (몇 초 소요)</td></tr>
+            </tbody>
+        </table>
+    </div>
 
         <div id="section-board" class="section">
             <table>
