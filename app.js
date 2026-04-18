@@ -660,13 +660,13 @@ function renderPanel(id) {
 
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     ${place.seoul_api_area ? `
-                    <div id="live-congest-wrap-${place.id}" style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:none; flex-direction:column; font-size:12px; color:#495057;">
+                    <div id="live-congest-wrap-${place.id}" style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div style="display:flex; align-items:center;">
                                 <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0;">혼잡도</span>
-                                <span id="live-congest-cur-${place.id}" style="font-weight:800;">데이터 로딩중...</span>
+                                <span id="live-congest-cur-${place.id}" style="font-weight:800; color:#adb5bd;">데이터 로딩중... ⏳</span>
                             </div>
-                            <button onclick="toggleLiveDetail('congest-detail-${place.id}', this)" style="background:none; border:none; font-size:11px; color:#adb5bd; font-weight:700; cursor:pointer; padding:0; transition:0.2s;">예측 보기 ▼</button>
+                            <button id="btn-congest-toggle-${place.id}" onclick="toggleLiveDetail('congest-detail-${place.id}', this)" style="display:none; background:none; border:none; font-size:11px; color:#adb5bd; font-weight:700; cursor:pointer; padding:0; transition:0.2s;">예측 보기 ▼</button>
                         </div>
                         <div id="congest-detail-${place.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.08); font-size:11px;">
                             </div>
