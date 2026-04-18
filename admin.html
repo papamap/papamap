@@ -85,17 +85,22 @@
         <div id="section-places" class="section active">
             <div class="control-bar">
                 <input type="text" id="admin-search" placeholder="장소명 검색..." onkeyup="renderAdminTable()">
-                <select id="admin-category" onchange="renderAdminTable()">
-                    <option value="">모든 카테고리</option>
-                    <option value="실내">실내</option>
-                    <option value="야외">야외</option>
-                    <option value="문센">문센</option>
-                </select>
-                <select id="admin-approval" onchange="renderAdminTable()">
-                    <option value="">승인/미승인 전체</option>
-                    <option value="false">❗ 미승인 장소만 보기</option>
-                    <option value="true">✅ 승인된 장소만 보기</option>
-                </select>
+                <div class="admin-filters">
+    <input type="text" id="admin-search-input" placeholder="장소명 검색" onkeyup="applyAdminFilters()">
+
+    <div class="toggle-group category-group">
+        <button class="admin-toggle cat-toggle active" data-val="실내">실내</button>
+        <button class="admin-toggle cat-toggle active" data-val="야외">야외</button>
+        <button class="admin-toggle cat-toggle active" data-val="문센">문센</button>
+    </div>
+
+    <div class="toggle-divider"></div>
+
+    <div class="toggle-group status-group">
+        <button class="admin-toggle status-toggle" data-val="true">승인</button>
+        <button class="admin-toggle status-toggle active" data-val="false">미승인</button>
+    </div>
+</div>
                 <div class="stat-badge" id="total-count">총 0개</div>
             </div>
 
