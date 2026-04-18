@@ -357,7 +357,6 @@ async function fetchWeather(lat, lng) {
                 `오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴볼까요?` : 
                 `날씨가 참 좋네요! <b>야외</b> 나들이를 추천해요!`;
             
-            // 파란별 아이콘 사이즈도 슬림해진 배너에 맞춰 살짝 줄였습니다
             const blueStarSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:4px; flex-shrink:0;"><path d="M12 0C12 6.62742 17.3726 12 24 12C17.3726 12 12 17.3726 12 24C12 17.3726 6.62742 12 0 12C6.62742 12 12 6.62742 12 0Z" fill="#5c7cfa"/></svg>`;
             
             sugEl.innerHTML = `
@@ -375,7 +374,6 @@ async function fetchWeather(lat, lng) {
                 </div>
             `;
             
-            // 🔥 전체적인 크기(padding 축소)와 투명도(0.85 -> 0.70)를 조절했습니다.
             sugEl.style.marginTop = '8px';
             sugEl.style.maxWidth = 'calc(100vw - 32px)'; 
             sugEl.style.padding = '7px 14px'; 
