@@ -409,10 +409,15 @@ function applyFilters(overrideCat) { activeCategory = overrideCat || activeCateg
 let sheetState = 0; // 0: hidden, 1: mid, 2: max, 3: min
 function closePanel() { 
     const panel = document.getElementById('info-content');
-    panel.classList.remove('show'); sheetState = 0;
+    panel.classList.remove('show'); 
+    sheetState = 0;
     
+    // PC와 모바일에 따라 닫히는 위치(방향) 지정
     panel.style.transform = isMobile ? 'translateY(100%)' : 'translateX(-20px)'; 
     
+    // 💡 정보창을 닫을 때 숨겨졌던 카테고리 칩(전체/실내/야외/문센)을 다시 보이게 합니다.
+    document.getElementById('category-nav').style.display = 'flex'; 
+
     updateVisibleMarkers(); 
     if (window.isWeatherSuggestionVisible) {
         const ws = document.getElementById('weather-suggestion');
