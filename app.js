@@ -335,44 +335,43 @@ async function fetchWeather(lat, lng) {
         
         let temp = Math.round(weatherData.current_weather.temperature); 
         let code = weatherData.current_weather.weathercode; 
-        let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
         
         let pm10 = aqiData.current.pm10 * 0.8; 
         let pm25 = aqiData.current.pm2_5 * 0.8;
-        let aqiIcon = '😊'; let aqiText = '좋음'; let isBadAir = false; 
+        let aqiText = '좋음'; let isBadAir = false; 
         
-        if (pm10 > 150 || pm25 > 75) { aqiIcon = '👿'; aqiText = '매우나쁨'; isBadAir = true; } 
-        else if (pm10 > 80 || pm25 > 35) { aqiIcon = '😷'; aqiText = '나쁨'; isBadAir = true; } 
-        else if (pm10 > 30 || pm25 > 15) { aqiIcon = '😐'; aqiText = '보통'; }
+        if (pm10 > 150 || pm25 > 75) { aqiText = '매우나쁨'; isBadAir = true; } 
+        else if (pm10 > 80 || pm25 > 35) { aqiText = '나쁨'; isBadAir = true; } 
+        else if (pm10 > 30 || pm25 > 15) { aqiText = '보통'; }
         
         let isRaining = (code >= 51 && code <= 77);
-        if (isRaining) aqiIcon = '☔';
-        currentWeatherHtml = `${icon} ${temp}°C | ${aqiIcon} ${aqiText}`;
         lastWeatherLat = lat; lastWeatherLng = lng;
         
+        // 💡 1. 기존의 못생긴 날씨 독립 박스는 아예 숨겨버립니다.
         const wInfo = document.getElementById('weather-info');
-        if (wInfo) {
-            wInfo.innerHTML = currentWeatherHtml;
-        }
+        if (wInfo) wInfo.style.display = 'none';
 
+        // 💡 2. 기온과 추천 문구를 하나의 'AI 배너'로 우아하게 통합합니다.
         const sugEl = document.getElementById('weather-suggestion');
         if (sugEl) {
-            if (isBadAir || isRaining) { 
-                sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; 
-            } else { 
-                sugEl.innerHTML = `💡 날씨와 미세먼지가 모두 좋네요! <b>야외</b> 나들이를 떠나볼까요?`; 
-            }
+            let aiText = (isBadAir || isRaining) ? 
+                `오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴볼까요?` : 
+                `날씨가 참 좋네요! <b>야외</b> 나들이를 추천해요!`;
             
+            // ✨ 반짝이 이모지와 통합된 텍스트
+            sugEl.innerHTML = `<span style="color:#845EF7; font-size:14px; vertical-align:middle; margin-right:4px;">✨</span> <b>${temp}°C ㆍ ${aqiText}</b> <span style="margin:0 6px; color:#dee2e6;">|</span> ${aiText}`;
+            
+            // 🔥 1층(상단 바)과 2층(배너) 사이의 간격을 살짝 띄워줍니다!
+            sugEl.style.marginTop = '10px';
+
             window.isWeatherSuggestionVisible = true;
             const infoContent = document.getElementById('info-content');
             if (infoContent && !infoContent.classList.contains('show')) {
                 sugEl.style.display = 'block';
             }
         }
-    // 🔥 실수로 누락되었던 에러 처리(catch) 구문 복구!
     } catch(e) {
-        const wInfo = document.getElementById('weather-info');
-        if (wInfo) wInfo.innerHTML = `⛅ --°C | 😐 보통`;
+        console.log("날씨 정보를 불러오지 못했습니다.", e);
     }
 }
 
@@ -550,14 +549,12 @@ function initBottomSheet() {
 function renderPanel(id) {
     const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
     if(nav) nav.style.display = 'none'; 
-    const weather = document.getElementById('weather-info');
-    if(weather) weather.style.display = 'none';
+    // 정보창을 열 때 AI 배너 숨김
+    const ws = document.getElementById('weather-suggestion');
+    if(ws) ws.style.display = 'none';
 
     const place = placesData.find(p => p.id === id); if (!place) return;
     incrementViewCount(id); 
-
-    const ws = document.getElementById('weather-suggestion');
-    if(ws) ws.style.display = 'none';
 
     let commentsArr = place.comments_list ? JSON.parse(place.comments_list) : [];
     let visibleComments = commentsArr.map((c, idx) => {
@@ -570,7 +567,6 @@ function renderPanel(id) {
     let isHasImage = urls.length > 0;
     let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
 
-    // 💡 현위치로부터의 거리 계산 (1km 미만 m, 이상 km)
     let dist = getDistanceKm(userLat, userLng, place.latitude, place.longitude);
     let distStr = dist < 1 ? Math.round(dist * 1000) + 'm' : dist.toFixed(1) + 'km';
 
@@ -582,7 +578,7 @@ function renderPanel(id) {
             <div style="width:40px; height:5px; background:rgba(0,0,0,0.1); border-radius:3px;"></div>
         </div>
         
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; box-sizing:border-box; padding: 4px 20px 10px 26px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; box-sizing:border-box; padding: ${isMobile ? '4px' : '24px'} 20px 10px 26px;">
             <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start;">
                 <div style="font-size:11px; font-weight:800; color:${catColor}; margin-bottom:2px;">${normalizeCat(place.category)}</div>
                 <div id="title-wrap-${place.id}" style="width:100%; overflow:hidden; white-space:nowrap; position:relative;">
@@ -616,6 +612,8 @@ function renderPanel(id) {
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     ${place.business_hours ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">시간</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
                     ${place.parking_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                    ${place.entry_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">입장료</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                    ${place.nursing_room ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">수유실</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
                 </div>
 
                 ${place.comment ? `<div style="font-size:13px; color:#495057; line-height:1.5; margin-top:16px; background:rgba(248,249,250,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); word-break:break-all;">${formatDescription(place.comment)}</div>` : ''}
@@ -629,6 +627,7 @@ function renderPanel(id) {
                         <textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1" style="flex:1; min-width:0; padding:10px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; resize:none; line-height:1.4; font-family:inherit;"></textarea>
                         <button onclick="addComment(${place.id})" style="height:100%; background:#495057; color:white; border:none; border-radius:8px; padding:0 16px; font-weight:700; font-size:12px; cursor:pointer; flex-shrink:0; font-family:inherit;">등록</button>
                     </div>
+                    ${commentsArr.length > 0 ? `<div style="font-size:12px; font-weight:800; margin-bottom:8px; margin-top:8px;">추가정보 (${commentsArr.length})</div>` : ''}
                     <div style="display:flex; flex-direction:column; gap:8px;">${visibleComments}${moreBtn}</div>
                 </div>
             </div>
