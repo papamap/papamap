@@ -54,7 +54,28 @@ img { -webkit-user-drag: none; }
 .category-nav:active { cursor: grabbing; }
 .category-nav::-webkit-scrollbar { display: none; }
 
-.chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; padding: 6px 12px; background: rgba(255,255,255,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px; font-size: 12px; font-weight: 700; color: #495057; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; user-select: none; }
+/* --- 카테고리 칩 스와이프 기능 활성화 --- */
+
+.chip { 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 4px; 
+    white-space: nowrap; 
+    padding: 6px 12px; 
+    background: rgba(255,255,255,0.75); 
+    backdrop-filter: blur(12px); 
+    -webkit-backdrop-filter: blur(12px); 
+    border: 1px solid rgba(255,255,255,0.6); 
+    border-radius: 16px; 
+    font-size: 12px; 
+    font-weight: 700; 
+    color: #495057; 
+    cursor: pointer; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+    transition: 0.2s; 
+    user-select: none; 
+    flex-shrink: 0 !important; 
+}
 .chip.active { background: #343a40; color: white; border-color: #343a40; }
 .chip[data-cat="실내"] { color: #FF6B6B; }
 .chip[data-cat="실내"].active { background: #FF6B6B; border-color: #FF6B6B; color: white; }
