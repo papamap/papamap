@@ -599,24 +599,26 @@ function renderPanel(id) {
     panel.innerHTML = `
         <div id="drag-handle" class="drag-handle"></div>
         
-        <button class="icon-btn btn-back-arrow btn-top-left" onclick="closePanel()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-        </button>
-        <div class="icon-actions">
-            <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button>
-            <button class="icon-btn btn-panel-close" onclick="closePanel()">✕</button>
+        <div class="panel-header-buttons">
+            <button class="icon-btn btn-back-arrow" onclick="closePanel()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <div class="icon-actions">
+                <button class="icon-btn" onclick="sharePlace('${place.name.replace(/'/g, "\\'")}', '')">${shareIcon}</button>
+                <button class="icon-btn btn-panel-close" onclick="closePanel()">✕</button>
+            </div>
         </div>
 
         <div class="info-scroll-area" id="scroll-area-${place.id}">
             <div class="info-body-wrap">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 20px 0 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 20px 0 20px;">
                     <div style="flex: 1; min-width: 0;">
-                        <div class="info-category" style="color: ${catColor}; margin-top: 0; margin-bottom: 4px;">${normalizeCat(place.category)}</div>
-                        <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; font-weight: 800; color: #212529;">${place.name}</div>
+                        <div class="info-category" style="color: ${catColor}; margin-bottom: 4px;">${normalizeCat(place.category)}</div>
+                        <div class="info-title" id="dyn-title-${place.id}" style="font-size: 22px; font-weight: 800;">${place.name}</div>
                         ${place.address ? `<div class="info-address" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})" style="cursor:pointer; color:#4285F4; text-decoration:underline; font-size:12px; margin-top:6px;">${place.address}</div>` : ''}
                         ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="display:inline-flex; margin-top:8px; padding: 4px 8px; font-size: 10px; background: rgba(241, 243, 245, 0.8); color: #495057; text-decoration: none; border-radius:8px;">🌐 공식홈</a>` : ''}
                     </div>
-                    <div class="body-weather-box" style="margin-top: 22px;">
+                    <div class="body-weather-box">
                         <div class="weather-item-row">${weatherText}</div>
                         <div class="weather-item-row">${dustText}</div>
                     </div>
@@ -624,8 +626,8 @@ function renderPanel(id) {
 
                 <div class="info-header-wrap ${isHasImage ? 'has-image' : 'no-image'}" id="header-wrap-${place.id}" style="padding: 16px 20px;">
                     <div style="position:relative; width:100%; border-radius: 12px; overflow: hidden; background: #f1f3f5;">
-                        <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? '' : 'display:none; height:0;'}" onscroll="updateSliderDots(${place.id}, this)">
-                            ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" style="height: 220px; border-radius: 12px;">`).join('') : ''}
+                        <div class="image-slider" id="slider-${place.id}" style="${isHasImage ? 'height: 220px;' : 'display:none;'}" onscroll="updateSliderDots(${place.id}, this)">
+                            ${isHasImage ? urls.map(url => `<img src="${url}" class="place-photo" style="height: 100%; width: 100%; object-fit: cover;" draggable="false">`).join('') : ''}
                         </div>
                         ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}"></div>`).join('')}</div>` : ''}
                     </div>
@@ -638,6 +640,10 @@ function renderPanel(id) {
                     </div></div>
                     ${place.comment ? `<div class="info-desc" style="margin-top:16px;">${formatDescription(place.comment)}</div>` : ''}
                     <div class="comments-section" style="margin-top:20px;">
+                        <div class="comment-inputs-top">
+                            <input type="text" id="cmt-author-${place.id}" placeholder="닉네임">
+                            <input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호">
+                        </div>
                         <div class="comment-input-wrap"><textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1"></textarea><button onclick="addComment(${place.id})">등록</button></div>
                         <div class="comments-list">${visibleComments}${moreBtn}</div>
                     </div>
@@ -647,7 +653,13 @@ function renderPanel(id) {
     `;
 
     panel.classList.add('show');
-    sheetState = 1; window.applySheetState();
+    if (isMobile) {
+        sheetState = 1; window.applySheetState();
+    } else {
+        panel.style.transform = 'translateX(0)';
+        const scrollArea = document.getElementById(`scroll-area-${place.id}`);
+        if(scrollArea) { scrollArea.style.overflowY = 'auto'; scrollArea.style.touchAction = 'auto'; }
+    }
 }
 
 function openAddModal() { const modal = document.getElementById('add-modal'); modal.style.display = 'flex'; const content = modal.querySelector('.modal-content'); if (content) content.scrollTop = 0; setTimeout(() => { const searchInput = document.getElementById('kakao-keyword'); if (searchInput) searchInput.focus(); }, 100); }
