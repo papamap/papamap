@@ -569,7 +569,7 @@ function renderPanel(id) {
         <div class="info-scroll-area" id="scroll-area-${place.id}" style="flex:1; overflow-y:auto; overflow-x:hidden; width:100%; display:flex; flex-direction:column; -webkit-overflow-scrolling:touch;">
             <div style="padding-top: ${isMobile ? '60px' : '70px'}; flex-shrink:0;"></div>
             
-            <div class="info-body-wrap" style="padding: 0 20px 30px 20px; height:auto; display:flex; flex-direction:column;">
+            <div class="info-body-wrap" style="padding: 0 20px 30px 24px; height:auto; display:flex; flex-direction:column;">
                 
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
                     <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start;">
