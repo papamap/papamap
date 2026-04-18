@@ -982,13 +982,14 @@ async function savePlace() {
     } else { alert("등록 실패. " + error.message); btnSave.innerText = "승인 요청하기"; btnSave.disabled = false; }
 }
 
+
 async function fetchSeoulApiData(areaName, placeId) {
-    const cBox = document.getElementById(`live-congest-${placeId}`);
-    const pBox = document.getElementById(`live-park-${placeId}`);
+    const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
+    const congestBtn = document.getElementById(`btn-congest-toggle-${placeId}`);
+    const parkBox = document.getElementById(`live-park-${placeId}`);
     
     try {
         const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(areaName)}`;
-        
         const fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
         const res = await fetch(fetchUrl);
@@ -997,60 +998,75 @@ async function fetchSeoulApiData(areaName, placeId) {
         if(data.CITYDATA) {
             const cd = data.CITYDATA;
             
-            // [혼잡도 파싱]
             if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
                 const pop = cd.LIVE_PPLTN_STTS[0];
                 let cur = pop.AREA_CONGEST_LVL;
-                let fcst = pop.FCST_PPLTN || [];
-                let f2 = fcst.length > 1 ? fcst[1].FCST_CONGEST_LVL : "-";
-                let f4 = fcst.length > 3 ? fcst[3].FCST_CONGEST_LVL : "-";
+                if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(cur)}; font-weight:800;">${cur}</span>`;
                 
-                if(cBox) cBox.innerHTML = `현재 <span style="color:${getCongestColor(cur)}">${cur}</span>, 2시간뒤 <span style="color:${getCongestColor(f2)}">${f2}</span>, 4시간뒤 <span style="color:${getCongestColor(f4)}">${f4}</span>`;
+                let fcst = pop.FCST_PPLTN || [];
+                if(fcst.length > 3 && congestBtn) {
+                    let f2 = fcst[1]; 
+                    let f4 = fcst[3];
+                    let t2 = f2.FCST_TIME.split(' ')[1]; 
+                    let t4 = f4.FCST_TIME.split(' ')[1];
+                    
+                    congestBtn.style.display = 'block';
+                    congestBtn.onclick = () => {
+                        alert(`📡 [${areaName}] 혼잡도 예측\n\n• 2시간 뒤 (${t2}) : ${f2.FCST_CONGEST_LVL}\n• 4시간 뒤 (${t4}) : ${f4.FCST_CONGEST_LVL}`);
+                    };
+                }
+            } else {
+                if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">정보 없음</span>`;
             }
 
-            // [주차장 파싱]
+            // [주차장 적용] 고정형 리스트 노출
             const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
             if(validPrk.length > 0) {
                 let prkHtml = validPrk.map(p => {
                     let remain = Math.max((parseInt(p.CPCTY) || 0) - (parseInt(p.CUR_PRK_CNT) || 0), 0);
-                    return `<div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center;">
+                    return `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
                         <span style="color:#495057; font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.PRK_NM}</span>
                         <span style="color:#37B24D; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">${remain}대 여유 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>
                     </div>`;
                 }).join('');
-                if(pBox) { pBox.style.display = 'block'; pBox.innerHTML = prkHtml; }
+                if(parkBox) parkBox.innerHTML = prkHtml; 
+            } else {
+                if(parkBox) parkBox.innerHTML = `<span style="color:#868e96; font-size:11px;">실시간 연동된 주차장이 없습니다.</span>`;
             }
-        } else if (data.RESULT && data.RESULT.MESSAGE) {
-            if(cBox) cBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">API 오류: ${data.RESULT.MESSAGE}</span>`;
-        } else {
-            if(cBox) cBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">데이터 구조 오류</span>`;
+        } else if (data.RESULT) {
+             if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">오류: ${data.RESULT.MESSAGE}</span>`;
+             if(parkBox) parkBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">오류: ${data.RESULT.MESSAGE}</span>`;
         }
     } catch(e) { 
         console.error(e); 
-        if(cBox) cBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">통신 지연 또는 차단됨</span>`;
+        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">통신 지연 (새로고침 요망)</span>`;
+        if(parkBox) parkBox.innerHTML = `<span style="color:#FF6B6B; font-size:11px;">통신 지연 (새로고침 요망)</span>`;
     }
 }
 
 function getCongestColor(lvl) {
     if(lvl === '여유') return '#37B24D';
     if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 붐빔') return '#FF6B6B';
-    if(lvl === '붐빔') return '#e03131';
+    if(lvl === '약간 혼잡') return '#FF6B6B';
+    if(lvl === '혼잡') return '#e03131';
     return '#495057';
 }
 
-function getCongestColor(lvl) {
-    if(lvl === '여유') return '#37B24D';
-    if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 붐빔') return '#FF6B6B';
-    if(lvl === '붐빔') return '#e03131';
-    return '#495057';
+function escapeHtml(text) {
+    if(!text) return '';
+    return text.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    });
 }
 
-function getCongestColor(lvl) {
-    if(lvl === '여유') return '#37B24D';
-    if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 붐빔') return '#FF6B6B';
-    if(lvl === '붐빔') return '#e03131';
-    return '#495057';
+function normalizeCat(cat) {
+    if (!cat) return '실내';
+    if (cat.includes('야외')) return '야외';
+    if (cat.includes('문센')) return '문센';
+    return '실내';
+}
+
+function formatDescription(text) {
+    if(!text) return '';
+    return escapeHtml(text).replace(/\n/g, '<br>');
 }
