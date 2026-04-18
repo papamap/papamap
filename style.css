@@ -8,7 +8,7 @@ img { -webkit-user-drag: none; }
 .btn-header-search { background: none; border: none; padding: 0; margin: 0; display: flex; justify-content: center; align-items: center; color: #495057; cursor: pointer; transition: 0.1s; flex-shrink: 0; }
 .btn-header-search:active { transform: scale(0.9); color: #FF6B6B; }
 
-.category-nav { display: flex; gap: 6px; overflow-x: auto; pointer-events: auto; scrollbar-width: none; flex: 1; align-items: center; padding: 2px 0; }
+.category-nav { display: flex; gap: 6px; overflow-x: auto; pointer-events: auto; scrollbar-width: none; flex: 1; align-items: center; padding: 2px 0; -webkit-overflow-scrolling: touch; touch-action: pan-x; min-width: 0; flex-wrap: nowrap; }
 .category-nav::-webkit-scrollbar { display: none; }
 
 .chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; padding: 6px 12px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px; font-size: 12px; font-weight: 700; color: #495057; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; user-select: none; }
@@ -65,7 +65,7 @@ img { -webkit-user-drag: none; }
 .icon-btn svg { width: 16px; height: 16px; }
 .icon-btn:active { transform: scale(0.9); background: #f8f9fa; }
 
-.info-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; display: flex; flex-direction: column; }
+.info-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
 .info-scroll-area::-webkit-scrollbar { width: 6px; }
 .info-scroll-area::-webkit-scrollbar-track { background: transparent; }
 .info-scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }

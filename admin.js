@@ -249,9 +249,15 @@ async function togglePopup(id, isPopup) {
     if(isPopup) {
         endDate = prompt("팝업 종료일을 입력하세요 (YYYY-MM-DD 형식)", new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]);
         if(!endDate) return;
+        if(isNaN(new Date(endDate).getTime())) return alert('올바른 날짜 형식이 아닙니다.');
     }
     const { error } = await supabaseClient.from('notices').update({ is_popup: isPopup, popup_end_date: endDate }).eq('id', id);
-    if (!error) { const item = adminBoardData.find(x => x.id === id); item.is_popup = isPopup; item.popup_end_date = endDate; renderAdminBoard(); }
+    if (!error) { 
+        const item = adminBoardData.find(x => x.id == id); 
+        if(item) { item.is_popup = isPopup; item.popup_end_date = endDate; } 
+        renderAdminBoard(); 
+        alert(isPopup ? '팝업이 설정되었습니다.' : '팝업이 해제되었습니다.');
+    } else alert("팝업 설정 실패: " + error.message);
 }
 
 async function deleteAdminBoard(id) {

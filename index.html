@@ -28,7 +28,7 @@
             <button class="chip" data-cat="야외" onclick="setCategory('야외')">야외</button>
             <button class="chip" data-cat="문센" onclick="setCategory('문센')">문센</button>
         </div>
-        <div id="weather-suggestion" style="display:none; font-size:12px; font-weight:700; color:#495057; background:rgba(255,255,255,0.8); padding:8px 14px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border:1px solid rgba(255,255,255,0.6); pointer-events:auto; align-self:flex-start; margin-left:2px; animation:fadeIn 0.5s;"></div>
+        <div id="weather-suggestion" style="display:none; width:100%; flex-basis:100%; font-size:12px; font-weight:700; color:#495057; background:rgba(255,255,255,0.8); padding:8px 14px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border:1px solid rgba(255,255,255,0.6); pointer-events:auto; margin-top:2px;"></div>
     </div>
 
     <div class="search-panel" id="search-panel">
@@ -85,7 +85,7 @@
         <div class="modal-content" style="padding:10px; text-align:center; max-width:320px;">
             <div class="image-slider" id="popup-slider-inner" style="width:100%; max-height:400px; display:flex;"></div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding:0 8px;">
-                <label style="font-size:12px; color:#495057; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="popup-hide-today">오늘 하루 보지 않기</label>
+                <label style="font-size:12px; color:#495057; display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="popup-hide-today">오늘 하루 보지 않기</label>
                 <button onclick="closePopup(document.getElementById('popup-hide-today').checked)" style="background:none; border:none; font-weight:800; font-size:13px; color:#FF6B6B; cursor:pointer;">닫기</button>
             </div>
         </div>

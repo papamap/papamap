@@ -70,35 +70,77 @@ function compressImage(file, maxWidth, maxHeight, quality) {
 }
 
 class MediaManager {
-    constructor(containerId, instanceName, maxFiles, shouldCompress) { this.containerId = containerId; this.instanceName = instanceName; this.maxFiles = maxFiles; this.shouldCompress = shouldCompress; this.media = []; this.dragTargetIndex = null; setTimeout(() => this.initTouchDrag(), 100); }
+    constructor(containerId, instanceName, maxFiles, shouldCompress) { this.containerId = containerId; this.instanceName = instanceName; this.maxFiles = maxFiles; this.shouldCompress = shouldCompress; this.media = []; this.dragTargetIndex = null; setTimeout(() => this.initDragAndDrop(), 100); }
     loadUrls(urlStr) { this.media = []; if(urlStr) { urlStr.split(',').forEach(u => { if(u.trim()) this.media.push({ type: 'url', data: u.trim() }); }); } this.render(); }
     addFiles(input) { Array.from(input.files).forEach(file => { if (this.media.length < this.maxFiles) this.media.push({ type: 'file', data: file }); }); input.value = ''; this.render(); }
     remove(idx) { this.media.splice(idx, 1); this.render(); }
     reorder(from, to) { const item = this.media.splice(from, 1)[0]; this.media.splice(to, 0, item); this.render(); }
-    initTouchDrag() {
+    initDragAndDrop() {
         const container = document.getElementById(this.containerId); if(!container) return;
+
+        // PC Drag
+        container.addEventListener('dragstart', e => {
+            const item = e.target.closest('.media-preview-item');
+            if(item) { this.dragTargetIndex = null; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData('text/plain', item.dataset.idx); }
+        });
+        container.addEventListener('dragover', e => {
+            e.preventDefault(); e.dataTransfer.dropEffect = "move";
+            const targetItem = e.target.closest('.media-preview-item');
+            container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
+            if(targetItem) {
+                const rect = targetItem.getBoundingClientRect(); const isLeft = (e.clientX - rect.left) < (rect.width/2);
+                targetItem.classList.add(isLeft ? 'drag-over-left' : 'drag-over-right');
+            }
+        });
+        container.addEventListener('dragleave', e => {
+            const targetItem = e.target.closest('.media-preview-item');
+            if(targetItem) targetItem.classList.remove('drag-over-left', 'drag-over-right');
+        });
+        container.addEventListener('drop', e => {
+            e.preventDefault(); const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+            const targetItem = e.target.closest('.media-preview-item');
+            container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
+            if(targetItem && !isNaN(fromIdx)) {
+                const rect = targetItem.getBoundingClientRect(); const isLeft = (e.clientX - rect.left) < (rect.width/2);
+                let toIdx = parseInt(targetItem.dataset.idx) + (isLeft ? 0 : 1);
+                if(fromIdx < toIdx) toIdx--;
+                if(fromIdx !== toIdx) this.reorder(fromIdx, toIdx);
+            }
+        });
+
+        // Mobile Touch Drag
         let dragSrcEl = null, startIdx = null;
-        container.addEventListener('touchstart', e => { const item = e.target.closest('.media-preview-item'); if(item) { dragSrcEl = item; startIdx = parseInt(item.dataset.idx); item.style.opacity = '0.5'; } }, {passive: true});
-        container.addEventListener('touchmove', e => { 
-            if(!dragSrcEl) return; e.preventDefault(); 
+        container.addEventListener('touchstart', e => {
+            if(e.target.tagName === 'BUTTON') return;
+            const item = e.target.closest('.media-preview-item');
+            if(item) { dragSrcEl = item; startIdx = parseInt(item.dataset.idx); item.style.opacity = '0.5'; }
+        }, {passive: true});
+        container.addEventListener('touchmove', e => {
+            if(!dragSrcEl) return; e.preventDefault();
             const touch = e.touches[0]; const target = document.elementFromPoint(touch.clientX, touch.clientY);
             const targetItem = target ? target.closest('.media-preview-item') : null;
-            container.querySelectorAll('.media-preview-item').forEach(el => { el.classList.remove('drag-over-left', 'drag-over-right'); });
+            container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
             if(targetItem && targetItem !== dragSrcEl) {
                 const rect = targetItem.getBoundingClientRect(); const isLeft = (touch.clientX - rect.left) < (rect.width/2);
-                targetItem.classList.add(isLeft ? 'drag-over-left' : 'drag-over-right'); this.dragTargetIndex = parseInt(targetItem.dataset.idx) + (isLeft ? 0 : 1);
+                targetItem.classList.add(isLeft ? 'drag-over-left' : 'drag-over-right');
+                this.dragTargetIndex = parseInt(targetItem.dataset.idx) + (isLeft ? 0 : 1);
             } else this.dragTargetIndex = null;
         }, {passive: false});
         container.addEventListener('touchend', e => {
-            if(!dragSrcEl) return; dragSrcEl.style.opacity = '1'; container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
-            if(this.dragTargetIndex !== null) { let endIdx = this.dragTargetIndex; if(startIdx < endIdx) endIdx--; if(startIdx !== endIdx) this.reorder(startIdx, endIdx); }
+            if(!dragSrcEl) return;
+            dragSrcEl.style.opacity = '1'; container.querySelectorAll('.media-preview-item').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
+            if(this.dragTargetIndex !== null) {
+                let endIdx = this.dragTargetIndex;
+                if(startIdx < endIdx) endIdx--;
+                if(startIdx !== endIdx) this.reorder(startIdx, endIdx);
+            }
             dragSrcEl = null; startIdx = null; this.dragTargetIndex = null;
         });
     }
     render() {
         const container = document.getElementById(this.containerId); container.innerHTML = '';
         this.media.forEach((m, idx) => {
-            const div = document.createElement('div'); div.className = 'media-preview-item'; div.dataset.idx = idx;
+            const div = document.createElement('div'); div.className = 'media-preview-item'; div.dataset.idx = idx; div.setAttribute('draggable', 'true');
             if (m.type === 'url') { div.innerHTML = `<img src="${m.data}" class="media-preview-img"><button type="button" class="media-preview-del" onclick="${this.instanceName}.remove(${idx})">✖</button>`; container.appendChild(div); } 
             else { const reader = new FileReader(); reader.onload = (e) => { div.innerHTML = `<img src="${e.target.result}" class="media-preview-img"><button type="button" class="media-preview-del" onclick="${this.instanceName}.remove(${idx})">✖</button>`; container.appendChild(div); }; reader.readAsDataURL(m.data); }
         });
@@ -161,7 +203,13 @@ function closePopup(hideToday) {
 function renderNotices() {
     const container = document.getElementById('notice-list-container');
     if(noticesData.length === 0) { container.innerHTML = '<div style="text-align:center; padding:40px; color:#adb5bd;">등록된 글이 없습니다.</div>'; return; }
-    noticesData.sort((a, b) => { if (a.is_notice && !b.is_notice) return -1; if (!a.is_notice && b.is_notice) return 1; return new Date(b.created_at) < new Date(a.created_at) ? 1 : -1; });
+    
+    // 공지 우선, 그리고 최신글(날짜 내림차순) 정렬
+    noticesData.sort((a, b) => { 
+        if (a.is_notice !== b.is_notice) return a.is_notice ? -1 : 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); 
+    });
+    
     container.innerHTML = noticesData.map(n => {
         const dateStr = timeAgo(n.created_at); const firstImg = n.image_url ? n.image_url.split(',')[0] : null;
         const badge = n.is_notice ? `<span class="n-badge">공지</span> ` : '';
@@ -258,8 +306,13 @@ async function fetchWeather(lat, lng) {
         lastWeatherLat = lat; lastWeatherLng = lng;
         
         const sugEl = document.getElementById('weather-suggestion');
-        if (isBadAir || isRaining) { sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; sugEl.style.display = 'block'; }
-        else { sugEl.innerHTML = `💡 날씨가 좋네요! <b>야외</b> 나들이를 떠나볼까요?`; sugEl.style.display = 'block'; }
+        if (isBadAir || isRaining) { 
+            sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; 
+            sugEl.style.display = 'block'; 
+        } else { 
+            sugEl.innerHTML = `💡 날씨와 미세먼지가 모두 좋네요! <b>야외</b> 나들이를 떠나볼까요?`; 
+            sugEl.style.display = 'block'; 
+        }
     } catch(e) {}
 }
 
@@ -318,17 +371,36 @@ function initBottomSheet() {
     const panel = document.getElementById('info-content'); const handle = document.getElementById('drag-handle');
     if(!panel || !handle) return;
     let startY = 0;
-    handle.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, {passive:true});
-    handle.addEventListener('touchmove', e => { e.preventDefault(); }, {passive:false});
+    handle.addEventListener('touchstart', e => { 
+        startY = e.touches[0].clientY; 
+        panel.style.transition = 'none'; 
+    }, {passive:true});
+    
+    handle.addEventListener('touchmove', e => { 
+        if(window.innerWidth > 768) return;
+        e.preventDefault(); 
+        let currentY = e.touches[0].clientY;
+        let deltaY = currentY - startY;
+        let transformBase = sheetState === 1 ? 55 : (sheetState === 2 ? 10 : 80);
+        panel.style.transform = `translateY(calc(${transformBase}% + ${deltaY}px))`;
+    }, {passive:false});
+    
     handle.addEventListener('touchend', e => {
+        if(window.innerWidth > 768) return;
+        panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
         let deltaY = e.changedTouches[0].clientY - startY;
-        if(window.innerWidth > 768) return; 
+        
         if (deltaY < -40) { // swipe up
             if(sheetState === 1 || sheetState === 3) { panel.style.transform = 'translateY(10%)'; sheetState = 2; }
+            else panel.style.transform = 'translateY(10%)';
         } else if (deltaY > 40) { // swipe down
             if(sheetState === 2) { panel.style.transform = 'translateY(55%)'; sheetState = 1; }
             else if(sheetState === 1) { panel.style.transform = 'translateY(80%)'; sheetState = 3; }
             else if(sheetState === 3) { closePanel(); }
+        } else {
+            // 원위치 스냅
+            let transformBase = sheetState === 1 ? 55 : (sheetState === 2 ? 10 : 80);
+            panel.style.transform = `translateY(${transformBase}%)`;
         }
     });
 }
@@ -442,7 +514,7 @@ function renderPanel(id) {
         </div>`;
     
     const panel = document.getElementById('info-content'); panel.classList.add('show');
-    if (window.innerWidth <= 768) { panel.style.transform = 'translateY(55%)'; sheetState = 1; }
+    if (window.innerWidth <= 768) { panel.style.transform = 'translateY(55%)'; sheetState = 1; panel.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)'; }
     else { panel.style.transform = 'translateX(0)'; }
 
     setTimeout(() => {
