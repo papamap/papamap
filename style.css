@@ -366,3 +366,50 @@ html.is-mobile .info-panel {
     border-radius: 8px;
     white-space: nowrap;
 }
+
+/* --- 지도 상단 공백 및 정보창 디자인 완벽 복구 --- */
+
+/* 지도 상단 공백 제거 */
+.top-bar-container {
+    top: 0 !important;
+    padding-top: max(16px, env(safe-area-inset-top));
+}
+
+/* 정보창 상단 고정 버튼(공유, X, 뒤로가기)의 레이아웃 독립 보장 */
+.panel-top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 16px 20px;
+    pointer-events: none;
+}
+html.is-mobile .panel-top-bar {
+    padding: 16px 16px;
+}
+.panel-top-bar > * {
+    pointer-events: auto;
+}
+
+/* 닉네임/비번 입력란 가로 분할 정렬 */
+.comment-inputs-top {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    width: 100%;
+}
+.comment-inputs-top input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.6);
+    outline: none;
+}
