@@ -604,6 +604,7 @@ function renderPanel(id) {
     const panel = document.getElementById('info-content');
     panel.dataset.placeId = place.id;
     
+    // 💡 [조절 5] background: rgba(255,255,255,0.75) -> 맨 끝 숫자(0.75)를 줄이면 더 투명해집니다.
     panel.style.background = 'rgba(255, 255, 255, 0.75)';
     panel.style.backdropFilter = 'blur(20px)';
     panel.style.webkitBackdropFilter = 'blur(20px)';
@@ -650,7 +651,7 @@ function renderPanel(id) {
                         onmousemove="doImgDrag(event, this)">
                         ${isHasImage ? urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:center; display:block; pointer-events:none;" draggable="false">`).join('') : ''}
                     </div>
-                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:6px;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5);"></div>`).join('')}</div>` : ''}
+                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:6px; align-items:center;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,${i===0 ? '1' : '0.5'}); transform:${i===0 ? 'scale(1.2)' : 'scale(1)'}; transition:all 0.2s ease;"></div>`).join('')}</div>` : ''}
                 </div>
 
                 <div style="display:flex; flex-direction:column; gap:8px;">
@@ -836,8 +837,16 @@ async function fetchKakaoImage(query, imgElementId, topBarId, sliderId, headerWr
 function sharePlace(name, address) { if (navigator.share) navigator.share({ title: `아빠맵 - ${name}`, text: `${name}\n아빠맵에서 확인하세요!`, url: window.location.href }); else alert("URL을 복사해주세요."); }
 function openMapPopup(name, lat, lng) { document.getElementById('link-naver').onclick = () => openAppMap('naver', name, lat, lng); document.getElementById('link-kakao').onclick = () => openAppMap('kakao', name, lat, lng); document.getElementById('link-tmap').onclick = () => openAppMap('tmap', name, lat, lng); document.getElementById('map-link-modal').style.display = 'flex'; }
 function showMoreComments(id) { const items = document.querySelectorAll(`.cmt-item-${id}`); let shown = 0; let hiddenCount = 0; items.forEach(item => { if (item.style.display === 'none') { if (shown < 3) { item.style.display = 'flex'; shown++; } else hiddenCount++; } }); const btn = document.getElementById(`btn-more-${id}`); if (hiddenCount > 0) btn.innerText = `추가정보 더보기 ▼`; else btn.style.display = 'none'; }
-function updateSliderDots(id, el) { const index = Math.round(el.scrollLeft / el.offsetWidth); const dots = document.querySelectorAll('#slider-dots-' + id + ' .slider-dot'); dots.forEach((dot, i) => { dot.className = 'slider-dot' + (i === index ? ' active' : ''); }); }
-
+function updateSliderDots(id, el) { 
+    const index = Math.round(el.scrollLeft / el.offsetWidth); 
+    const dots = document.querySelectorAll('#slider-dots-' + id + ' .slider-dot'); 
+    dots.forEach((dot, i) => { 
+        dot.className = 'slider-dot' + (i === index ? ' active' : ''); 
+        dot.style.background = i === index ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.5)';
+        dot.style.transform = i === index ? 'scale(1.2)' : 'scale(1)';
+        dot.style.transition = 'all 0.2s ease';
+    }); 
+}
 function openAddModal() { const modal = document.getElementById('add-modal'); modal.style.display = 'flex'; const content = modal.querySelector('.modal-content'); if (content) content.scrollTop = 0; setTimeout(() => { const searchInput = document.getElementById('kakao-keyword'); if (searchInput) searchInput.focus(); }, 100); }
 function openEditModal(id) {
     const place = placesData.find(p => p.id === id); document.getElementById('edit-place-id').value = id; document.querySelector('#edit-modal .modal-content').scrollTop = 0; 
