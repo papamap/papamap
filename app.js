@@ -344,22 +344,21 @@ async function fetchWeather(lat, lng) {
         currentWeatherHtml = `${icon} ${temp}°C | ${aqiIcon} ${aqiText}`;
         lastWeatherLat = lat; lastWeatherLng = lng;
         
-        document.getElementById('weather-info').innerHTML = currentWeatherHtml;
-        document.getElementById('weather-info').style.cssText = "margin-top: 4px; border-radius: 8px; font-size: 11px; padding: 2px 8px;";
+       const wInfo = document.getElementById('weather-info');
+    if (wInfo) {
+        wInfo.innerHTML = currentWeatherHtml;
+    }
 
-        const sugEl = document.getElementById('weather-suggestion');
-        if (isBadAir || isRaining) { 
-            sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; 
-        } else { 
-            sugEl.innerHTML = `💡 날씨와 미세먼지가 모두 좋네요! <b>야외</b> 나들이를 떠나볼까요?`; 
-        }
-        
-        window.isWeatherSuggestionVisible = true;
-        if (!document.getElementById('info-content').classList.contains('show')) {
-            sugEl.style.display = 'block';
-        }
-    } catch(e) {
-        document.getElementById('weather-info').innerHTML = `⛅ --°C | 😐 보통`;
+    const sugEl = document.getElementById('weather-suggestion');
+    if (isBadAir || isRaining) { 
+        sugEl.innerHTML = `💡 오늘은 ${isRaining?'비가 오니':'미세먼지가 나쁘니'} <b>실내</b> 위주로 살펴보는 건 어떨까요?`; 
+    } else { 
+        sugEl.innerHTML = `💡 날씨와 미세먼지가 모두 좋네요! <b>야외</b> 나들이를 떠나볼까요?`; 
+    }
+    
+    window.isWeatherSuggestionVisible = true;
+    if (!document.getElementById('info-content').classList.contains('show')) {
+        sugEl.style.display = 'block';
     }
 }
 
@@ -387,6 +386,9 @@ function updateVisibleMarkers() {
 }
 
 window.onload = function() {
+    const topHeader = document.querySelector('.top-header');
+    const weatherInfo = document.getElementById('weather-info');
+    if(topHeader && weatherInfo) topHeader.appendChild(weatherInfo);
     map = new naver.maps.Map('map', { center: new naver.maps.LatLng(userLat, userLng), zoom: 14, mapDataControl: false });
     fetchWeather(userLat, userLng);
     if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; map.setCenter(new naver.maps.LatLng(userLat, userLng)); fetchWeather(userLat, userLng); updateUserLocationMarker(userLat, userLng); }, err => {}); }
