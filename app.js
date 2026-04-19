@@ -807,7 +807,6 @@ async function loadPlaces() {
     } catch (err) { alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message); }
 }
 
-// 🔥 정보창을 그려주는 함수 (아코디언 적용 완료)
 function renderPanel(id) {
     const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
     if(nav) nav.style.display = 'none'; 
@@ -887,8 +886,11 @@ function renderPanel(id) {
                     ${place.seoul_api_area ? `
                     <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center;">
-                                <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0;">혼잡도</span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="color:#868e96; font-weight:800; font-size:11px; flex-shrink:0;">혼잡도</span>
+                                <button onclick="fetchSeoulApiData('${place.seoul_api_area}', ${place.id}, true)" style="background:rgba(0,0,0,0.04); border:none; width:22px; height:22px; border-radius:50%; cursor:pointer; color:#868e96; display:flex; align-items:center; justify-content:center; transition:0.2s;" title="부분 새로고침" onmousedown="this.style.transform='scale(0.8)'" onmouseup="this.style.transform='scale(1)'">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                </button>
                                 <span id="live-congest-cur-${place.id}" style="font-weight:800; color:#5c7cfa;">데이터 확인중... 🚀</span>
                             </div>
                             <button id="btn-congest-toggle-${place.id}" onclick="toggleLiveDetail('congest-detail-${place.id}', this)" style="display:none; background:rgba(92,124,250,0.1); border:1px solid rgba(92,124,250,0.3); color:#5c7cfa; border-radius:6px; font-size:10px; font-weight:800; cursor:pointer; padding:4px 8px; transition:0.2s;">예측 보기 ▼</button>
@@ -953,24 +955,46 @@ function renderPanel(id) {
     }
 
     if(place.seoul_api_area) {
+        // 첫 호출
         fetchSeoulApiData(place.seoul_api_area, place.id);
     }
 }
 
-// 🔥 서울시 API 통신 최적화 로직
-async function fetchSeoulApiData(areaName, placeId) {
+// 🔥 서울시 API 로직 (강제 새로고침 기능 포함)
+async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
     const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
     const congestBtn = document.getElementById(`btn-congest-toggle-${placeId}`);
     const congestDetail = document.getElementById(`congest-detail-${placeId}`);
     const parkBox = document.getElementById(`live-park-${placeId}`);
     
+    // 강제 새로고침 시 UI를 초기 로딩 상태로 되돌림
+    if (forceRefresh) {
+        if(congestCur) congestCur.innerHTML = `<span style="color:#5c7cfa;">데이터 재확인중... 🚀</span>`;
+        if(congestBtn) {
+            congestBtn.style.display = 'none';
+            congestBtn.innerHTML = '예측 보기 ▼';
+            congestBtn.style.color = '#5c7cfa';
+            congestBtn.style.background = 'rgba(92,124,250,0.1)';
+            congestBtn.style.borderColor = 'rgba(92,124,250,0.3)';
+        }
+        if(congestDetail) { congestDetail.style.display = 'none'; congestDetail.innerHTML = ''; }
+        if(parkBox) { 
+            parkBox.style.display = 'flex'; 
+            parkBox.innerHTML = `<span style="color:#adb5bd; font-size:11px; font-weight:700;">실시간 주차 재확인중... 🚀</span>`; 
+        }
+    }
+
     try {
         const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(areaName)}`;
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`, { signal: controller.signal });
+        // 🔥 forceRefresh가 참일 경우 타임스탬프를 붙여 이전 통신 에러 캐시를 강제 무시합니다.
+        const cacheBuster = forceRefresh ? `&_=${Date.now()}` : '';
+        const fetchUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}${cacheBuster}&disableCache=true`;
+
+        const response = await fetch(fetchUrl, { signal: controller.signal });
         const wrapper = await response.json();
         const data = JSON.parse(wrapper.contents);
         clearTimeout(timeoutId);
@@ -978,7 +1002,7 @@ async function fetchSeoulApiData(areaName, placeId) {
         if(data && data.CITYDATA) {
             const cd = data.CITYDATA;
             
-            // 1. 혼잡도 적용 (아코디언 토글 연동, 전체 시간대 노출)
+            // 1. 혼잡도 적용
             if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
                 const pop = cd.LIVE_PPLTN_STTS[0];
                 if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(pop.AREA_CONGEST_LVL)};">${pop.AREA_CONGEST_LVL}</span>`;
@@ -986,7 +1010,7 @@ async function fetchSeoulApiData(areaName, placeId) {
                 let fcst = pop.FCST_PPLTN || [];
                 if(fcst.length > 0 && congestBtn && congestDetail) {
                     let fcstHtml = fcst.map(f => {
-                        let t = f.FCST_TIME.split(' ')[1]; // "14:00" 등 시간 추출
+                        let t = f.FCST_TIME.split(' ')[1];
                         return `<div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="color:#adb5bd;">${t} 예측</span>
                             <strong style="color:${getCongestColor(f.FCST_CONGEST_LVL)}">${f.FCST_CONGEST_LVL}</strong>
@@ -1000,7 +1024,7 @@ async function fetchSeoulApiData(areaName, placeId) {
                 if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">정보 없음</span>`;
             }
 
-            // 2. 주차장 (0대일 때 만차 빨간색 로직, 정보 없으면 숨김)
+            // 2. 주차장 (0대일 때 만차 처리, 정보 없으면 박스 숨김)
             const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
             if(validPrk.length > 0) {
                 let prkHtml = validPrk.map(p => {
@@ -1018,7 +1042,6 @@ async function fetchSeoulApiData(areaName, placeId) {
                 
                 if(parkBox) { parkBox.style.display = 'flex'; parkBox.innerHTML = prkHtml; }
             } else {
-                // 실시간 데이터가 없는 경우 박스 및 점선 라인 완전히 숨김
                 if(parkBox) { parkBox.style.display = 'none'; }
             }
         } else if (data.RESULT) {
@@ -1026,28 +1049,8 @@ async function fetchSeoulApiData(areaName, placeId) {
              if(parkBox) { parkBox.style.display = 'none'; }
         }
     } catch(e) { 
-        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 요망)</span>`;
+        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 버튼 터치)</span>`;
         if(parkBox) { parkBox.style.display = 'none'; }
-    }
-}
-
-// 🔥 아코디언 토글 디자인 및 애니메이션
-function toggleLiveDetail(targetId, btnEl) {
-    const el = document.getElementById(targetId);
-    if(!el) return;
-    
-    if(el.style.display === 'none' || el.style.display === '') {
-        el.style.display = 'flex';
-        btnEl.innerHTML = btnEl.innerHTML.replace('▼', '▲');
-        btnEl.style.color = '#495057';
-        btnEl.style.background = 'rgba(0,0,0,0.05)';
-        btnEl.style.borderColor = 'transparent';
-    } else {
-        el.style.display = 'none';
-        btnEl.innerHTML = btnEl.innerHTML.replace('▲', '▼');
-        btnEl.style.color = '#5c7cfa';
-        btnEl.style.background = 'rgba(92,124,250,0.1)';
-        btnEl.style.borderColor = 'rgba(92,124,250,0.3)';
     }
 }
 
