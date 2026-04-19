@@ -1000,14 +1000,14 @@ async function fetchSeoulApiData(areaName, placeId) {
                 if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">정보 없음</span>`;
             }
 
-            // 2. 주차장 (0대일 때 만차 빨간색 로직)
+            // 2. 주차장 (0대일 때 만차 빨간색 로직, 정보 없으면 숨김)
             const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
             if(validPrk.length > 0) {
                 let prkHtml = validPrk.map(p => {
                     let remain = Math.max((parseInt(p.CPCTY) || 0) - (parseInt(p.CUR_PRK_CNT) || 0), 0);
                     
                     let remainText = remain === 0 
-                        ? `<span style="color:#FF6B6B; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">만차 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`
+                        ? `<span style="color:#FA5252; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">만차 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`
                         : `<span style="color:#37B24D; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">${remain}대 여유 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`;
                         
                     return `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
@@ -1018,12 +1018,16 @@ async function fetchSeoulApiData(areaName, placeId) {
                 
                 if(parkBox) { parkBox.style.display = 'flex'; parkBox.innerHTML = prkHtml; }
             } else {
-                if(parkBox) { parkBox.style.display = 'block'; parkBox.innerHTML = `<span style="color:#868e96; font-size:11px;">실시간 주차 정보 없음</span>`; }
+                // 실시간 데이터가 없는 경우 박스 및 점선 라인 완전히 숨김
+                if(parkBox) { parkBox.style.display = 'none'; }
             }
+        } else if (data.RESULT) {
+             if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">오류: ${data.RESULT.MESSAGE}</span>`;
+             if(parkBox) { parkBox.style.display = 'none'; }
         }
     } catch(e) { 
         if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 요망)</span>`;
-        if(parkBox) { parkBox.style.display = 'block'; parkBox.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 요망)</span>`; }
+        if(parkBox) { parkBox.style.display = 'none'; }
     }
 }
 
@@ -1050,7 +1054,7 @@ function toggleLiveDetail(targetId, btnEl) {
 function getCongestColor(lvl) {
     if(lvl === '여유') return '#37B24D';
     if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 혼잡') return '#FF6B6B';
-    if(lvl === '혼잡') return '#e03131';
+    if(lvl === '약간 붐빔') return '#FA5252';
+    if(lvl === '붐빔') return '#e03131';
     return '#495057';
 }
