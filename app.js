@@ -39,7 +39,11 @@ function resolvePw(val) { document.getElementById('pw-modal').style.display = 'n
 function askTextPrompt(defaultText) { return new Promise(resolve => { textPromptResolveFn = resolve; document.getElementById('text-prompt-modal').style.display = 'flex'; document.getElementById('text-prompt-input').value = defaultText || ''; document.getElementById('text-prompt-input').focus(); }); }
 function resolveTextPrompt(val) { document.getElementById('text-prompt-modal').style.display = 'none'; if(textPromptResolveFn) textPromptResolveFn(val); }
 
-function escapeHtml(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); }
+function escapeHtml(text) { 
+    if(!text) return ''; 
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; 
+    return text.replace(/[&<>"']/g, m => map[m]); 
+}
 function linkify(text) { if (!text) return ''; var urlRegex = /(https?:\/\/[^\s]+)/g; return text.replace(urlRegex, url => `<a href="${url}" target="_blank" style="color:#FF6B6B; text-decoration:underline;">${url}</a>`); }
 function formatDescription(text) {
     if (!text) return ''; const aTags = [];
@@ -308,7 +312,6 @@ function switchTab(tab) {
     else { document.getElementById('nav-board').classList.add('active'); document.getElementById('board-view').style.display = 'block'; document.getElementById('top-bar').style.display = 'none'; document.getElementById('fab-buttons').style.display = 'none'; closePanel(); closeSearchPanel(); showNoticeList(); }
 }
 
-// 팀원님의 예쁜 마커 핀 살려두기!
 function normalizeCat(c) { if(!c) return '실내'; if(c.includes('야외')) return '야외'; if(c.includes('문센')) return '문센'; return '실내'; }
 function getMarkerClass(cat) { const nCat = normalizeCat(cat); return nCat === '야외' ? 'marker-outdoor' : (nCat === '문센' ? 'marker-moonsen' : 'marker-indoor'); }
 function getMarkerHTML(place, isZoomedOut) {
@@ -316,6 +319,11 @@ function getMarkerHTML(place, isZoomedOut) {
     let cls = getMarkerClass(place.category); const safeName = escapeHtml(place.name); 
     if (isZoomedOut) return `<div class="custom-marker zoomed ${cls}"><div class="marker-pin"></div><div class="marker-label">${safeName}</div></div>`; 
     return `<div class="custom-marker ${cls}"><div class="marker-pin"><div class="marker-icon">${emoji}</div></div><div class="marker-label">${safeName}</div></div>`;
+}
+function getDistanceKm(lat1, lon1, lat2, lon2) {
+    var R = 6371; var dLat = (lat2-lat1)*Math.PI/180; var dLon = (lon2-lon1)*Math.PI/180;
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 let lastWeatherLat = null; let lastWeatherLng = null;
@@ -461,7 +469,10 @@ function closePanel() {
     
     panel.style.transform = isMobile ? 'translateY(100%)' : 'translateX(-20px)'; 
     
-    document.getElementById('category-nav').style.display = 'flex'; 
+    const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
+    if(nav) nav.style.display = 'flex'; 
+    const weather = document.getElementById('weather-info');
+    if(weather) weather.style.display = 'flex'; 
 
     updateVisibleMarkers(); 
     if (window.isWeatherSuggestionVisible) {
@@ -767,6 +778,35 @@ async function savePlace() {
     } else { alert("등록 실패. " + error.message); btnSave.innerText = "승인 요청하기"; btnSave.disabled = false; }
 }
 
+async function loadPlaces() {
+    try {
+        const { data, error } = await supabaseClient.from('places').select('*').eq('is_approved', true);
+        if (error) throw error;
+        
+        if (data) {
+            placesData.forEach(p => { if(p.marker) p.marker.setMap(null); });
+            placesData = data.map(p => { if(p.name) p.name = p.name.split('\\n')[0].split('\n')[0].trim(); return p; });
+            let isZoomedOut = map.getZoom() < 13;
+            placesData.forEach(place => {
+                let jitterLat = place.latitude + (Math.random() - 0.5) * 0.0002; let jitterLng = place.longitude + (Math.random() - 0.5) * 0.0002;
+                place.marker = new naver.maps.Marker({ position: new naver.maps.LatLng(jitterLat, jitterLng), icon: { content: getMarkerHTML(place, isZoomedOut), anchor: isZoomedOut ? new naver.maps.Point(7, 7) : new naver.maps.Point(15, 36) }, zIndex: (place.views || place.likes) || 0 });
+                place.marker.addListener('click', function() { 
+                    const pos = place.marker.getPosition();
+                    map.setCenter(pos);                     
+                    if (isMobile) {
+                        map.panBy(new naver.maps.Point(0, map.getSize().height * 0.25));
+                    }
+                                        renderPanel(place.id); 
+                    if(isMobile) closeSearchPanel(); 
+                });
+                place.marker.addListener('mouseover', function() { this.setZIndex(999999); });
+                place.marker.addListener('mouseout', function() { this.setZIndex((place.views || place.likes) || 0); });
+            });
+            applyFilters('전체');
+        }
+    } catch (err) { alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message); }
+}
+
 // 🔥 정보창을 그려주는 함수 (아코디언 적용 완료)
 function renderPanel(id) {
     const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
@@ -917,7 +957,7 @@ function renderPanel(id) {
     }
 }
 
-// 🔥 서울시 API 로직 통신 최적화 
+// 🔥 서울시 API 통신 최적화 로직
 async function fetchSeoulApiData(areaName, placeId) {
     const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
     const congestBtn = document.getElementById(`btn-congest-toggle-${placeId}`);
@@ -938,7 +978,7 @@ async function fetchSeoulApiData(areaName, placeId) {
         if(data && data.CITYDATA) {
             const cd = data.CITYDATA;
             
-            // 1. 혼잡도 적용 (아코디언 토글 연동)
+            // 1. 혼잡도 적용 (아코디언 토글 연동, 전체 시간대 노출)
             if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
                 const pop = cd.LIVE_PPLTN_STTS[0];
                 if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(pop.AREA_CONGEST_LVL)};">${pop.AREA_CONGEST_LVL}</span>`;
@@ -1010,7 +1050,7 @@ function toggleLiveDetail(targetId, btnEl) {
 function getCongestColor(lvl) {
     if(lvl === '여유') return '#37B24D';
     if(lvl === '보통') return '#f59f00';
-    if(lvl === '약간 붐빔') return '#FF6B6B';
-    if(lvl === '붐빔') return '#e03131';
+    if(lvl === '약간 혼잡') return '#FF6B6B';
+    if(lvl === '혼잡') return '#e03131';
     return '#495057';
 }
