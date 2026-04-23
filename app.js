@@ -1036,7 +1036,7 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
             }
         }
     } catch(e) { 
-        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 🔄 터치)</span>`;
+        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연</span>`;
         if(parkBox) { parkBox.style.display = 'none'; }
     }
 }
