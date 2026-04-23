@@ -957,109 +957,56 @@ function renderPanel(id) {
     }
 }
 
-// 🔥 서울시 API 로직 (명칭 변경 및 UI 가독성 개선 버전)
 async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
     const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
     const congestBtn = document.getElementById(`btn-congest-toggle-${placeId}`);
     const congestDetail = document.getElementById(`congest-detail-${placeId}`);
     const parkBox = document.getElementById(`live-park-${placeId}`);
     
-    const cacheKey = `seoul_api_${areaName}`;
-    const cacheTimeKey = `seoul_api_time_${areaName}`;
-    const CACHE_TTL = 10 * 60 * 1000; 
-
-    if (forceRefresh) {
-        if(congestCur) congestCur.innerHTML = `<span style="color:#5c7cfa;">데이터 재확인중... 🚀</span>`;
-        if(congestBtn) {
-            congestBtn.style.display = 'none';
-            congestBtn.innerHTML = '예측 보기 ▼';
-            congestBtn.style.color = '#5c7cfa';
-            congestBtn.style.background = 'rgba(92,124,250,0.1)';
-            congestBtn.style.borderColor = 'rgba(92,124,250,0.3)';
-        }
-        if(congestDetail) { congestDetail.style.display = 'none'; congestDetail.innerHTML = ''; }
-        if(parkBox) { 
-            parkBox.style.display = 'flex'; 
-            parkBox.innerHTML = `<span style="color:#adb5bd; font-size:11px; font-weight:700;">실시간 주차 재확인중... 🚀</span>`; 
-        }
-    }
+    if(congestCur) congestCur.innerHTML = "데이터 확인중... 🚀";
 
     try {
-        let cd = null;
-        if (!forceRefresh) {
-            const cachedData = localStorage.getItem(cacheKey);
-            const cachedTime = localStorage.getItem(cacheTimeKey);
-            if (cachedData && cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_TTL)) {
-                cd = JSON.parse(cachedData);
-            }
-        }
-
-        if (!cd) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 6000);
-            const fetchUrl = `/api/seoul?area=${encodeURIComponent(areaName)}`;
-            const response = await fetch(fetchUrl, { signal: controller.signal });
-            const data = await response.json(); 
-            clearTimeout(timeoutId);
+        const fetchUrl = `/api/seoul?area=${encodeURIComponent(areaName)}`;
+        const response = await fetch(fetchUrl);
+        const data = await response.json();
+        
+        if(data && data.CITYDATA) {
+            const cd = data.CITYDATA;
             
-            if(data && data.CITYDATA) {
-                cd = data.CITYDATA;
-                localStorage.setItem(cacheKey, JSON.stringify(cd));
-                localStorage.setItem(cacheTimeKey, Date.now().toString());
-            } else if (data.RESULT) {
-                throw new Error(data.RESULT.MESSAGE);
-            }
-        }
-
-        if(cd) {
-            // 1. 혼잡도 적용
             if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
                 const pop = cd.LIVE_PPLTN_STTS[0];
-                const rawLvl = pop.AREA_CONGEST_LVL;
-                
-                // 🔥 명칭 변경 적용 (화면에 노출되는 텍스트만 바꿈)
-                const displayLvl = rawLvl.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡');
-                if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(rawLvl)};">${displayLvl}</span>`;
+                const displayLvl = pop.AREA_CONGEST_LVL.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡');
+                congestCur.innerHTML = `<span style="color:${getCongestColor(pop.AREA_CONGEST_LVL)}; font-weight:800;">${displayLvl}</span>`;
                 
                 let fcst = pop.FCST_PPLTN || [];
                 if(fcst.length > 0 && congestBtn && congestDetail) {
-                    let fcstHtml = fcst.map(f => {
-                        let t = f.FCST_TIME.split(' ')[1]; // "14:00"
-                        const fRawLvl = f.FCST_CONGEST_LVL;
-                        // 🔥 예측 상세에서도 명칭 변경 적용
-                        const fDisplayLvl = fRawLvl.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡');
-                        
-                        return `<div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="color:#adb5bd;">${t}</span>  <strong style="color:${getCongestColor(fRawLvl)}">${fDisplayLvl}</strong>
-                        </div>`;
-                    }).join('');
-                    
-                    congestDetail.innerHTML = fcstHtml;
+                    congestDetail.innerHTML = fcst.map(f => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                            <span style="color:#adb5bd;">${f.FCST_TIME.split(' ')[1]}</span>
+                            <strong style="color:${getCongestColor(f.FCST_CONGEST_LVL)}">${f.FCST_CONGEST_LVL.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡')}</strong>
+                        </div>`).join('');
                     congestBtn.style.display = 'block';
                 }
             }
 
-            // 2. 주차장 적용 (변경 없음)
-            const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
-            if(validPrk.length > 0) {
-                let prkHtml = validPrk.map(p => {
+            const prk = cd.PRK_STTS || [];
+            if(prk.length > 0) {
+                parkBox.innerHTML = prk.filter(p => p.CUR_PRK_CNT !== undefined).map(p => {
                     let remain = Math.max((parseInt(p.CPCTY) || 0) - (parseInt(p.CUR_PRK_CNT) || 0), 0);
-                    let remainText = remain === 0 
-                        ? `<span style="color:#FA5252; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">만차 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`
-                        : `<span style="color:#37B24D; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">${remain}대 여유 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`;
+                    let color = remain === 0 ? '#FA5252' : '#37B24D';
+                    let txt = remain === 0 ? '만차' : `${remain}대 여유`;
                     return `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                        <span style="color:#495057; font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.PRK_NM}</span>
-                        ${remainText}
+                        <span style="color:#495057; font-weight:600; font-size:11px;">${p.PRK_NM}</span>
+                        <span style="color:${color}; font-weight:800; font-size:11px;">${txt} <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>
                     </div>`;
                 }).join('');
-                if(parkBox) { parkBox.style.display = 'flex'; parkBox.innerHTML = prkHtml; }
+                parkBox.style.display = 'flex';
             } else {
-                if(parkBox) { parkBox.style.display = 'none'; }
+                parkBox.style.display = 'none';
             }
         }
     } catch(e) { 
-        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 🔄 터치)</span>`;
-        if(parkBox) { parkBox.style.display = 'none'; }
+        if(congestCur) congestCur.innerHTML = "연동 지가 지연되고 있습니다. 🔄";
     }
 }
 
