@@ -1070,6 +1070,25 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
     }
 }
 
+function toggleLiveDetail(targetId, btnEl) {
+    const el = document.getElementById(targetId);
+    if(!el) return;
+    
+    if(el.style.display === 'none' || el.style.display === '') {
+        el.style.display = 'flex';
+        btnEl.innerHTML = btnEl.innerHTML.replace('▼', '▲');
+        btnEl.style.color = '#495057';
+        btnEl.style.background = 'rgba(0,0,0,0.05)';
+        btnEl.style.borderColor = 'transparent';
+    } else {
+        el.style.display = 'none';
+        btnEl.innerHTML = btnEl.innerHTML.replace('▲', '▼');
+        btnEl.style.color = '#5c7cfa';
+        btnEl.style.background = 'rgba(92,124,250,0.1)';
+        btnEl.style.borderColor = 'rgba(92,124,250,0.3)';
+    }
+}
+
 function getCongestColor(lvl) {
     if(lvl === '여유') return '#37B24D';
     if(lvl === '보통') return '#f59f00';
