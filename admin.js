@@ -385,36 +385,29 @@ async function approveEdit(reqId, origId) {
 async function loadLiveEvents() {
     const tbody = document.getElementById('events-tbody');
     const updateTime = document.getElementById('event-update-time');
-    
-    // 현재 등록된 장소들 중 '연동 구역'이 설정된 중복 없는 목록 추출
     const linkedAreas = [...new Set(adminPlaces.map(p => p.seoul_api_area).filter(a => a))];
     
     if(linkedAreas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">API가 연동된 장소가 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">API 연동 장소가 없습니다.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-weight:bold;">데이터를 수집하는 중입니다... 잠시만 기다려주세요.</td></tr>`;
-    
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">데이터를 불러오는 중... (수퍼베이스 캐시 활용)</td></tr>`;
     let htmlResult = "";
     
     for(const area of linkedAreas) {
         try {
-            // 🔥 무료 프록시를 버리고, 우리가 Vercel에 만든 자체 API를 직접 호출합니다!
-            const fetchUrl = `/api/seoul?area=${encodeURIComponent(area)}`;
-            
+            // 🔥 maxAge=720 (12시간) 파라미터 추가
+            const fetchUrl = `/api/seoul?area=${encodeURIComponent(area)}&maxAge=720`;
             const res = await fetch(fetchUrl);
             const data = await res.json();
             
             if(data && data.CITYDATA) {
                 const cd = data.CITYDATA;
-                
-                // 축제 파싱
                 const evt = cd.EVENT_STTS;
                 let evtText = (evt && evt.length > 0 && evt[0].EVENT_NM) ? 
                     evt.map(e => `<b style="color:#37B24D;">[${e.EVENT_NM}]</b> ${e.EVENT_PERIOD}`).join('<br><br>') : "<span style='color:#adb5bd;'>행사 없음</span>";
 
-                // 사고/집회 파싱
                 const acdnt = cd.ACDNT_CNTRL_STTS;
                 let acdntText = (acdnt && acdnt.length > 0 && acdnt[0].ACDNT_TYPE) ? 
                     acdnt.map(a => `<b style="color:#FF6B6B;">[${a.ACDNT_TYPE}]</b> ${a.MSG}`).join('<br><br>') : "<span style='color:#adb5bd;'>집회/통제 없음</span>";
@@ -424,16 +417,11 @@ async function loadLiveEvents() {
                     <td style="font-size:12px; line-height:1.5;">${evtText}</td>
                     <td style="font-size:12px; line-height:1.5;">${acdntText}</td>
                 </tr>`;
-            } else if (data.RESULT) {
-                htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">API 응답: ${data.RESULT.MESSAGE}</td></tr>`;
-            } else {
-                htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">데이터 파싱 오류</td></tr>`;
             }
         } catch(e) {
-            htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">통신 오류 (자체 API 연결 실패)</td></tr>`;
+            htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">통신 지연</td></tr>`;
         }
     }
-    
     tbody.innerHTML = htmlResult;
     updateTime.innerText = "마지막 업데이트: " + new Date().toLocaleTimeString('ko-KR');
 }
