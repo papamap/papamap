@@ -386,6 +386,7 @@ async function loadLiveEvents() {
     const tbody = document.getElementById('events-tbody');
     const updateTime = document.getElementById('event-update-time');
     
+    // 현재 등록된 장소들 중 '연동 구역'이 설정된 중복 없는 목록 추출
     const linkedAreas = [...new Set(adminPlaces.map(p => p.seoul_api_area).filter(a => a))];
     
     if(linkedAreas.length === 0) {
@@ -399,14 +400,13 @@ async function loadLiveEvents() {
     
     for(const area of linkedAreas) {
         try {
-            // 🔥 여기도 동일하게 프록시 주소로 교체했습니다.
-            const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(area)}`;
-            const fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+            // 🔥 무료 프록시를 버리고, 우리가 Vercel에 만든 자체 API를 직접 호출합니다!
+            const fetchUrl = `/api/seoul?area=${encodeURIComponent(area)}`;
             
             const res = await fetch(fetchUrl);
             const data = await res.json();
             
-            if(data.CITYDATA) {
+            if(data && data.CITYDATA) {
                 const cd = data.CITYDATA;
                 
                 // 축제 파싱
@@ -430,7 +430,7 @@ async function loadLiveEvents() {
                 htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">데이터 파싱 오류</td></tr>`;
             }
         } catch(e) {
-            htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">통신 지연 (HTTPS 차단 우회 오류)</td></tr>`;
+            htmlResult += `<tr><td>${area}</td><td colspan="2" style="color:#FF6B6B;">통신 오류 (자체 API 연결 실패)</td></tr>`;
         }
     }
     
