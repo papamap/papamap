@@ -957,19 +957,17 @@ function renderPanel(id) {
     }
 }
 
-// 🔥 서울시 API 로직 (자체 Vercel 백엔드 호출 + 10분 캐싱 + 부분 새로고침)
+// 🔥 서울시 API 로직 (명칭 변경 및 UI 가독성 개선 버전)
 async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
     const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
     const congestBtn = document.getElementById(`btn-congest-toggle-${placeId}`);
     const congestDetail = document.getElementById(`congest-detail-${placeId}`);
     const parkBox = document.getElementById(`live-park-${placeId}`);
     
-    // 💡 캐시 키 및 만료 시간 (10분 = 600,000 밀리초) 설정
     const cacheKey = `seoul_api_${areaName}`;
     const cacheTimeKey = `seoul_api_time_${areaName}`;
     const CACHE_TTL = 10 * 60 * 1000; 
 
-    // 강제 새로고침 시 UI 리셋
     if (forceRefresh) {
         if(congestCur) congestCur.innerHTML = `<span style="color:#5c7cfa;">데이터 재확인중... 🚀</span>`;
         if(congestBtn) {
@@ -988,8 +986,6 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
 
     try {
         let cd = null;
-
-        // 1. 캐시 검사
         if (!forceRefresh) {
             const cachedData = localStorage.getItem(cacheKey);
             const cachedTime = localStorage.getItem(cacheTimeKey);
@@ -998,22 +994,16 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
             }
         }
 
-        // 2. 실제 통신 진행 (자체 Vercel API 호출)
         if (!cd) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-            // 🔥 [가장 중요한 변화] AllOrigins가 아닌 우리가 만든 자체 API 주소를 호출합니다!
             const fetchUrl = `/api/seoul?area=${encodeURIComponent(areaName)}`;
-
             const response = await fetch(fetchUrl, { signal: controller.signal });
-            // 자체 API는 이중 포장(wrapper) 없이 원본 데이터를 주므로 바로 파싱합니다.
             const data = await response.json(); 
             clearTimeout(timeoutId);
             
             if(data && data.CITYDATA) {
                 cd = data.CITYDATA;
-                // 캐시 업데이트
                 localStorage.setItem(cacheKey, JSON.stringify(cd));
                 localStorage.setItem(cacheTimeKey, Date.now().toString());
             } else if (data.RESULT) {
@@ -1021,31 +1011,35 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
             }
         }
 
-        // 3. 화면 렌더링
         if(cd) {
-            // [혼잡도 파싱]
+            // 1. 혼잡도 적용
             if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
                 const pop = cd.LIVE_PPLTN_STTS[0];
-                if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(pop.AREA_CONGEST_LVL)};">${pop.AREA_CONGEST_LVL}</span>`;
+                const rawLvl = pop.AREA_CONGEST_LVL;
+                
+                // 🔥 명칭 변경 적용 (화면에 노출되는 텍스트만 바꿈)
+                const displayLvl = rawLvl.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡');
+                if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(rawLvl)};">${displayLvl}</span>`;
                 
                 let fcst = pop.FCST_PPLTN || [];
                 if(fcst.length > 0 && congestBtn && congestDetail) {
                     let fcstHtml = fcst.map(f => {
-                        let t = f.FCST_TIME.split(' ')[1];
+                        let t = f.FCST_TIME.split(' ')[1]; // "14:00"
+                        const fRawLvl = f.FCST_CONGEST_LVL;
+                        // 🔥 예측 상세에서도 명칭 변경 적용
+                        const fDisplayLvl = fRawLvl.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡');
+                        
                         return `<div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="color:#adb5bd;">${t} 예측</span>
-                            <strong style="color:${getCongestColor(f.FCST_CONGEST_LVL)}">${f.FCST_CONGEST_LVL}</strong>
+                            <span style="color:#adb5bd;">${t}</span>  <strong style="color:${getCongestColor(fRawLvl)}">${fDisplayLvl}</strong>
                         </div>`;
                     }).join('');
                     
                     congestDetail.innerHTML = fcstHtml;
                     congestBtn.style.display = 'block';
                 }
-            } else {
-                if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">정보 없음</span>`;
             }
 
-            // [주차장 파싱]
+            // 2. 주차장 적용 (변경 없음)
             const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
             if(validPrk.length > 0) {
                 let prkHtml = validPrk.map(p => {
@@ -1053,7 +1047,6 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
                     let remainText = remain === 0 
                         ? `<span style="color:#FA5252; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">만차 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`
                         : `<span style="color:#37B24D; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">${remain}대 여유 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`;
-                        
                     return `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
                         <span style="color:#495057; font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.PRK_NM}</span>
                         ${remainText}
@@ -1096,3 +1089,4 @@ function getCongestColor(lvl) {
     if(lvl === '붐빔') return '#e03131';
     return '#495057';
 }
+
