@@ -957,28 +957,73 @@ function renderPanel(id) {
     }
 }
 
-// 🔥 서울시 API 통신 최적화 로직
-async function fetchSeoulApiData(areaName, placeId) {
+// 🔥 서울시 API 로직 (자체 Vercel 백엔드 호출 + 10분 캐싱 + 부분 새로고침)
+async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
     const congestCur = document.getElementById(`live-congest-cur-${placeId}`);
     const congestBtn = document.getElementById(`btn-congest-toggle-${placeId}`);
     const congestDetail = document.getElementById(`congest-detail-${placeId}`);
     const parkBox = document.getElementById(`live-park-${placeId}`);
     
-    try {
-        const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(areaName)}`;
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+    // 💡 캐시 키 및 만료 시간 (10분 = 600,000 밀리초) 설정
+    const cacheKey = `seoul_api_${areaName}`;
+    const cacheTimeKey = `seoul_api_time_${areaName}`;
+    const CACHE_TTL = 10 * 60 * 1000; 
 
-        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`, { signal: controller.signal });
-        const wrapper = await response.json();
-        const data = JSON.parse(wrapper.contents);
-        clearTimeout(timeoutId);
-        
-        if(data && data.CITYDATA) {
-            const cd = data.CITYDATA;
+    // 강제 새로고침 시 UI 리셋
+    if (forceRefresh) {
+        if(congestCur) congestCur.innerHTML = `<span style="color:#5c7cfa;">데이터 재확인중... 🚀</span>`;
+        if(congestBtn) {
+            congestBtn.style.display = 'none';
+            congestBtn.innerHTML = '예측 보기 ▼';
+            congestBtn.style.color = '#5c7cfa';
+            congestBtn.style.background = 'rgba(92,124,250,0.1)';
+            congestBtn.style.borderColor = 'rgba(92,124,250,0.3)';
+        }
+        if(congestDetail) { congestDetail.style.display = 'none'; congestDetail.innerHTML = ''; }
+        if(parkBox) { 
+            parkBox.style.display = 'flex'; 
+            parkBox.innerHTML = `<span style="color:#adb5bd; font-size:11px; font-weight:700;">실시간 주차 재확인중... 🚀</span>`; 
+        }
+    }
+
+    try {
+        let cd = null;
+
+        // 1. 캐시 검사
+        if (!forceRefresh) {
+            const cachedData = localStorage.getItem(cacheKey);
+            const cachedTime = localStorage.getItem(cacheTimeKey);
+            if (cachedData && cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_TTL)) {
+                cd = JSON.parse(cachedData);
+            }
+        }
+
+        // 2. 실제 통신 진행 (자체 Vercel API 호출)
+        if (!cd) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+            // 🔥 [가장 중요한 변화] AllOrigins가 아닌 우리가 만든 자체 API 주소를 호출합니다!
+            const fetchUrl = `/api/seoul?area=${encodeURIComponent(areaName)}`;
+
+            const response = await fetch(fetchUrl, { signal: controller.signal });
+            // 자체 API는 이중 포장(wrapper) 없이 원본 데이터를 주므로 바로 파싱합니다.
+            const data = await response.json(); 
+            clearTimeout(timeoutId);
             
-            // 1. 혼잡도 적용 (아코디언 토글 연동, 전체 시간대 노출)
+            if(data && data.CITYDATA) {
+                cd = data.CITYDATA;
+                // 캐시 업데이트
+                localStorage.setItem(cacheKey, JSON.stringify(cd));
+                localStorage.setItem(cacheTimeKey, Date.now().toString());
+            } else if (data.RESULT) {
+                throw new Error(data.RESULT.MESSAGE);
+            }
+        }
+
+        // 3. 화면 렌더링
+        if(cd) {
+            // [혼잡도 파싱]
             if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
                 const pop = cd.LIVE_PPLTN_STTS[0];
                 if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(pop.AREA_CONGEST_LVL)};">${pop.AREA_CONGEST_LVL}</span>`;
@@ -986,7 +1031,7 @@ async function fetchSeoulApiData(areaName, placeId) {
                 let fcst = pop.FCST_PPLTN || [];
                 if(fcst.length > 0 && congestBtn && congestDetail) {
                     let fcstHtml = fcst.map(f => {
-                        let t = f.FCST_TIME.split(' ')[1]; // "14:00" 등 시간 추출
+                        let t = f.FCST_TIME.split(' ')[1];
                         return `<div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="color:#adb5bd;">${t} 예측</span>
                             <strong style="color:${getCongestColor(f.FCST_CONGEST_LVL)}">${f.FCST_CONGEST_LVL}</strong>
@@ -1000,12 +1045,11 @@ async function fetchSeoulApiData(areaName, placeId) {
                 if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">정보 없음</span>`;
             }
 
-            // 2. 주차장 (0대일 때 만차 빨간색 로직, 정보 없으면 숨김)
+            // [주차장 파싱]
             const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
             if(validPrk.length > 0) {
                 let prkHtml = validPrk.map(p => {
                     let remain = Math.max((parseInt(p.CPCTY) || 0) - (parseInt(p.CUR_PRK_CNT) || 0), 0);
-                    
                     let remainText = remain === 0 
                         ? `<span style="color:#FA5252; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">만차 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`
                         : `<span style="color:#37B24D; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">${remain}대 여유 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`;
@@ -1015,39 +1059,14 @@ async function fetchSeoulApiData(areaName, placeId) {
                         ${remainText}
                     </div>`;
                 }).join('');
-                
                 if(parkBox) { parkBox.style.display = 'flex'; parkBox.innerHTML = prkHtml; }
             } else {
-                // 실시간 데이터가 없는 경우 박스 및 점선 라인 완전히 숨김
                 if(parkBox) { parkBox.style.display = 'none'; }
             }
-        } else if (data.RESULT) {
-             if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">오류: ${data.RESULT.MESSAGE}</span>`;
-             if(parkBox) { parkBox.style.display = 'none'; }
         }
     } catch(e) { 
-        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 요망)</span>`;
+        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 🔄 터치)</span>`;
         if(parkBox) { parkBox.style.display = 'none'; }
-    }
-}
-
-// 🔥 아코디언 토글 디자인 및 애니메이션
-function toggleLiveDetail(targetId, btnEl) {
-    const el = document.getElementById(targetId);
-    if(!el) return;
-    
-    if(el.style.display === 'none' || el.style.display === '') {
-        el.style.display = 'flex';
-        btnEl.innerHTML = btnEl.innerHTML.replace('▼', '▲');
-        btnEl.style.color = '#495057';
-        btnEl.style.background = 'rgba(0,0,0,0.05)';
-        btnEl.style.borderColor = 'transparent';
-    } else {
-        el.style.display = 'none';
-        btnEl.innerHTML = btnEl.innerHTML.replace('▲', '▼');
-        btnEl.style.color = '#5c7cfa';
-        btnEl.style.background = 'rgba(92,124,250,0.1)';
-        btnEl.style.borderColor = 'rgba(92,124,250,0.3)';
     }
 }
 
