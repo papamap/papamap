@@ -963,50 +963,81 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
     const congestDetail = document.getElementById(`congest-detail-${placeId}`);
     const parkBox = document.getElementById(`live-park-${placeId}`);
     
-    if(congestCur) congestCur.innerHTML = "데이터 확인중... 🚀";
+    if (forceRefresh) {
+        if(congestCur) congestCur.innerHTML = `<span style="color:#5c7cfa;">데이터 재확인중... 🚀</span>`;
+        if(congestBtn) {
+            congestBtn.style.display = 'none';
+            congestBtn.innerHTML = '예측 보기 ▼';
+            congestBtn.style.color = '#5c7cfa';
+            congestBtn.style.background = 'rgba(92,124,250,0.1)';
+            congestBtn.style.borderColor = 'rgba(92,124,250,0.3)';
+        }
+        if(congestDetail) { congestDetail.style.display = 'none'; congestDetail.innerHTML = ''; }
+        if(parkBox) { 
+            parkBox.style.display = 'flex'; 
+            parkBox.innerHTML = `<span style="color:#adb5bd; font-size:11px; font-weight:700;">실시간 주차 재확인중... 🚀</span>`; 
+        }
+    }
 
     try {
-        const fetchUrl = `/api/seoul?area=${encodeURIComponent(areaName)}`;
+        // 🔥 강제 새로고침(forceRefresh)일 때는 0분, 아닐 때는 10분 캐시 적용
+        const mAge = forceRefresh ? 0 : 10;
+        const fetchUrl = `/api/seoul?area=${encodeURIComponent(areaName)}&maxAge=${mAge}`;
+        
         const response = await fetch(fetchUrl);
         const data = await response.json();
         
         if(data && data.CITYDATA) {
             const cd = data.CITYDATA;
             
+            // 1. 혼잡도 파싱 및 명칭 변경
             if(cd.LIVE_PPLTN_STTS && cd.LIVE_PPLTN_STTS.length > 0) {
                 const pop = cd.LIVE_PPLTN_STTS[0];
-                const displayLvl = pop.AREA_CONGEST_LVL.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡');
-                congestCur.innerHTML = `<span style="color:${getCongestColor(pop.AREA_CONGEST_LVL)}; font-weight:800;">${displayLvl}</span>`;
+                const rawLvl = pop.AREA_CONGEST_LVL;
+                const displayLvl = rawLvl.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡');
+                if(congestCur) congestCur.innerHTML = `<span style="color:${getCongestColor(rawLvl)};">${displayLvl}</span>`;
                 
                 let fcst = pop.FCST_PPLTN || [];
                 if(fcst.length > 0 && congestBtn && congestDetail) {
-                    congestDetail.innerHTML = fcst.map(f => `
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                            <span style="color:#adb5bd;">${f.FCST_TIME.split(' ')[1]}</span>
-                            <strong style="color:${getCongestColor(f.FCST_CONGEST_LVL)}">${f.FCST_CONGEST_LVL.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡')}</strong>
-                        </div>`).join('');
+                    let fcstHtml = fcst.map(f => {
+                        let t = f.FCST_TIME.split(' ')[1];
+                        const fRawLvl = f.FCST_CONGEST_LVL;
+                        const fDisplayLvl = fRawLvl.replace('약간 붐빔', '약간 혼잡').replace('붐빔', '매우 혼잡');
+                        
+                        return `<div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:#adb5bd;">${t}</span>
+                            <strong style="color:${getCongestColor(fRawLvl)}">${fDisplayLvl}</strong>
+                        </div>`;
+                    }).join('');
+                    
+                    congestDetail.innerHTML = fcstHtml;
                     congestBtn.style.display = 'block';
                 }
+            } else {
+                if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">정보 없음</span>`;
             }
 
-            const prk = cd.PRK_STTS || [];
-            if(prk.length > 0) {
-                parkBox.innerHTML = prk.filter(p => p.CUR_PRK_CNT !== undefined).map(p => {
+            // 2. 주차장 (만차 색상 적용 및 데이터 없을 때 숨김)
+            const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
+            if(validPrk.length > 0) {
+                let prkHtml = validPrk.map(p => {
                     let remain = Math.max((parseInt(p.CPCTY) || 0) - (parseInt(p.CUR_PRK_CNT) || 0), 0);
-                    let color = remain === 0 ? '#FA5252' : '#37B24D';
-                    let txt = remain === 0 ? '만차' : `${remain}대 여유`;
+                    let remainText = remain === 0 
+                        ? `<span style="color:#FA5252; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">만차 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`
+                        : `<span style="color:#37B24D; font-weight:800; font-size:11px; flex-shrink:0; margin-left:8px;">${remain}대 여유 <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>`;
                     return `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                        <span style="color:#495057; font-weight:600; font-size:11px;">${p.PRK_NM}</span>
-                        <span style="color:${color}; font-weight:800; font-size:11px;">${txt} <span style="color:#adb5bd; font-weight:500;">/${p.CPCTY}</span></span>
+                        <span style="color:#495057; font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.PRK_NM}</span>
+                        ${remainText}
                     </div>`;
                 }).join('');
-                parkBox.style.display = 'flex';
+                if(parkBox) { parkBox.style.display = 'flex'; parkBox.innerHTML = prkHtml; }
             } else {
-                parkBox.style.display = 'none';
+                if(parkBox) { parkBox.style.display = 'none'; }
             }
         }
     } catch(e) { 
-        if(congestCur) congestCur.innerHTML = "연동 지가 지연되고 있습니다. 🔄";
+        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 🔄 터치)</span>`;
+        if(parkBox) { parkBox.style.display = 'none'; }
     }
 }
 
