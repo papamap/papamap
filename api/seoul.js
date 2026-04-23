@@ -1,24 +1,50 @@
+import { createClient } from '@supabase/supabase-js'
+
+// 수퍼베이스 접속 정보 (기존 app.js에 있던 정보와 동일해야 합니다)
+const SUPABASE_URL = "https://jmeqvmmabgcdsuvabpgp.supabase.co";
+const SUPABASE_KEY = "sb_publishable_tpw_7GUMBP3iYiZ-EPLaNw_3u-gjX_B";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 export default async function handler(req, res) {
     const { area } = req.query;
-
-    if (!area) {
-        return res.status(400).json({ error: "지역명이 필요합니다." });
-    }
+    if (!area) return res.status(400).json({ error: "area is required" });
 
     try {
-        // Vercel 서버가 직접 서울시 API를 호출합니다. (CORS, HTTPS 에러 없음)
-        const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(area)}`;
-        
-        const response = await fetch(targetUrl);
-        const data = await response.json();
+        // 1. 수퍼베이스 캐시에서 먼저 찾기
+        const { data: cacheData } = await supabase
+            .from('seoul_api_cache')
+            .select('*')
+            .eq('area_name', area)
+            .single();
 
-        // 아빠맵 프론트엔드로 안전하게 데이터를 보내줍니다.
-        res.setHeader('Access-Control-Allow-Credentials', true);
+        // 2. 캐시가 있고 10분이 안 지났으면 바로 반환 (600,000ms = 10분)
+        if (cacheData && (new Date() - new Date(cacheData.updated_at) < 600000)) {
+            console.log(`[Cache Hit] Serving from Supabase: ${area}`);
+            return res.status(200).json(cacheData.content);
+        }
+
+        // 3. 캐시가 없거나 10분이 지났으면 서울시 API 호출
+        console.log(`[Cache Miss] Calling Seoul API: ${area}`);
+        const targetUrl = `http://openapi.seoul.go.kr:8088/56626e5978657069383851734d4d66/json/citydata/1/5/${encodeURIComponent(area)}`;
+        const response = await fetch(targetUrl);
+        const newData = await response.json();
+
+        if (newData.CITYDATA) {
+            // 4. 수퍼베이스에 최신 데이터 저장 (있으면 업데이트, 없으면 새로 작성)
+            await supabase
+                .from('seoul_api_cache')
+                .upsert({ 
+                    area_name: area, 
+                    content: newData, 
+                    updated_at: new Date().toISOString() 
+                });
+        }
+
+        // 통신 허용 설정 (CORS)
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-        
-        return res.status(200).json(data);
+        return res.status(200).json(newData);
+
     } catch (error) {
-        return res.status(500).json({ error: "서버 통신 오류", details: error.message });
+        return res.status(500).json({ error: error.message });
     }
 }
