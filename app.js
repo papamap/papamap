@@ -980,7 +980,6 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
     }
 
     try {
-        // 🔥 강제 새로고침(forceRefresh)일 때는 0분, 아닐 때는 10분 캐시 적용
         const mAge = forceRefresh ? 0 : 10;
         const fetchUrl = `/api/seoul?area=${encodeURIComponent(areaName)}&maxAge=${mAge}`;
         
@@ -1017,8 +1016,14 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
                 if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">정보 없음</span>`;
             }
 
-            // 2. 주차장 (만차 색상 적용 및 데이터 없을 때 숨김)
-            const validPrk = (cd.PRK_STTS || []).filter(p => p.CUR_PRK_CNT !== "" && p.CUR_PRK_CNT !== undefined && p.CUR_PRK_CNT !== null);
+            // 2. 주차장 (관광버스 제외 필터링 추가)
+            const validPrk = (cd.PRK_STTS || []).filter(p => 
+                p.CUR_PRK_CNT !== "" && 
+                p.CUR_PRK_CNT !== undefined && 
+                p.CUR_PRK_CNT !== null &&
+                !(p.PRK_NM || '').includes('관광버스') // 🔥 관광버스가 포함된 주차장 제외
+            );
+
             if(validPrk.length > 0) {
                 let prkHtml = validPrk.map(p => {
                     let remain = Math.max((parseInt(p.CPCTY) || 0) - (parseInt(p.CUR_PRK_CNT) || 0), 0);
@@ -1036,7 +1041,7 @@ async function fetchSeoulApiData(areaName, placeId, forceRefresh = false) {
             }
         }
     } catch(e) { 
-        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연</span>`;
+        if(congestCur) congestCur.innerHTML = `<span style="color:#FF6B6B;">통신 지연 (새로고침 🔄 터치)</span>`;
         if(parkBox) { parkBox.style.display = 'none'; }
     }
 }
