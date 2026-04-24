@@ -430,10 +430,21 @@ async function incrementViewCount(id) {
 }
 
 function updateVisibleMarkers() {
-    if (!map) return; const bounds = map.getBounds(); const isZoomedOut = map.getZoom() < 13;
+    if (!map) return;
+    const bounds = map.getBounds();
+    
     placesData.forEach(p => {
-        if (!p.marker) return; const pCat = normalizeCat(p.category); const isCatActive = (activeCategory === '전체' || pCat === activeCategory);
-        if (isCatActive && bounds.hasLatLng(p.marker.getPosition())) { if (!p.marker.getMap()) p.marker.setMap(map); } else { if (p.marker.getMap()) p.marker.setMap(null); }
+        if (!p.marker) return;
+        const pCat = normalizeCat(p.category);
+        
+        // 🔥 선택된 카테고리 배열(activeCategories)에 포함되어 있는지 확인
+        const isCatActive = activeCategories.includes(pCat);
+        
+        if (isCatActive && bounds.hasLatLng(p.marker.getPosition())) {
+            if (!p.marker.getMap()) p.marker.setMap(map);
+        } else {
+            if (p.marker.getMap()) p.marker.setMap(null);
+        }
     });
 }
 
