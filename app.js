@@ -2,7 +2,6 @@ const SUPABASE_URL = "https://jmeqvmmabgcdsuvabpgp.supabase.co";
 const SUPABASE_KEY = "sb_publishable_tpw_7GUMBP3iYiZ-EPLaNw_3u-gjX_B";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const KAKao_REST_KEY = "f971a5a1cc6ae49cf691f170f5e03dfd"; 
-
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 if (isMobile) document.documentElement.classList.add('is-mobile');
 else document.documentElement.classList.add('is-pc');
@@ -839,8 +838,7 @@ async function loadPlaces() {
                 place.marker.addListener('mouseover', function() { this.setZIndex(999999); });
                 place.marker.addListener('mouseout', function() { this.setZIndex((place.views || place.likes) || 0); });
             });
-            applyFilters('전체');
-        }
+applyFilters();        }
     } catch (err) { alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message); }
 }
 
