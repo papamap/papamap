@@ -329,7 +329,7 @@ let lastWeatherLat = null; let lastWeatherLng = null;
 async function fetchWeather(lat, lng) {
     if (lastWeatherLat !== null && getDistanceKm(lastWeatherLat, lastWeatherLng, lat, lng) < 20.0) return;
     try {
-        // 🔥 날씨는 Open-Meteo, 미세먼지는 우리가 만든 에어코리아 API(/api/dust)를 동시에 호출합니다.
+        // 날씨(Open-Meteo)와 미세먼지(자체 에어코리아 API) 동시 호출
         const [weatherRes, dustRes] = await Promise.all([
             fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`), 
             fetch(`/api/dust`) 
@@ -337,13 +337,13 @@ async function fetchWeather(lat, lng) {
         const weatherData = await weatherRes.json(); 
         const dustData = await dustRes.json();
         
-        // 날씨 파싱
+        // 1. 날씨 파싱
         let temp = Math.round(weatherData.current_weather.temperature); 
         let code = weatherData.current_weather.weathercode; 
         let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
         let isRaining = (code >= 51 && code <= 77);
 
-        // 🔥 에어코리아 미세먼지 파싱 (서울시 전체 평균 계산)
+        // 2. 미세먼지 파싱 (에어코리아 데이터)
         let aqiText = '보통'; let isBadAir = false; 
         if (dustData.response && dustData.response.body && dustData.response.body.items) {
             const items = dustData.response.body.items;
@@ -358,7 +358,6 @@ async function fetchWeather(lat, lng) {
             let avgPm10 = validCount10 > 0 ? (totalPm10 / validCount10) : 0;
             let avgPm25 = validCount25 > 0 ? (totalPm25 / validCount25) : 0;
 
-            // 에어코리아 등급 기준 (미세먼지/초미세먼지 중 더 나쁜 것 기준)
             if (avgPm10 > 150 || avgPm25 > 75) { aqiText = '매우나쁨'; isBadAir = true; } 
             else if (avgPm10 > 80 || avgPm25 > 35) { aqiText = '나쁨'; isBadAir = true; } 
             else if (avgPm10 > 30 || avgPm25 > 15) { aqiText = '보통'; }
@@ -367,20 +366,22 @@ async function fetchWeather(lat, lng) {
         
         lastWeatherLat = lat; lastWeatherLng = lng;
 
-        // 🔥 네이버 검색 결과로 완벽 매칭 이동
-        let weatherUrl = `https://search.naver.com/search.naver?query=현재위치날씨`;
-        let dustUrl = `https://search.naver.com/search.naver?query=서울미세먼지`;
+        // 🔥 요청하신 네이버 날씨 및 대기질 페이지 URL
+        let weatherUrl = `https://weather.naver.com/`;
+        let dustUrl = `https://weather.naver.com/air/`;
         
+        // 상단 우측 날씨 정보 업데이트 (클릭 링크 적용)
         const wInfo = document.getElementById('weather-info');
         if (wInfo) {
             wInfo.innerHTML = `
-                <span style="cursor:pointer;" onclick="window.open('${weatherUrl}', '_blank')" title="네이버 날씨">${icon} ${temp}°C</span> 
+                <span style="cursor:pointer;" onclick="window.open('${weatherUrl}', '_blank')" title="네이버 날씨 상세보기">${icon} ${temp}°C</span> 
                 <span style="margin:0 6px; color:#dee2e6;">|</span> 
-                <span style="cursor:pointer;" onclick="window.open('${dustUrl}', '_blank')" title="네이버 미세먼지">${isBadAir ? '😷' : '😐'} ${aqiText}</span>
+                <span style="cursor:pointer;" onclick="window.open('${dustUrl}', '_blank')" title="네이버 미세먼지 상세보기">${isBadAir ? '😷' : '😐'} ${aqiText}</span>
             `;
             wInfo.style.display = 'flex';
         }
 
+        // 하단 추천 배너 업데이트 (클릭 링크 적용)
         const sugEl = document.getElementById('weather-suggestion');
         if (sugEl) {
             let aiText = (isBadAir || isRaining) ? 
@@ -392,12 +393,12 @@ async function fetchWeather(lat, lng) {
             sugEl.innerHTML = `
                 <div style="display:flex; align-items:center; width:100%; overflow:hidden;">
                     <div id="ai-banner-fixed" style="display:flex; align-items:center; flex-shrink:0; font-size:12px; color:#495057; white-space:nowrap;">
-                        <div style="cursor:pointer; display:flex; align-items:center;" onclick="window.open('${weatherUrl}', '_blank')" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                        <div style="cursor:pointer; display:flex; align-items:center;" onclick="window.open('${weatherUrl}', '_blank')" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'" title="네이버 날씨 상세보기">
                             <span style="margin-right:1px; font-size:13px; line-height:1; display:flex; align-items:center; transform:translateY(-1px);">${icon}</span>
                             <b>${temp}°C</b>
                         </div>
                         <span style="color:#adb5bd; margin:0 4px; font-weight:400;">/</span> 
-                        <div style="cursor:pointer; display:flex; align-items:center;" onclick="window.open('${dustUrl}', '_blank')" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                        <div style="cursor:pointer; display:flex; align-items:center;" onclick="window.open('${dustUrl}', '_blank')" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'" title="네이버 미세먼지 상세보기">
                             <b>${aqiText}</b>
                         </div>
                         <span style="margin:0 8px; color:#dee2e6;">|</span>
@@ -409,7 +410,7 @@ async function fetchWeather(lat, lng) {
                     </div>
                 </div>
             `;
-            // 이하 스타일 로직 동일 (생략 방지를 위해 원래 있던 sugEl.style 부분 유지)
+            
             sugEl.style.marginTop = '8px'; sugEl.style.width = 'fit-content'; sugEl.style.maxWidth = 'calc(100vw - 32px)'; sugEl.style.boxSizing = 'border-box'; sugEl.style.padding = '7px 14px'; sugEl.style.background = 'rgba(255, 255, 255, 0.7)'; sugEl.style.backdropFilter = 'blur(16px)'; sugEl.style.webkitBackdropFilter = 'blur(16px)'; sugEl.style.border = '1px solid rgba(255,255,255,0.6)'; sugEl.style.borderRadius = '16px'; sugEl.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)';
             window.isWeatherSuggestionVisible = true;
             const infoContent = document.getElementById('info-content');
