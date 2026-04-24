@@ -11,7 +11,7 @@ var map;
 var placesData = []; 
 var noticesData = [];
 var currentSearchScope = 'all'; 
-var activeCategory = '전체';
+var activeCategories = ['실내', '야외'];
 var userLat = 37.5238506, userLng = 126.9804702; 
 var selectedLat = null, selectedLng = null;
 var currentNoticeId = null;
@@ -456,10 +456,36 @@ window.onload = function() {
 };
 
 function setCategory(cat) {
-    if (activeCategory === cat && cat !== '전체') cat = '전체'; activeCategory = cat;
-    document.querySelectorAll('.category-nav .chip').forEach(el => { if(el.dataset.cat === cat) el.classList.add('active'); else el.classList.remove('active'); }); applyFilters(cat);
+    const index = activeCategories.indexOf(cat);
+    if (index > -1) {
+        // 이미 켜져있는 칩을 누르면 끄기 (최소 하나는 선택되어 있게 하려면 조건 추가 가능)
+        if (activeCategories.length > 1) {
+            activeCategories.splice(index, 1);
+        } else {
+            alert("최소 하나의 카테고리는 선택되어야 합니다.");
+            return;
+        }
+    } else {
+        // 꺼져있는 칩을 누르면 켜기
+        activeCategories.push(cat);
+    }
+    
+    // UI 업데이트: activeCategories 배열에 포함된 칩들만 불이 들어오게 함
+    document.querySelectorAll('.category-nav .chip').forEach(el => {
+        if (activeCategories.includes(el.dataset.cat)) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+    
+    applyFilters(); // 필터 적용
 }
-function applyFilters(overrideCat) { activeCategory = overrideCat || activeCategory; updateVisibleMarkers(); if(document.getElementById('search-panel').classList.contains('show')) executeSearch(); }
+
+function applyFilters() {
+    updateVisibleMarkers();
+    if(document.getElementById('search-panel').classList.contains('show')) executeSearch();
+}
 
 let sheetState = 0; // 0: hidden, 1: mid, 2: max, 3: min
 function closePanel() { 
