@@ -329,30 +329,57 @@ let lastWeatherLat = null; let lastWeatherLng = null;
 async function fetchWeather(lat, lng) {
     if (lastWeatherLat !== null && getDistanceKm(lastWeatherLat, lastWeatherLng, lat, lng) < 20.0) return;
     try {
-        const [weatherRes, aqiRes] = await Promise.all([
+        // 🔥 날씨는 Open-Meteo, 미세먼지는 우리가 만든 에어코리아 API(/api/dust)를 동시에 호출합니다.
+        const [weatherRes, dustRes] = await Promise.all([
             fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`), 
-            fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=pm10,pm2_5`)
+            fetch(`/api/dust`) 
         ]);
         const weatherData = await weatherRes.json(); 
-        const aqiData = await aqiRes.json();
+        const dustData = await dustRes.json();
         
+        // 날씨 파싱
         let temp = Math.round(weatherData.current_weather.temperature); 
         let code = weatherData.current_weather.weathercode; 
         let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
-        
-        let pm10 = aqiData.current.pm10 * 0.8; 
-        let pm25 = aqiData.current.pm2_5 * 0.8;
-        let aqiText = '좋음'; let isBadAir = false; 
-        
-        if (pm10 > 150 || pm25 > 75) { aqiText = '매우나쁨'; isBadAir = true; } 
-        else if (pm10 > 80 || pm25 > 35) { aqiText = '나쁨'; isBadAir = true; } 
-        else if (pm10 > 30 || pm25 > 15) { aqiText = '보통'; }
-        
         let isRaining = (code >= 51 && code <= 77);
+
+        // 🔥 에어코리아 미세먼지 파싱 (서울시 전체 평균 계산)
+        let aqiText = '보통'; let isBadAir = false; 
+        if (dustData.response && dustData.response.body && dustData.response.body.items) {
+            const items = dustData.response.body.items;
+            let totalPm10 = 0, validCount10 = 0;
+            let totalPm25 = 0, validCount25 = 0;
+            
+            items.forEach(item => {
+                if (item.pm10Value && item.pm10Value !== '-') { totalPm10 += parseInt(item.pm10Value); validCount10++; }
+                if (item.pm25Value && item.pm25Value !== '-') { totalPm25 += parseInt(item.pm25Value); validCount25++; }
+            });
+
+            let avgPm10 = validCount10 > 0 ? (totalPm10 / validCount10) : 0;
+            let avgPm25 = validCount25 > 0 ? (totalPm25 / validCount25) : 0;
+
+            // 에어코리아 등급 기준 (미세먼지/초미세먼지 중 더 나쁜 것 기준)
+            if (avgPm10 > 150 || avgPm25 > 75) { aqiText = '매우나쁨'; isBadAir = true; } 
+            else if (avgPm10 > 80 || avgPm25 > 35) { aqiText = '나쁨'; isBadAir = true; } 
+            else if (avgPm10 > 30 || avgPm25 > 15) { aqiText = '보통'; }
+            else { aqiText = '좋음'; }
+        }
+        
         lastWeatherLat = lat; lastWeatherLng = lng;
+
+        // 🔥 네이버 검색 결과로 완벽 매칭 이동
+        let weatherUrl = `https://search.naver.com/search.naver?query=현재위치날씨`;
+        let dustUrl = `https://search.naver.com/search.naver?query=서울미세먼지`;
         
         const wInfo = document.getElementById('weather-info');
-        if (wInfo) wInfo.style.display = 'none';
+        if (wInfo) {
+            wInfo.innerHTML = `
+                <span style="cursor:pointer;" onclick="window.open('${weatherUrl}', '_blank')" title="네이버 날씨">${icon} ${temp}°C</span> 
+                <span style="margin:0 6px; color:#dee2e6;">|</span> 
+                <span style="cursor:pointer;" onclick="window.open('${dustUrl}', '_blank')" title="네이버 미세먼지">${isBadAir ? '😷' : '😐'} ${aqiText}</span>
+            `;
+            wInfo.style.display = 'flex';
+        }
 
         const sugEl = document.getElementById('weather-suggestion');
         if (sugEl) {
@@ -365,8 +392,14 @@ async function fetchWeather(lat, lng) {
             sugEl.innerHTML = `
                 <div style="display:flex; align-items:center; width:100%; overflow:hidden;">
                     <div id="ai-banner-fixed" style="display:flex; align-items:center; flex-shrink:0; font-size:12px; color:#495057; white-space:nowrap;">
-                        <span style="margin-right:1px; font-size:13px; line-height:1; display:flex; align-items:center; transform:translateY(-1px);">${icon}</span>
-                        <b>${temp}°C</b> <span style="color:#adb5bd; margin:0 4px; font-weight:400;">/</span> <b>${aqiText}</b>
+                        <div style="cursor:pointer; display:flex; align-items:center;" onclick="window.open('${weatherUrl}', '_blank')" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                            <span style="margin-right:1px; font-size:13px; line-height:1; display:flex; align-items:center; transform:translateY(-1px);">${icon}</span>
+                            <b>${temp}°C</b>
+                        </div>
+                        <span style="color:#adb5bd; margin:0 4px; font-weight:400;">/</span> 
+                        <div style="cursor:pointer; display:flex; align-items:center;" onclick="window.open('${dustUrl}', '_blank')" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                            <b>${aqiText}</b>
+                        </div>
                         <span style="margin:0 8px; color:#dee2e6;">|</span>
                     </div>
                     <div id="ai-banner-wrap" style="flex:1; overflow:hidden; white-space:nowrap; position:relative; min-width:0;">
@@ -376,33 +409,16 @@ async function fetchWeather(lat, lng) {
                     </div>
                 </div>
             `;
-            
-            sugEl.style.marginTop = '8px';
-            sugEl.style.width = 'fit-content';
-            sugEl.style.maxWidth = 'calc(100vw - 32px)'; 
-            sugEl.style.boxSizing = 'border-box';
-            sugEl.style.padding = '7px 14px'; 
-            sugEl.style.background = 'rgba(255, 255, 255, 0.7)'; 
-            sugEl.style.backdropFilter = 'blur(16px)';
-            sugEl.style.webkitBackdropFilter = 'blur(16px)';
-            sugEl.style.border = '1px solid rgba(255,255,255,0.6)';
-            sugEl.style.borderRadius = '16px';
-            sugEl.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)';
-
+            // 이하 스타일 로직 동일 (생략 방지를 위해 원래 있던 sugEl.style 부분 유지)
+            sugEl.style.marginTop = '8px'; sugEl.style.width = 'fit-content'; sugEl.style.maxWidth = 'calc(100vw - 32px)'; sugEl.style.boxSizing = 'border-box'; sugEl.style.padding = '7px 14px'; sugEl.style.background = 'rgba(255, 255, 255, 0.7)'; sugEl.style.backdropFilter = 'blur(16px)'; sugEl.style.webkitBackdropFilter = 'blur(16px)'; sugEl.style.border = '1px solid rgba(255,255,255,0.6)'; sugEl.style.borderRadius = '16px'; sugEl.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)';
             window.isWeatherSuggestionVisible = true;
             const infoContent = document.getElementById('info-content');
-            if (infoContent && !infoContent.classList.contains('show')) {
-                sugEl.style.display = 'block';
-            }
-
+            if (infoContent && !infoContent.classList.contains('show')) { sugEl.style.display = 'block'; }
             setTimeout(() => {
-                const textWrap = document.getElementById('ai-banner-wrap');
-                const textEl = document.getElementById('ai-banner-text');
+                const textWrap = document.getElementById('ai-banner-wrap'); const textEl = document.getElementById('ai-banner-text');
                 if(textEl && textWrap && textEl.scrollWidth > textWrap.clientWidth) { 
-                    const originalHTML = textEl.innerHTML;
-                    textEl.innerHTML = originalHTML + "<span style='display:inline-block; width:40px;'></span>" + originalHTML;
-                    textWrap.style.webkitMaskImage = 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)';
-                    textWrap.style.maskImage = 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)';
+                    const originalHTML = textEl.innerHTML; textEl.innerHTML = originalHTML + "<span style='display:inline-block; width:40px;'></span>" + originalHTML;
+                    textWrap.style.webkitMaskImage = 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)'; textWrap.style.maskImage = 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)';
                     textEl.style.animation = 'marquee 15s linear infinite'; 
                 }
             }, 100);
