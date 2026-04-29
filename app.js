@@ -841,7 +841,7 @@ applyFilters();        }
     } catch (err) { alert("장소 데이터를 불러오는 데 실패했습니다: " + err.message); }
 }
 
-// 🔥 정보창을 그려주는 함수 (아코디언 적용 완료)
+// 🔥 1. 정보창을 그려주는 함수 (조회수 삭제, 거리 링크 추가, 기본 사진 복구)
 function renderPanel(id) {
     const nav = document.getElementById('category-nav') || document.querySelector('.category-nav');
     if(nav) nav.style.display = 'none'; 
@@ -858,8 +858,11 @@ function renderPanel(id) {
     }).join('');
     
     let moreBtn = commentsArr.length > 3 ? `<button id="btn-more-${place.id}" onclick="showMoreComments(${place.id})" style="background:none; border:none; color:#adb5bd; font-size:12px; font-weight:700; cursor:pointer; padding:8px 0; width:100%; text-align:center; font-family:inherit;">추가정보 더보기 ▼</button>` : '';
+    
+    // 카카오 더미 이미지는 가져오지 않고, 관리자가 등록한 이미지만 확인
     let urls = place.image_url ? place.image_url.split(',') : []; 
     let isHasImage = urls.length > 0;
+    
     let catColor = normalizeCat(place.category) === '야외' ? '#0ca678' : (place.category === '문센' ? '#f59f00' : '#5c7cfa');
 
     let dist = getDistanceKm(userLat, userLng, place.latitude, place.longitude);
@@ -899,69 +902,77 @@ function renderPanel(id) {
             <div class="info-body-wrap" style="padding: 0 20px 30px 26px; height:auto; display:flex; flex-direction:column;">
                 
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
-                    <div style="font-size:12px; color:#495057; font-weight:700;">${distStr}</div>
+                    <div style="font-size:12px; color:#495057; font-weight:700; cursor:pointer;" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})">${distStr}</div>
                     <div style="width:1px; height:10px; background:#dee2e6;"></div>
-                    <div style="font-size:12px; color:#868e96; cursor:pointer;" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})">${place.address}</div>
-                    ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="display:inline-flex; align-items:center; padding: 4px 8px; background: rgba(241, 243, 245, 0.8); border-radius:8px; font-size:10px; font-weight:700; color:#495057; text-decoration:none; margin-left:4px;">🌐 공식홈</a>` : ''}
+                    <div style="font-size:12px; color:#868e96; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="openMapPopup('${place.name.replace(/'/g, "\\'")}', ${place.latitude}, ${place.longitude})">${place.address}</div>
+                    ${place.website_url ? `<a href="${place.website_url}" target="_blank" class="chip" style="display:inline-flex; align-items:center; padding: 4px 8px; background: rgba(241, 243, 245, 0.8); border-radius:8px; font-size:10px; font-weight:700; color:#495057; text-decoration:none; margin-left:4px; flex-shrink:0;">🌐 공식홈</a>` : ''}
                 </div>
 
-                <div id="header-wrap-${place.id}" style="position:relative; width:100%; border-radius:12px; overflow:hidden; background:#f1f3f5; margin-bottom:16px; ${isHasImage ? '' : 'display:none;'}">
-                    <div class="image-slider" id="slider-${place.id}" style="display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; cursor:grab; height:200px;" 
-                        onscroll="updateSliderDots(${place.id}, this)"
-                        onmousedown="startImgDrag(event, this)" 
-                        onmouseleave="stopImgDrag(event, this)" 
-                        onmouseup="stopImgDrag(event, this)" 
-                        onmousemove="doImgDrag(event, this)">
-                        ${isHasImage ? urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:center; display:block; pointer-events:none;" draggable="false">`).join('') : ''}
+                <div style="display:flex; border-bottom:1px solid rgba(0,0,0,0.08); margin-bottom:16px;">
+                    <button id="btn-tab-basic-${place.id}" class="info-tab-btn-${place.id}" onclick="switchInfoTab(${place.id}, 'basic')" style="flex:1; padding:10px 0; background:none; border:none; border-bottom:2px solid #5c7cfa; color:#5c7cfa; font-weight:800; font-size:13px; cursor:pointer; transition:all 0.2s;">기본 정보</button>
+                    <button id="btn-tab-blog-${place.id}" class="info-tab-btn-${place.id}" onclick="switchInfoTab(${place.id}, 'blog')" style="flex:1; padding:10px 0; background:none; border:none; border-bottom:2px solid transparent; color:#adb5bd; font-weight:700; font-size:13px; cursor:pointer; transition:all 0.2s;">블로그 리뷰</button>
+                </div>
+
+                <div id="tab-basic-${place.id}" class="info-tab-content-${place.id}" style="display:flex; flex-direction:column; gap:8px;">
+                    
+                    <div id="header-wrap-${place.id}" style="position:relative; width:100%; border-radius:12px; overflow:hidden; background:#f1f3f5; margin-bottom:8px; ${isHasImage ? '' : 'display:none;'}">
+                        <div class="image-slider" id="slider-${place.id}" style="display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; cursor:grab; height:200px;" 
+                            onscroll="updateSliderDots(${place.id}, this)"
+                            onmousedown="startImgDrag(event, this)" 
+                            onmouseleave="stopImgDrag(event, this)" 
+                            onmouseup="stopImgDrag(event, this)" 
+                            onmousemove="doImgDrag(event, this)">
+                            ${isHasImage ? urls.map(url => `<img src="${url}" style="flex:0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:center; display:block; pointer-events:none;" draggable="false">`).join('') : ''}
+                        </div>
+                        ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:6px;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5);"></div>`).join('')}</div>` : ''}
                     </div>
-                    ${urls.length > 1 ? `<div class="slider-dots" id="slider-dots-${place.id}" style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:6px;">${urls.map((_, i) => `<div class="slider-dot ${i===0?'active':''}" style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5);"></div>`).join('')}</div>` : ''}
-                </div>
 
-                <div style="display:flex; flex-direction:column; gap:8px;">
                     ${place.seoul_api_area ? `
-                    <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057;">
+                    <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057; margin-bottom:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center;">
-                                <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0;">혼잡도</span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="color:#868e96; font-weight:800; font-size:11px; flex-shrink:0;">혼잡도</span>
+                                <button onclick="fetchSeoulApiData('${place.seoul_api_area}', ${place.id}, true)" style="background:rgba(0,0,0,0.04); border:none; width:22px; height:22px; border-radius:50%; cursor:pointer; color:#868e96; display:flex; align-items:center; justify-content:center; transition:0.2s;" title="부분 새로고침" onmousedown="this.style.transform='scale(0.8)'" onmouseup="this.style.transform='scale(1)'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
                                 <span id="live-congest-cur-${place.id}" style="font-weight:800; color:#5c7cfa;">데이터 확인중... 🚀</span>
                             </div>
                             <button id="btn-congest-toggle-${place.id}" onclick="toggleLiveDetail('congest-detail-${place.id}', this)" style="display:none; background:rgba(92,124,250,0.1); border:1px solid rgba(92,124,250,0.3); color:#5c7cfa; border-radius:6px; font-size:10px; font-weight:800; cursor:pointer; padding:4px 8px; transition:0.2s;">예측 보기 ▼</button>
                         </div>
-                        <div id="congest-detail-${place.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.08); font-size:11px; flex-direction:column; gap:6px;">
-                            </div>
+                        <div id="congest-detail-${place.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.08); font-size:11px; flex-direction:column; gap:6px;"></div>
                     </div>` : ''}
                     
-                    ${place.business_hours ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">시간</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
+                    ${place.business_hours ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057; margin-bottom:8px;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">시간</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.business_hours).replace(/\n/g, '<br>')}</span></div>` : ''}
                     
                     ${place.parking_fee || place.seoul_api_area ? `
-                    <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057;">
+                    <div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; font-size:12px; color:#495057; margin-bottom:8px;">
                         <div style="display:flex;">
                             <span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">주차</span>
                             <span style="flex:1; line-height:1.5;">${escapeHtml(place.parking_fee || '요금 정보 없음').replace(/\n/g, '<br>')}</span>
                         </div>
-                        ${place.seoul_api_area ? `
-                        <div id="live-park-${place.id}" style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(0,0,0,0.1); display:flex; flex-direction:column; gap:6px;">
-                            <span style="color:#adb5bd; font-size:11px; font-weight:700;">실시간 주차 확인중... 🚀</span>
-                        </div>` : ''}
+                        ${place.seoul_api_area ? `<div id="live-park-${place.id}" style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(0,0,0,0.1); display:flex; flex-direction:column; gap:6px;"><span style="color:#adb5bd; font-size:11px; font-weight:700;">실시간 주차 확인중... 🚀</span></div>` : ''}
                     </div>` : ''}
                     
-                    ${place.entry_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">입장료</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
-                    ${place.nursing_room ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">수유실</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
+                    ${place.entry_fee ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057; margin-bottom:8px;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">입장료</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.entry_fee).replace(/\n/g, '<br>')}</span></div>` : ''}
+                    ${place.nursing_room ? `<div style="background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); padding:10px 12px; border-radius:12px; display:flex; font-size:12px; color:#495057; margin-bottom:8px;"><span style="color:#868e96; font-weight:800; font-size:11px; width:40px; flex-shrink:0; margin-top:2px;">수유실</span><span style="flex:1; line-height:1.5;">${escapeHtml(place.nursing_room).replace(/\n/g, '<br>')}</span></div>` : ''}
+
+                    ${place.comment ? `<div style="font-size:13px; color:#495057; line-height:1.5; margin-top:16px; background:rgba(248,249,250,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); word-break:break-all;">${formatDescription(place.comment)}</div>` : ''}
+                    
+                    <div style="border-top:1px solid rgba(0,0,0,0.08); padding-top:16px; margin-top:20px; display:flex; flex-direction:column;">
+                        <div style="display:flex; gap:6px; margin-bottom:6px; width:100%; box-sizing:border-box;">
+                            <input type="text" id="cmt-author-${place.id}" placeholder="닉네임" style="flex:1; min-width:0; padding:8px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; font-family:inherit;">
+                            <input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호" style="flex:1; min-width:0; padding:8px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; font-family:inherit;">
+                        </div>
+                        <div style="display:flex; gap:6px; width:100%; box-sizing:border-box; height:38px; margin-bottom:16px;">
+                            <textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1" style="flex:1; min-width:0; padding:10px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; resize:none; line-height:1.4; font-family:inherit;"></textarea>
+                            <button onclick="addComment(${place.id})" style="height:100%; background:#495057; color:white; border:none; border-radius:8px; padding:0 16px; font-weight:700; font-size:12px; cursor:pointer; flex-shrink:0; font-family:inherit;">등록</button>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">${visibleComments}${moreBtn}</div>
+                    </div>
                 </div>
 
-                ${place.comment ? `<div style="font-size:13px; color:#495057; line-height:1.5; margin-top:16px; background:rgba(248,249,250,0.6); padding:12px; border-radius:12px; border:1px solid rgba(0,0,0,0.05); word-break:break-all;">${formatDescription(place.comment)}</div>` : ''}
-                
-                <div style="border-top:1px solid rgba(0,0,0,0.08); padding-top:16px; margin-top:20px; display:flex; flex-direction:column;">
-                    <div style="display:flex; gap:6px; margin-bottom:6px; width:100%; box-sizing:border-box;">
-                        <input type="text" id="cmt-author-${place.id}" placeholder="닉네임" style="flex:1; min-width:0; padding:8px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; font-family:inherit;">
-                        <input type="password" id="cmt-pw-${place.id}" placeholder="비밀번호" style="flex:1; min-width:0; padding:8px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; font-family:inherit;">
-                    </div>
-                    <div style="display:flex; gap:6px; width:100%; box-sizing:border-box; height:38px; margin-bottom:16px;">
-                        <textarea id="cmt-text-${place.id}" placeholder="댓글을 남겨주세요" rows="1" style="flex:1; min-width:0; padding:10px; border:1px solid rgba(0,0,0,0.1); border-radius:8px; font-size:12px; background:rgba(255,255,255,0.6); outline:none; resize:none; line-height:1.4; font-family:inherit;"></textarea>
-                        <button onclick="addComment(${place.id})" style="height:100%; background:#495057; color:white; border:none; border-radius:8px; padding:0 16px; font-weight:700; font-size:12px; cursor:pointer; flex-shrink:0; font-family:inherit;">등록</button>
-                    </div>
-                    <div style="display:flex; flex-direction:column; gap:8px;">${visibleComments}${moreBtn}</div>
+                <div id="tab-blog-${place.id}" class="info-tab-content-${place.id}" style="display:none;">
+                    <div id="blog-list-${place.id}"></div>
                 </div>
+
             </div>
         </div>
     `;
@@ -982,12 +993,66 @@ function renderPanel(id) {
         }
     }, 50);
 
-    if(!isHasImage && place.category !== '문센') {
-        fetchKakaoImage(place.name, `img-${place.id}`, null, `slider-${place.id}`, `header-wrap-${place.id}`); 
-    }
+    // API 호출 (DOM 생성 직후 호출되어 에러가 생기지 않도록 약간의 지연 처리)
+    setTimeout(() => {
+        if(place.seoul_api_area) fetchSeoulApiData(place.seoul_api_area, place.id);
+        fetchKakaoBlogReviews(place.name, `blog-list-${place.id}`);
+    }, 50);
+}
 
-    if(place.seoul_api_area) {
-        fetchSeoulApiData(place.seoul_api_area, place.id);
+// 탭 전환 애니메이션
+window.switchInfoTab = function(placeId, tabName) {
+    document.querySelectorAll(`.info-tab-btn-${placeId}`).forEach(btn => {
+        btn.style.color = '#adb5bd';
+        btn.style.borderBottom = '2px solid transparent';
+        btn.style.fontWeight = '700';
+    });
+    const activeBtn = document.getElementById(`btn-tab-${tabName}-${placeId}`);
+    activeBtn.style.color = '#5c7cfa';
+    activeBtn.style.borderBottom = '2px solid #5c7cfa';
+    activeBtn.style.fontWeight = '800';
+
+    document.querySelectorAll(`.info-tab-content-${placeId}`).forEach(content => {
+        content.style.display = 'none';
+    });
+    // 기본 정보 탭은 flex 박스 형태 유지
+    document.getElementById(`tab-${tabName}-${placeId}`).style.display = tabName === 'basic' ? 'flex' : 'block';
+}
+
+// 🔥 2. 카카오 블로그 검색 (사진 썸네일 포함 UI 개편)
+async function fetchKakaoBlogReviews(query, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '<div style="padding:40px 0; text-align:center; color:#adb5bd; font-size:12px; font-weight:700;">방문 후기를 불러오는 중입니다... 🚀</div>';
+    
+    try {
+        const res = await fetch(`https://dapi.kakao.com/v2/search/blog?query=${encodeURIComponent(query)}&size=5`, { 
+            headers: { "Authorization": `KakaoAK ${KAKao_REST_KEY}` } 
+        });
+        const data = await res.json();
+        
+        if(data.documents && data.documents.length > 0) {
+            container.innerHTML = data.documents.map(doc => `
+                <a href="${doc.url}" target="_blank" style="display:flex; padding:14px; background:rgba(255,255,255,0.6); border:1px solid rgba(0,0,0,0.05); border-radius:12px; margin-bottom:8px; text-decoration:none; transition:background 0.2s;">
+                    ${doc.thumbnail ? `<img src="${doc.thumbnail}" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; flex-shrink:0;">` : ''}
+                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-weight:800; font-size:13px; color:#343a40; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            ${doc.title.replace(/<[^>]*>?/g, '')}
+                        </div>
+                        <div style="font-size:11px; color:#495057; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:6px;">
+                            ${doc.contents.replace(/<[^>]*>?/g, '')}
+                        </div>
+                        <div style="font-size:10px; color:#adb5bd; font-weight:600;">
+                            ${doc.blogname} · ${doc.datetime.substring(0,10)}
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        } else {
+            container.innerHTML = '<div style="padding:40px 0; text-align:center; color:#adb5bd; font-size:12px;">관련된 방문 후기가 없습니다.</div>';
+        }
+    } catch(e) {
+        container.innerHTML = '<div style="padding:40px 0; text-align:center; color:#FF6B6B; font-size:12px;">리뷰를 불러오지 못했습니다.</div>';
     }
 }
 
