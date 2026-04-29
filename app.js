@@ -329,48 +329,30 @@ let lastWeatherLat = null; let lastWeatherLng = null;
 async function fetchWeather(lat, lng) {
     if (lastWeatherLat !== null && getDistanceKm(lastWeatherLat, lastWeatherLng, lat, lng) < 20.0) return;
     try {
-        // 날씨(Open-Meteo)와 미세먼지(자체 에어코리아 API) 동시 호출
+        // 🔥 Vercel 백엔드에 위도/경도를 보내서 전국 어디서든 맞춤형 초경량 데이터를 받아옵니다.
         const [weatherRes, dustRes] = await Promise.all([
             fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`), 
-            fetch(`/api/dust`) 
+            fetch(`/api/dust?lat=${lat}&lng=${lng}`) 
         ]);
-        const weatherData = await weatherRes.json(); 
-        const dustData = await dustRes.json();
         
-        // 1. 날씨 파싱
+        const weatherData = await weatherRes.json(); 
+        const dustData = await dustRes.json(); // 백엔드에서 미리 계산해둔 결과값
+        
+        // 날씨 파싱
         let temp = Math.round(weatherData.current_weather.temperature); 
         let code = weatherData.current_weather.weathercode; 
         let icon = (code >= 51 && code <= 77) ? '🌧️' : ((code >= 1 && code <= 3) ? '⛅' : '☀️');
         let isRaining = (code >= 51 && code <= 77);
 
-        // 2. 미세먼지 파싱 (에어코리아 데이터)
-        let aqiText = '보통'; let isBadAir = false; 
-        if (dustData.response && dustData.response.body && dustData.response.body.items) {
-            const items = dustData.response.body.items;
-            let totalPm10 = 0, validCount10 = 0;
-            let totalPm25 = 0, validCount25 = 0;
-            
-            items.forEach(item => {
-                if (item.pm10Value && item.pm10Value !== '-') { totalPm10 += parseInt(item.pm10Value); validCount10++; }
-                if (item.pm25Value && item.pm25Value !== '-') { totalPm25 += parseInt(item.pm25Value); validCount25++; }
-            });
-
-            let avgPm10 = validCount10 > 0 ? (totalPm10 / validCount10) : 0;
-            let avgPm25 = validCount25 > 0 ? (totalPm25 / validCount25) : 0;
-
-            if (avgPm10 > 150 || avgPm25 > 75) { aqiText = '매우나쁨'; isBadAir = true; } 
-            else if (avgPm10 > 80 || avgPm25 > 35) { aqiText = '나쁨'; isBadAir = true; } 
-            else if (avgPm10 > 30 || avgPm25 > 15) { aqiText = '보통'; }
-            else { aqiText = '좋음'; }
-        }
+        // 🔥 프론트엔드는 더이상 무거운 연산을 하지 않고, 백엔드 결과값을 바로 사용합니다.
+        let aqiText = dustData.aqiText || '보통'; 
+        let isBadAir = dustData.isBadAir || false;
         
         lastWeatherLat = lat; lastWeatherLng = lng;
 
-        // 🔥 요청하신 네이버 날씨 및 대기질 페이지 URL
         let weatherUrl = `https://weather.naver.com/`;
         let dustUrl = `https://weather.naver.com/air/`;
         
-        // 상단 우측 날씨 정보 업데이트 (클릭 링크 적용)
         const wInfo = document.getElementById('weather-info');
         if (wInfo) {
             wInfo.innerHTML = `
@@ -381,7 +363,6 @@ async function fetchWeather(lat, lng) {
             wInfo.style.display = 'flex';
         }
 
-        // 하단 추천 배너 업데이트 (클릭 링크 적용)
         const sugEl = document.getElementById('weather-suggestion');
         if (sugEl) {
             let aiText = (isBadAir || isRaining) ? 
@@ -425,6 +406,7 @@ async function fetchWeather(lat, lng) {
             }, 100);
         }
     } catch(e) {
+        console.error(e);
         const wInfo = document.getElementById('weather-info');
         if (wInfo) wInfo.innerHTML = `⛅ --°C | 😐 보통`;
     }
